@@ -1,0 +1,1182 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <meta name="theme-color" content="#0F172A">
+  <title>SmartWelf 5.0 | ศูนย์จัดการกองทุนส่วนกลาง (แอดมิน)</title>
+  
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Prompt:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  
+  <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+  <script src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+  <script src="https://maps.googleapis.com/maps/api/js?key=AIzaSyD3QY1t2cY8gB_w_ZtSGqidVi65JBEVZIUs&libraries=visualization"></script>
+
+  <!-- โหลด Firebase -->
+  <script src="https://www.gstatic.com/firebasejs/10.8.1/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.8.1/firebase-auth-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.8.1/firebase-firestore-compat.js"></script>
+  
+  <style>
+    :root { 
+        --primary-dark: #0F172A; --primary-main: #2563EB; --success-main: #10B981; 
+        --danger-main: #EF4444; --warning-main: #F59E0B; --bg-light: #F8FAFC; 
+        --bottom-nav-height: 75px; --text-muted: #64748B; --card-border: #E2E8F0;
+    }
+    body { background-color: var(--bg-light); font-family: 'Prompt', sans-serif; -webkit-tap-highlight-color: transparent; overflow-x: hidden; }
+    
+    .icon-box { width: 42px; height: 42px; border-radius: 14px; display: flex; justify-content: center; align-items: center; font-size: 1.1rem; }
+    .form-control-modern, .form-select-modern { background-color: #F1F5F9; border: 2px solid transparent; border-radius: 16px; padding: 0.75rem 1.2rem; font-weight: 500; color: #334155; transition: 0.3s; }
+    .form-control-modern:focus, .form-select-modern:focus { background-color: #ffffff; border-color: var(--primary-main); box-shadow: 0 0 0 4px rgba(37, 99, 235, 0.1) !important; }
+    
+    #loginGate { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: var(--primary-dark); color: white; z-index: 9998; display: flex; flex-direction: column; align-items: center; justify-content: center; overflow-y: auto;}
+    .login-box { background: rgba(255,255,255,0.05); backdrop-filter: blur(15px); padding: 30px; border-radius: 24px; text-align: center; border: 1px solid rgba(255,255,255,0.1); width: 90%; max-width: 400px; box-shadow: 0 25px 50px -12px rgba(0,0,0,0.5); }
+    .login-tabs { display: flex; background: rgba(0,0,0,0.2); border-radius: 12px; margin-bottom: 20px; overflow: hidden; }
+    .login-tab { flex: 1; padding: 10px; cursor: pointer; font-size: 0.85rem; font-weight: 600; color: rgba(255,255,255,0.5); transition: 0.3s; }
+    .login-tab.active { background: var(--primary-main); color: white; }
+    
+    .numpad { display: grid; grid-template-columns: repeat(3, 1fr); gap: 15px; max-width: 250px; margin: 0 auto; }
+    .num-btn { width: 60px; height: 60px; border-radius: 50%; background: rgba(255,255,255,0.1); border: none; color: white; font-size: 1.5rem; font-weight: 600; display: flex; justify-content: center; align-items: center; cursor: pointer; transition: 0.1s; }
+    .num-btn:active { background: rgba(255,255,255,0.3); transform: scale(0.9); }
+
+    .app-header-admin { background: var(--primary-dark); background-image: radial-gradient(circle at top right, #1E293B 0%, transparent 60%); color: white; position: fixed; top: 0; width: 100%; height: 68px; z-index: 1030; display: flex; align-items: center; justify-content: space-between; padding: 0 20px; box-shadow: 0 4px 20px rgba(0,0,0,0.1); }
+    #adminApp { padding-top: 70px; padding-bottom: 95px; }
+    
+    .bottom-nav { position: fixed; bottom: 0; width: 100%; height: var(--bottom-nav-height); background: rgba(255,255,255,0.95); backdrop-filter: blur(10px); display: flex; justify-content: space-around; align-items: center; box-shadow: 0 -4px 25px rgba(0,0,0,0.06); z-index: 1030; border-top-left-radius: 24px; border-top-right-radius: 24px; }
+    .nav-item { flex: 1; text-align: center; color: var(--text-muted); font-size: 0.65rem; font-weight: 600; background: none; border: none; position: relative; transition: 0.3s; }
+    .nav-item.active { color: var(--primary-main); transform: translateY(-3px); }
+    .nav-item i { font-size: 1.3rem; display: block; margin-bottom: 4px; }
+    .nav-badge { position: absolute; top: 2px; left: calc(50% + 5px); width: 12px; height: 12px; background-color: var(--danger-main); border-radius: 50%; border: 2px solid white; display: none; }
+    
+    .admin-card { background: white; border-radius: 20px; padding: 1.2rem; box-shadow: 0 4px 20px rgba(0,0,0,0.03); border: 1px solid var(--card-border); margin-bottom: 12px; transition: transform 0.2s; }
+    .admin-card-hover:active { transform: scale(0.98); }
+    .cursor-pointer { cursor: pointer; }
+    
+    .wallet-card { background: linear-gradient(135deg, #0F172A 0%, #1E293B 100%); border-radius: 24px; padding: 24px; color: white; box-shadow: 0 20px 25px -5px rgba(15, 23, 42, 0.4), 0 8px 10px -6px rgba(15, 23, 42, 0.2); position: relative; overflow: hidden; border: 1px solid rgba(255,255,255,0.1); z-index: 1; margin-bottom: 1.5rem;}
+    .wallet-card::before { content: ''; position: absolute; top: -50px; right: -30px; width: 150px; height: 150px; background: linear-gradient(135deg, rgba(37,99,235,0.4) 0%, rgba(16,185,129,0.4) 100%); border-radius: 50%; filter: blur(30px); z-index: -1; }
+    .wallet-card::after { content: ''; position: absolute; bottom: -30px; left: -20px; width: 100px; height: 100px; background: linear-gradient(135deg, rgba(245,158,11,0.2) 0%, rgba(239,68,68,0.2) 100%); border-radius: 50%; filter: blur(20px); z-index: -1; }
+
+    #systemLoading { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(255, 255, 255, 0.95); z-index: 9999; display: flex; flex-direction: column; justify-content: center; align-items: center; backdrop-filter: blur(10px); }
+    .loading-container { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 15px; }
+    .sw-logo-svg { width: 180px; height: auto; filter: drop-shadow(0 14px 18px rgba(5,150,105,.14)); }
+    .sw-depth path { fill: #064E3B; transform: translate(3px, 6px); }
+    .sw-face path { fill: url(#smartwelfGradient); }
+    .sw-energy-path { fill: none; stroke: #6EE7B7; stroke-width: 5; stroke-linecap: round; stroke-dasharray: 72 928; stroke-dashoffset: 1000; animation: swEnergyRun 2.15s linear 1.2s infinite; }
+    @keyframes swEnergyRun { 0% { stroke-dashoffset: 928; } 100% { stroke-dashoffset: -72; } }
+    .loading-text-glow { font-size: 1.5rem; font-weight: 700; margin: 0; background: linear-gradient(90deg, #059669, #2563EB); -webkit-background-clip: text; -webkit-text-fill-color: transparent; animation: pulseTextGlow 1.5s ease-in-out infinite; }
+    @keyframes pulseTextGlow { 0% { opacity: 0.6; transform: scale(0.98); } 50% { opacity: 1; transform: scale(1); } 100% { opacity: 0.6; transform: scale(0.98); } }
+
+    .member-row { position: relative; overflow: hidden; transition: all 0.2s ease; }
+    .member-checkbox-wrapper, .member-avatar-wrapper { position: relative; z-index: 10; }
+    .input-overlay { position: absolute; top: 0; right: -100%; bottom: 0; width: calc(100% - 90px); background: linear-gradient(90deg, rgba(255,255,255,0.85) 0%, rgba(255,255,255,1) 15%); backdrop-filter: blur(2px); z-index: 5; transition: right 0.3s cubic-bezier(0.4, 0, 0.2, 1); }
+    .member-row.show-input .input-overlay { right: 0; }
+    .amount-badge-wrapper { cursor: pointer; }
+
+    .tab-btn-ledger { width: 50%; padding: 0.7rem; text-align: center; border-radius: 1rem; border: none; background: transparent; font-weight: 600; color: var(--text-muted); transition: 0.3s; font-size: 0.85rem; }
+    .tab-btn-ledger.active { background: white; color: var(--primary-main); box-shadow: 0 4px 15px rgba(0,0,0,0.05); }
+    
+    #receiptHistoryContainer::-webkit-scrollbar { display: none; }
+    #receiptHistoryContainer { -ms-overflow-style: none; scrollbar-width: none; }
+
+    @keyframes blinkWarning { 0% { opacity: 1; } 50% { opacity: 0.6; } 100% { opacity: 1; } }
+    .blink-anim { animation: blinkWarning 1.5s infinite; }
+  </style>
+</head>
+<body>
+ 
+<!-- ==========================================
+     [3] SYSTEM LOADER (3D Animated SVG)
+=========================================== -->
+<div id="systemLoading">
+    <div class="loading-container">
+        <svg class="sw-logo-svg" viewBox="0 0 500 200" xmlns="http://www.w3.org/2000/svg">
+            <defs>
+                <linearGradient id="smartwelfGradient" x1="0%" y1="100%" x2="100%" y2="0%">
+                    <stop offset="0%" stop-color="#059669" />
+                    <stop offset="100%" stop-color="#2563EB" />
+                </linearGradient>
+            </defs>
+            <g class="sw-depth">
+                <circle cx="100" cy="100" r="60" />
+                <rect x="180" y="70" width="200" height="60" rx="15" />
+            </g>
+            <g class="sw-face">
+                <circle cx="100" cy="100" r="60" />
+                <rect x="180" y="70" width="200" height="60" rx="15" />
+            </g>
+            <g>
+                <circle class="sw-energy-path" cx="100" cy="100" r="60" pathLength="1000" />
+            </g>
+        </svg>
+        <p class="loading-text-glow text-center">SmartWelf 5.0</p>
+        <p id="systemLoadingText" class="text-muted fw-bold small mt-1 text-center">กำลังเชื่อมต่อระบบ...</p>
+    </div>
+</div>
+
+<!-- ==========================================
+     [4] ADMIN LOGIN GATE (ระบบล็อกอินเดิม ปลอดภัย 100%)
+=========================================== -->
+<div id="loginGate" style="display: none;">
+  <div class="login-box">
+    <div class="bg-white bg-opacity-10 rounded-circle d-inline-flex p-3 mb-3"><i class="fa-solid fa-shield-halved fa-3x text-success"></i></div>
+    <h5 class="fw-bold">SmartWelf 5.0</h5>
+    <p class="text-white-50 small mb-4">เข้าสู่ระบบการจัดการองค์กร</p>
+
+    <div class="login-tabs">
+      <div class="login-tab active" id="tabEmail" onclick="switchLoginMode('email')">อีเมล / รหัสผ่าน</div>
+      <div class="login-tab" id="tabPin" onclick="switchLoginMode('pin')">รหัส PIN 6 หลัก</div>
+    </div>
+    
+    <div id="emailLoginSection">
+      <input type="email" id="adminEmail" class="form-control bg-white bg-opacity-10 border-0 text-white rounded-4 py-3 mb-2 text-center" placeholder="อีเมลผู้ดูแลระบบ">
+      <input type="password" id="adminPass" class="form-control bg-white bg-opacity-10 border-0 text-white rounded-4 py-3 mb-1 text-center" placeholder="รหัสผ่าน">
+      <div class="text-end mb-3 px-2">
+          <a href="#" onclick="forgotAdminPassword()" class="small text-white-50 text-decoration-none"><i class="fa-solid fa-key me-1"></i>ลืมรหัสผ่าน/PIN?</a>
+      </div>
+      <button onclick="handleAdminLogin()" class="btn btn-primary w-100 rounded-pill fw-bold py-3 mb-4 shadow">เข้าสู่ระบบ</button>
+      <div class="position-relative mb-4"><hr class="border-secondary"><span class="position-absolute top-50 start-50 translate-middle px-3 small text-white-50" style="background: #111a2f;">หรือเข้าใช้งานด้วย</span></div>
+      <button onclick="forceLiffLogin()" class="btn btn-success w-100 rounded-pill fw-bold py-3" style="background: #00C300; border: none;"><i class="fa-brands fa-line fs-5 me-2"></i> เข้าสู่ระบบด้วย LINE ทันที</button>
+    </div>
+
+    <div id="pinLoginSection" style="display: none;">
+      <p class="small text-white-50 mb-3">กรุณากดรหัส PIN 6 หลักของคุณ</p>
+      <div class="d-flex justify-content-center gap-2 mb-4" id="pinDisplay">
+        <div class="pin-dot"></div><div class="pin-dot"></div><div class="pin-dot"></div>
+        <div class="pin-dot"></div><div class="pin-dot"></div><div class="pin-dot"></div>
+      </div>
+      <div class="numpad">
+        <button class="num-btn" onclick="pressPin(1)">1</button><button class="num-btn" onclick="pressPin(2)">2</button><button class="num-btn" onclick="pressPin(3)">3</button>
+        <button class="num-btn" onclick="pressPin(4)">4</button><button class="num-btn" onclick="pressPin(5)">5</button><button class="num-btn" onclick="pressPin(6)">6</button>
+        <button class="num-btn" onclick="pressPin(7)">7</button><button class="num-btn" onclick="pressPin(8)">8</button><button class="num-btn" onclick="pressPin(9)">9</button>
+        <div></div><button class="num-btn" onclick="pressPin(0)">0</button><button class="num-btn text-danger" onclick="deletePin()"><i class="fa-solid fa-delete-left"></i></button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ==========================================
+     [5] ADMIN APPLICATION WORKSPACE (โครงสร้างระบบแอดมิน)
+=========================================== -->
+<div id="adminApp" style="display: none;">
+  <!-- Header -->
+  <div class="app-header-admin">
+    <div class="d-flex align-items-center gap-2">
+      <div class="bg-primary bg-opacity-25 text-primary rounded-circle d-flex justify-content-center align-items-center" style="width: 38px; height: 38px;"><i class="fa-solid fa-shield-halved"></i></div>
+      <div>
+        <h6 class="fw-bold mb-0 text-white" style="font-size: 0.95rem;">SmartWelf <span class="text-warning">5.0</span></h6>
+        <small class="text-white-50 d-block text-truncate" id="adminNameDisplay" style="font-size:0.65rem; max-width: 150px;"></small>
+      </div>
+    </div>
+    <button onclick="logoutApp()" class="btn btn-sm btn-danger rounded-pill px-3 py-1 text-white" style="font-size: 0.7rem;"><i class="fa-solid fa-power-off me-1"></i> ออก</button>
+  </div>
+
+  <!-- Bottom Nav -->
+  <nav class="bottom-nav" id="bottomNav">
+    <button class="nav-item active" id="nav-overview" onclick="switchAdminTab('admin-view-overview', this); loadDashboardOverview();"><i class="fa-solid fa-chart-pie"></i> ภาพรวม</button>
+    <button class="nav-item" id="nav-members" onclick="switchAdminTab('admin-view-members', this); loadMembersData();"><i class="fa-solid fa-users"></i> สมาชิก</button>
+    <button class="nav-item" id="nav-ledger" onclick="switchAdminTab('admin-view-ledger', this); loadLedgerData();">
+      <i class="fa-solid fa-wallet"></i><span class="nav-badge" id="nav-badge-ledger"></span> การเงิน
+    </button>
+    <button class="nav-item" id="nav-claims" onclick="switchAdminTab('admin-view-claims', this); loadClaims();">
+      <i class="fa-solid fa-hand-holding-medical"></i><span class="nav-badge" id="nav-badge-claims"></span> สวัสดิการ
+    </button>
+    <button class="nav-item" id="nav-menu" data-bs-toggle="offcanvas" data-bs-target="#menuOffcanvas"><i class="fa-solid fa-bars"></i> เมนู</button>
+  </nav>
+
+  <!-- Offcanvas Menu -->
+  <div class="offcanvas offcanvas-bottom rounded-top-4" tabindex="-1" id="menuOffcanvas">
+    <div class="offcanvas-header pb-2 border-bottom border-light">
+      <h6 class="fw-bold mb-0">จัดการระบบส่วนกลาง</h6>
+      <button type="button" class="btn-close" data-bs-dismiss="offcanvas"></button>
+    </div>
+    <div class="offcanvas-body px-3 pt-3">
+      <div class="d-flex flex-column gap-2">
+        <button id="btn-menu-settings" class="admin-card admin-card-hover border-0 text-start w-100 d-flex align-items-center mb-0 p-3" onclick="closeMenuAndSwitchTab('admin-view-settings'); loadGlobalSettings();">
+          <div class="icon-box bg-secondary bg-opacity-10 text-secondary me-3"><i class="fa-solid fa-gear"></i></div> <span class="fw-bold text-dark">ตั้งค่าระบบ (Global)</span>
+        </button>
+        <button id="btn-menu-gis" class="admin-card admin-card-hover border-0 text-start w-100 d-flex align-items-center mb-0 p-3" onclick="closeMenuAndSwitchTab('admin-view-gis'); loadGISMap();">
+          <div class="icon-box bg-primary bg-opacity-10 text-primary me-3"><i class="fa-solid fa-map-location-dot"></i></div> <span class="fw-bold text-dark">แผนที่พิกัดสมาชิก (GIS)</span>
+        </button>
+        <button id="btn-menu-rules" class="admin-card admin-card-hover border-0 text-start w-100 d-flex align-items-center mb-0 p-3" onclick="closeMenuAndSwitchTab('admin-view-rules'); loadRulesData();">
+          <div class="icon-box bg-warning bg-opacity-10 text-warning me-3"><i class="fa-solid fa-scale-balanced"></i></div> <span class="fw-bold text-dark">ระเบียบจ่ายสวัสดิการ</span>
+        </button>
+        <!-- เมนูจัดการร้านค้าและข่าวสาร -->
+        <button id="btn-menu-shops" class="admin-card admin-card-hover border-0 text-start w-100 d-flex align-items-center mb-0 p-3" onclick="closeMenuAndSwitchTab('admin-view-shops'); loadAdminShops();">
+          <div class="icon-box bg-success bg-opacity-10 text-success me-3"><i class="fa-solid fa-store"></i></div> <span class="fw-bold text-dark">จัดการร้านค้าสวัสดิการ</span>
+        </button>
+        <button id="btn-menu-news" class="admin-card admin-card-hover border-0 text-start w-100 d-flex align-items-center mb-0 p-3" onclick="closeMenuAndSwitchTab('admin-view-news'); loadAdminNews();">
+          <div class="icon-box bg-primary bg-opacity-10 text-primary me-3"><i class="fa-solid fa-bullhorn"></i></div> <span class="fw-bold text-dark">ประกาศข่าวสารชุมชน</span>
+        </button>
+        <button id="btn-menu-admins" class="admin-card admin-card-hover border-0 text-start w-100 d-flex align-items-center mb-0 p-3" onclick="closeMenuAndSwitchTab('admin-view-admins'); loadAdminsData();">
+          <div class="icon-box bg-info bg-opacity-10 text-info me-3"><i class="fa-solid fa-user-shield"></i></div> <span class="fw-bold text-dark">ผู้ดูแลระบบ (Admins)</span>
+        </button>
+        
+        <button id="btn-menu-bank" class="admin-card admin-card-hover border-0 text-start w-100 d-flex align-items-center mb-0 p-3" onclick="closeMenuAndSwitchTab('admin-view-bank');">
+          <div class="icon-box bg-success bg-opacity-10 text-success me-3"><i class="fa-solid fa-building-columns"></i></div> <span class="fw-bold text-dark">จัดการบัญชีธนาคาร</span>
+        </button>
+        <button id="btn-menu-connection" class="admin-card admin-card-hover border-0 text-start w-100 d-flex align-items-center mb-0 p-3" onclick="closeMenuAndSwitchTab('admin-view-connection');">
+          <div class="icon-box bg-primary bg-opacity-10 text-primary me-3"><i class="fa-solid fa-link"></i></div> <span class="fw-bold text-dark">ตั้งค่าและการเชื่อมต่อบัญชี</span>
+        </button>
+        <button id="btn-menu-privacy" class="admin-card admin-card-hover border-0 text-start w-100 d-flex align-items-center mb-0 p-3" onclick="closeMenuAndSwitchTab('admin-view-privacy');">
+          <div class="icon-box bg-danger bg-opacity-10 text-danger me-3"><i class="fa-solid fa-shield-halved"></i></div> <span class="fw-bold text-dark">ความเป็นส่วนตัวและความปลอดภัย</span>
+        </button>
+        <button id="btn-menu-support" class="admin-card admin-card-hover border-0 text-start w-100 d-flex align-items-center mb-0 p-3" onclick="closeMenuAndSwitchTab('admin-view-support');">
+          <div class="icon-box bg-secondary bg-opacity-10 text-secondary me-3"><i class="fa-solid fa-circle-info"></i></div> <span class="fw-bold text-dark">การใช้งานทั่วไป</span>
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <div class="container-fluid pt-2" style="max-width: 800px; margin: 0 auto;">
+    
+
+  <!-- 📊 ADMIN TAB: ภาพรวมการเงิน (Modern UI) -->
+    <div class="admin-tab-pane d-none" id="admin-view-overview">
+      <div class="wallet-card">
+        <div class="d-flex justify-content-between mb-2 align-items-center position-relative" style="z-index: 2;">
+          <span class="text-white-50 small fw-bold"><i class="fa-solid fa-wallet me-1"></i> ยอดเงินกองทุนสวัสดิการชุมชน</span>
+          <i class="fa-solid fa-building-columns text-white-50 fs-5"></i>
+        </div>
+        <h1 class="fw-bold mb-1 text-white position-relative" style="z-index: 2; font-size: 2.5rem;">
+          <span style="font-size:1.2rem; font-weight:normal; opacity: 0.8;">THB</span> <span id="cap-total">0.00</span>
+        </h1>
+        <div class="d-flex justify-content-between small pt-3 position-relative mt-4" style="border-top: 1px solid rgba(255,255,255,0.15); z-index: 2;">
+          <span class="text-white-50"><i class="fa-solid fa-user-shield me-1"></i> CWF-ADMIN</span>
+          <span class="text-white-50"><i class="fa-solid fa-bolt text-warning me-1"></i> อัปเดตแบบ Real-time</span>
+        </div>
+      </div>
+
+      <div class="admin-card border-0 p-4 mb-4 shadow-sm rounded-4 bg-white">
+    <!-- Header -->
+    <div class="d-flex justify-content-between mb-3 align-items-center">
+        <h6 class="fw-bold text-dark mb-0">
+            <i class="fa-solid fa-wallet text-primary me-2 fs-5"></i>กระแสเงินสด รับ-จ่าย และหนี้สิน
+        </h6>
+    </div>
+
+    <!-- ส่วนที่ 1: สรุปข้อมูลรับ-จ่ายเชิงลึก (ยุบรวมมาใส่ที่นี่) -->
+    <div class="row g-3 mb-3">
+        <div class="col-6">
+            <div class="border border-opacity-50 rounded-3 p-3 bg-light bg-opacity-50 h-100">
+                <div class="d-flex align-items-center mb-2">
+                    <div class="d-flex justify-content-center align-items-center bg-success bg-opacity-10 text-success rounded-circle me-2" style="width: 28px; height: 28px;">
+                        <i class="fa-solid fa-arrow-turn-down" style="font-size: 0.7rem;"></i>
+                    </div>
+                    <small class="text-muted fw-bold" style="font-size: 0.75rem;">รายรับรวม</small>
+                </div>
+                <h5 class="fw-bold text-dark mb-0 text-truncate" id="stat-total-in">฿0.00</h5>
+            </div>
+        </div>
+        <div class="col-6">
+            <div class="border border-opacity-50 rounded-3 p-3 bg-light bg-opacity-50 h-100">
+                <div class="d-flex align-items-center mb-2">
+                    <div class="d-flex justify-content-center align-items-center bg-danger bg-opacity-10 text-danger rounded-circle me-2" style="width: 28px; height: 28px;">
+                        <i class="fa-solid fa-arrow-turn-up" style="font-size: 0.7rem;"></i>
+                    </div>
+                    <small class="text-muted fw-bold" style="font-size: 0.75rem;">จ่ายสวัสดิการ</small>
+                </div>
+                <h5 class="fw-bold text-dark mb-0 text-truncate" id="stat-total-out">฿0.00</h5>
+            </div>
+        </div>
+    </div>
+
+    <!-- ส่วนที่ 2: ยอดคงเหลือสภาพคล่อง -->
+    <div class="row g-2 mt-2 pt-3" style="border-top: 1px dashed #E2E8F0;">
+        <div class="col-4 text-center">
+            <small class="text-muted fw-bold d-block mb-1" style="font-size: 0.65rem;">คงเหลือทั้งหมด</small>
+            <strong class="text-dark fs-4" id="chart-sum-total">฿0.00</strong>
+        </div>
+        <div class="col-4 text-center border-start">
+            <small class="text-muted fw-bold d-block mb-1" style="font-size: 0.65rem;">ธนาคาร</small>
+            <strong class="text-primary fs-5" id="liq-bank">฿0.00</strong>
+        </div>
+        <div class="col-4 text-center border-start">
+            <small class="text-muted fw-bold d-block mb-1" style="font-size: 0.65rem;">เงินสด</small>
+            <strong class="text-success fs-5" id="liq-cash">฿0.00</strong>
+        </div>
+    </div>
+
+    <!-- ส่วนที่ 3: ยอดลูกหนี้ค้างชำระ -->
+    <div class="row mt-3">
+        <div class="col-12">
+            <div class="border-0 bg-danger bg-opacity-10 border border-danger border-opacity-25 rounded-3 p-3 d-flex justify-content-between align-items-center">
+                <div class="d-flex align-items-center">
+                    <div class="icon-box bg-white text-danger shadow-sm me-3 d-flex justify-content-center align-items-center rounded-circle" style="width: 40px; height: 40px;">
+                        <i class="fa-solid fa-triangle-exclamation"></i>
+                    </div>
+                    <div>
+                        <small class="text-danger fw-bold d-block" style="font-size: 0.75rem;">ยอดสมทบค้างชำระ (ลูกหนี้)</small>
+                        <h5 class="fw-bold text-danger mb-0 mt-1" id="stat-total-debt">฿0.00</h5>
+                    </div>
+                </div>
+                <button class="btn btn-sm btn-danger rounded-pill px-3 shadow-sm" onclick="switchAdminTab('admin-view-members', document.getElementById('nav-members'))">ติดตาม</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+      <div class="d-flex justify-content-between align-items-center mb-3 mt-4 ps-1">
+    <div class="d-flex align-items-center">
+        <i class="fa-solid fa-radar text-danger fs-5 me-2 blink-anim"></i>
+        <h6 class="fw-bold text-dark mb-0">เรดาร์เงินค้างส่ง (อยู่ที่ใครบ้าง?)</h6>
+    </div>
+</div>
+
+<!-- ปรับ Container ให้เป็นแนวนอน (Horizontal Scroll) -->
+<div id="holderRadarContainer" class="d-flex flex-nowrap overflow-x-auto gap-2 pb-2 mb-4 horizontal-scroll-container">
+    <!-- ข้อมูลที่จะถูก Inject ผ่าน JS จะมาอยู่ในนี้ -->
+</div>
+
+      <div class="admin-card border-0 p-4 mb-4 shadow-sm rounded-4 bg-white">
+          <div class="d-flex justify-content-between align-items-end mb-3">
+              <div>
+                  <h6 class="fw-bold text-dark mb-1"><i class="fa-solid fa-users text-primary me-2"></i>ข้อมูลฐานสมาชิก</h6>
+                  <small class="text-muted" style="font-size: 0.75rem;">เป้าหมายชุมชน: <strong id="eq-population">20k</strong> คน</small>
+              </div>
+              <div class="text-end">
+                  <h3 class="text-success fw-bold mb-0" id="eq-active">0</h3>
+                  <span class="badge bg-success bg-opacity-10 text-success rounded-pill mt-1" style="font-size: 0.7rem;">สัดส่วน <span id="eq-percent-active">0</span>%</span>
+              </div>
+          </div>
+          <div class="progress bg-light" style="height: 10px; border-radius: 10px;">
+              <div id="eq-progress-bar" class="progress-bar bg-success progress-bar-striped progress-bar-animated" role="progressbar" style="width: 0%;" aria-valuenow="0" aria-valuemin="0" aria-valuemax="100"></div>
+          </div>
+      </div>
+
+      <div class="admin-card border-0 p-4 mb-4 shadow-sm rounded-4">
+        <div class="d-flex align-items-center mb-3">
+            <div class="d-flex justify-content-center align-items-center bg-info bg-opacity-10 text-info rounded-circle me-2" style="width: 28px; height: 28px;"><i class="fa-solid fa-coins"></i></div>
+            <h6 class="fw-bold text-dark mb-0">โครงสร้างทุนสะสม</h6>
+        </div>
+        <div class="chart-container" style="height: 200px;"><canvas id="doughnutChart"></canvas></div>
+      </div>
+
+      <div id="overviewChartArea">
+          <div id="sharedTrendChart" class="admin-card border-0 p-4 mb-4 shadow-sm rounded-4" style="display: block;">
+              <div class="d-flex justify-content-between align-items-center mb-4">
+                  <div class="d-flex align-items-center">
+                      <div class="d-flex justify-content-center align-items-center bg-primary bg-opacity-10 text-primary rounded-circle me-2" style="width: 28px; height: 28px;"><i class="fa-solid fa-chart-line"></i></div>
+                      <h6 class="fw-bold text-dark mb-0">สถิติกระแสเงินสด</h6>
+                  </div>
+                  <select id="trendFilter" class="form-select-modern bg-light border-0 py-1 px-3 text-primary fw-bold" style="font-size:0.8rem; width: auto; border-radius: 20px;" onchange="renderTrendChart()">
+                      <option value="6months" selected>6 เดือน</option><option value="thisYear">ปีปัจจุบัน</option><option value="fiscal">ปีงบประมาณ</option><option value="allYears">รายปี</option>
+                  </select>
+              </div>
+              <div class="chart-container" style="height: 250px; width: 100%;"><canvas id="trendChart"></canvas></div>
+          </div>
+      </div>
+    </div>
+
+    <!-- 👥 ADMIN TAB: ทะเบียนสมาชิก -->
+    <div class="admin-tab-pane d-none" id="admin-view-members">
+      <div class="d-flex justify-content-between align-items-center mb-3 px-1">
+        <h5 class="fw-bold text-dark mb-0">ทะเบียนสมาชิก</h5>
+        <div class="d-flex gap-2">
+            <button class="btn btn-sm btn-success rounded-pill px-3 py-2 fw-bold shadow-sm" onclick="bulkCollectContribution()"><i class="fa-solid fa-coins"></i> เก็บเงินกลุ่ม</button>
+            <button id="btn-add-member" class="btn btn-sm btn-primary rounded-pill px-3 py-2 fw-bold shadow-sm" onclick="openAdminRegisterModal()"><i class="fa-solid fa-plus"></i> เพิ่มสมาชิก</button>
+        </div>
+      </div>
+      
+      <div id="pendingLinkAlert" class="admin-card border-0 bg-primary bg-opacity-10 mb-3" style="display:none;">
+          <div class="d-flex justify-content-between align-items-center">
+              <div class="d-flex align-items-center gap-3">
+                  <div class="icon-box bg-primary text-white shadow-sm"><i class="fa-brands fa-line"></i></div>
+                  <div><h6 class="fw-bold text-dark mb-0" style="font-size: 0.9rem;">คำขอผูกบัญชี LINE</h6><small class="text-muted" style="font-size: 0.75rem;">รอการยืนยัน <span id="linkRequestCount" class="text-danger fw-bold">0</span> รายการ</small></div>
+              </div>
+              <button class="btn btn-sm btn-primary rounded-pill px-3 shadow-sm" onclick="showPendingLinksModal()">ตรวจสอบ</button>
+          </div>
+      </div>
+
+      <!-- ส่วนกรองข้อมูลสมาชิก -->
+      <div class="position-sticky pb-2" style="background-color: var(--bg-light); top: 68px; z-index: 10;">
+        <div class="admin-card p-2 m-0 border-0 d-flex align-items-center gap-2">
+            <div class="d-flex align-items-center flex-grow-1">
+                <i class="fa-solid fa-magnifying-glass text-muted ms-2 me-2"></i>
+                <input type="text" id="searchMemberInput" class="form-control border-0 shadow-none bg-transparent px-0" placeholder="ค้นหาชื่อ, รหัส, เลข ปชช..." onkeyup="filterMembersLocally()">
+            </div>
+            <div class="dropdown">
+                <button class="btn btn-light rounded-circle shadow-sm border p-2 d-flex align-items-center justify-content-center text-muted" type="button" data-bs-toggle="dropdown" aria-expanded="false" data-bs-auto-close="outside" style="width: 40px; height: 40px;">
+                    <i class="fa-solid fa-filter"></i>
+                </button>
+                <div class="dropdown-menu dropdown-menu-end p-3 border-0 shadow-lg rounded-3" style="min-width: 260px;">
+    <h6 class="fw-bold text-dark mb-3">ตัวกรองข้อมูลสมาชิก</h6>
+    
+    <!-- ศูนย์ประสานงาน -->
+    <div class="mb-2">
+        <label class="form-label small text-muted mb-1"><i class="fa-solid fa-building me-1"></i> ศูนย์ประสานงาน</label>
+        <select id="filterCenter" class="form-select form-select-sm shadow-none" onchange="filterMembersLocally()">
+            <option value="">ทั้งหมด</option>
+        </select>
+    </div>
+    
+    <!-- ผู้ดูแล -->
+    <div class="mb-2">
+        <label class="form-label small text-muted mb-1"><i class="fa-solid fa-user-tie me-1"></i> ผู้ดูแล</label>
+        <select id="filterAdmin" class="form-select form-select-sm shadow-none" onchange="filterMembersLocally()">
+            <option value="">ทั้งหมด</option>
+        </select>
+    </div>
+    
+    <!-- ประเภทสมาชิก -->
+    <div class="mb-2">
+        <label class="form-label small text-muted mb-1"><i class="fa-solid fa-id-card me-1"></i> ประเภทสมาชิก</label>
+        <select id="filterType" class="form-select form-select-sm shadow-none" onchange="filterMembersLocally()">
+            <option value="">ทั้งหมด</option>
+        </select>
+    </div>
+
+    <!-- อายุการเป็นสมาชิก -->
+    <div class="mb-2">
+        <label class="form-label small text-muted mb-1"><i class="fa-solid fa-clock-rotate-left me-1"></i> อายุสมาชิก</label>
+        <select id="filterAge" class="form-select form-select-sm shadow-none border-primary" onchange="filterMembersLocally()">
+            <option value="">ทั้งหมด</option>
+            <option value="over1year">ครบ 1 ปีขึ้นไป</option>
+            <option value="under1year">ไม่ถึง 1 ปี</option>
+        </select>
+    </div>
+
+    <!-- ความเปราะบาง -->
+    <div class="mb-1">
+        <label class="form-label small text-muted mb-1"><i class="fa-solid fa-wheelchair me-1"></i> กลุ่มเปราะบาง</label>
+        <select id="filterVulnerable" class="form-select form-select-sm shadow-none border-danger border-opacity-50" onchange="filterMembersLocally()">
+            <option value="">ทั้งหมด</option>
+            <option value="ปกติ">ไม่มีความเปราะบาง (ปกติ)</option>
+        </select>
+    </div>
+</div>
+            </div>
+        </div>
+      </div>
+      
+      <div id="list-members" class="mt-3">กำลังโหลด...</div>
+    </div>
+
+    <!-- 💳 ADMIN TAB: การเงิน & บัญชี (Ledger & Transactions) -->
+    <div class="admin-tab-pane d-none" id="admin-view-ledger">
+      
+      <div class="d-flex justify-content-between align-items-center mb-3 px-2 mt-2">
+          <h5 class="fw-bold text-dark mb-0">ระบบการเงินส่วนกลาง</h5>
+          <!-- 🌟 ปุ่มยืนยันยอดเข้ากองทุน (โผล่มาเฉพาะเมื่อมียอดค้าง) -->
+          <div id="financeApproveBtnBox" style="display: none;">
+              <button onclick="approveFundsToCentralBank()" class="btn btn-sm btn-success rounded-pill fw-bold shadow-sm px-3">
+                  <i class="fa-solid fa-building-columns me-1"></i> ยืนยันยอดเข้าคลัง
+              </button>
+          </div>
+      </div>
+
+      <!-- 🌟 เมนูด่วน (Quick Actions) เลื่อนซ้ายขวาได้ -->
+      <div class="quick-actions-scroll-container px-2 mb-4">
+          <div class="d-flex flex-nowrap gap-3 pb-2 overflow-auto" style="-webkit-overflow-scrolling: touch; scrollbar-width: none;">
+              
+              <!-- 1. สแกนรับเงิน -->
+              <div class="text-center flex-shrink-0 cursor-pointer" onclick="scanToReceiveAdminFunds()" style="width: 70px;">
+                  <div class="icon-box bg-dark text-white mx-auto mb-2 shadow-sm rounded-4" style="width: 50px; height: 50px; font-size: 1.5rem;">
+                      <i class="fa-solid fa-expand"></i>
+                  </div>
+                  <small class="fw-bold text-dark d-block" style="font-size: 0.7rem;">สแกนรับ</small>
+              </div>
+
+              <!-- 2. ส่งเงิน QR -->
+              <div class="text-center flex-shrink-0 cursor-pointer" onclick="generateTransferAdminQR()" style="width: 70px;">
+                  <div class="icon-box bg-primary bg-opacity-10 text-primary mx-auto mb-2 shadow-sm rounded-4" style="width: 50px; height: 50px; font-size: 1.5rem;">
+                      <i class="fa-solid fa-arrow-up-from-bracket"></i>
+                  </div>
+                  <small class="fw-bold text-dark d-block" style="font-size: 0.7rem;">ส่งยอด</small>
+              </div>
+
+              <!-- 3. เรียกเก็บ QR -->
+              <div class="text-center flex-shrink-0 cursor-pointer" onclick="generatePaymentQR()" style="width: 70px;">
+                  <div class="icon-box bg-danger bg-opacity-10 text-danger mx-auto mb-2 shadow-sm rounded-4" style="width: 50px; height: 50px; font-size: 1.5rem;">
+                      <i class="fa-solid fa-qrcode"></i>
+                  </div>
+                  <small class="fw-bold text-dark d-block" style="font-size: 0.7rem;">เรียกเก็บ</small>
+              </div>
+
+              <!-- 4. บันทึกรับ-จ่าย -->
+              <div class="text-center flex-shrink-0 cursor-pointer" onclick="toggleLedgerActionForm('ie')" style="width: 70px;">
+                  <div class="icon-box bg-success bg-opacity-10 text-success mx-auto mb-2 shadow-sm rounded-4" style="width: 50px; height: 50px; font-size: 1.5rem;">
+                      <i class="fa-solid fa-money-bill-wave"></i>
+                  </div>
+                  <small class="fw-bold text-dark d-block" style="font-size: 0.7rem;">รับ-จ่าย</small>
+              </div>
+
+              <!-- 5. โอนย้ายบัญชี -->
+              <div class="text-center flex-shrink-0 cursor-pointer" onclick="toggleLedgerActionForm('tf')" style="width: 70px;">
+                  <div class="icon-box bg-warning bg-opacity-10 text-warning mx-auto mb-2 shadow-sm rounded-4" style="width: 50px; height: 50px; font-size: 1.5rem;">
+                      <i class="fa-solid fa-arrow-right-arrow-left"></i>
+                  </div>
+                  <small class="fw-bold text-dark d-block" style="font-size: 0.7rem;">โอนย้าย</small>
+              </div>
+
+          </div>
+      </div>
+
+      <!-- 🌟 พื้นที่แสดงฟอร์มทำงาน (ซ่อนไว้ก่อน จะกางออกเมื่อกดปุ่มเมนูด่วน รับ-จ่าย หรือ โอนย้าย) -->
+      <div id="ledgerActionContainer" class="admin-card border-0 p-3 mb-4 shadow-sm rounded-4" style="display: none;">
+          <div class="d-flex justify-content-between align-items-center mb-3">
+              <h6 id="ledgerActionTitle" class="fw-bold text-primary mb-0">บันทึกข้อมูล</h6>
+              <button class="btn btn-sm btn-light rounded-circle text-muted" onclick="toggleLedgerActionForm('close')"><i class="fa-solid fa-xmark"></i></button>
+          </div>
+          
+          <!-- ฟอร์มรับ-จ่าย -->
+          <form id="form-ie" onsubmit="submitLedgerIE(event)" style="display: none;">
+              <div class="btn-group w-100 shadow-sm mb-4" role="group">
+                  <input type="radio" class="btn-check" name="ieType" id="ieTypeIn" value="income" autocomplete="off" checked onchange="renderNoteDropdown()">
+                  <label class="btn btn-outline-success fw-bold py-2 rounded-start-4" for="ieTypeIn"><i class="fa-solid fa-arrow-turn-down me-1"></i> รับ</label>
+                  <input type="radio" class="btn-check" name="ieType" id="ieTypeOut" value="expense" autocomplete="off" onchange="renderNoteDropdown()">
+                  <label class="btn btn-outline-danger fw-bold py-2 rounded-end-4" for="ieTypeOut"><i class="fa-solid fa-arrow-turn-up me-1"></i> จ่าย</label>
+              </div>
+              <div class="row g-3">
+                  <div class="col-12">
+                      <div class="input-group shadow-sm rounded-4">
+                          <span class="input-group-text bg-light border-0"><i class="fa-solid fa-tag text-muted"></i></span>
+                          <select id="ieNote" class="form-select border-0 bg-light" required><option value="" selected disabled>-- หมวดหมู่ --</option></select>
+                          <button type="button" class="btn btn-primary px-3" onclick="addNewLedgerNote()"><i class="fa-solid fa-plus"></i></button>
+                      </div>
+                  </div>
+                  <div class="col-12">
+                      <div class="form-floating shadow-sm">
+                          <input type="text" id="ieAddNote" class="form-control border-0 bg-light rounded-4" placeholder="รายละเอียด">
+                          <label for="ieAddNote" class="text-muted"><i class="fa-solid fa-pen me-1"></i> รายละเอียดเพิ่มเติม</label>
+                      </div>
+                  </div>
+                  <div class="col-12">
+                      <div class="form-floating shadow-sm">
+                          <input type="number" id="ieAmt" class="form-control border-0 bg-success bg-opacity-10 text-success fw-bold fs-4 rounded-4" placeholder="0.00" step="0.01" required>
+                          <label for="ieAmt" class="text-success"><i class="fa-solid fa-coins me-1"></i> จำนวนเงิน (บาท)</label>
+                      </div>
+                  </div>
+                  <div class="col-6">
+                      <div class="form-floating shadow-sm">
+                          <input type="date" id="ieDate" class="form-control border-0 bg-light rounded-4" required>
+                          <label for="ieDate" class="text-muted"><i class="fa-solid fa-calendar me-1"></i> วันที่</label>
+                      </div>
+                  </div>
+                  <div class="col-6">
+                      <div class="form-floating shadow-sm">
+                          <select id="ieWallet" class="form-select border-0 bg-light rounded-4"><option value="bank">ธนาคาร</option><option value="cash">เงินสด</option></select>
+                          <label for="ieWallet" class="text-muted"><i class="fa-solid fa-wallet me-1"></i> ช่องทาง</label>
+                      </div>
+                  </div>
+              </div>
+              <button type="submit" class="btn btn-primary w-100 mt-4 rounded-pill py-3 fw-bold shadow-sm"><i class="fa-solid fa-floppy-disk me-2"></i> บันทึกรายการ</button>
+          </form>
+
+          <!-- ฟอร์มโอนย้าย -->
+          <form id="form-tf" onsubmit="submitLedgerTF(event)" style="display: none;">
+              <div class="row g-2 align-items-center bg-light p-2 rounded-4 mx-0 mb-3 shadow-sm">
+                  <div class="col-5 px-1 text-center">
+                      <small class="text-muted fw-bold mb-1 d-block">จาก (ต้นทาง)</small>
+                      <select id="tfFrom" class="form-select border-0 text-center fw-bold shadow-sm rounded-3"><option value="bank">ธนาคาร</option><option value="cash">เงินสด</option></select>
+                  </div>
+                  <div class="col-2 text-center px-0"><div class="icon-box bg-white shadow-sm text-primary mx-auto rounded-circle" style="width: 30px; height: 30px;"><i class="fa-solid fa-arrow-right"></i></div></div>
+                  <div class="col-5 px-1 text-center">
+                      <small class="text-muted fw-bold mb-1 d-block">ไป (ปลายทาง)</small>
+                      <select id="tfTo" class="form-select border-0 text-center fw-bold shadow-sm rounded-3"><option value="cash">เงินสด</option><option value="bank">ธนาคาร</option></select>
+                  </div>
+              </div>
+              <div class="row g-3">
+                  <div class="col-12"><div class="form-floating shadow-sm"><input type="number" id="tfAmt" class="form-control border-0 bg-warning bg-opacity-10 text-dark fw-bold text-center fs-3 rounded-4" placeholder="0.00" step="0.01" required><label for="tfAmt" class="text-muted text-center w-100">จำนวนเงินโอน (บาท)</label></div></div>
+                  <div class="col-12"><div class="form-floating shadow-sm"><input type="date" id="tfDate" class="form-control border-0 bg-light rounded-4" required><label for="tfDate" class="text-muted"><i class="fa-solid fa-calendar me-1"></i> วันที่ทำรายการ</label></div></div>
+              </div>
+              <button type="submit" class="btn btn-dark w-100 mt-4 rounded-pill py-3 fw-bold shadow-sm"><i class="fa-solid fa-money-bill-transfer me-2"></i> ยืนยันโอนย้าย</button>
+          </form>
+      </div>
+
+      <!-- 🌟 ส่วนประวัติและการตรวจสอบ (แยกหมวดหมู่ชัดเจน) -->
+      <div id="finance-only-history">
+          
+          <!-- ประวัติรับเงิน QR ล่าสุด (การ์ดเลื่อนซ้ายขวา) -->
+          <div class="mb-4">
+              <div class="d-flex justify-content-between align-items-center mb-2 px-1">
+                  <h6 class="fw-bold mb-0 text-dark"><i class="fa-solid fa-qrcode text-primary me-2"></i>ประวัติรับเงินจาก QR</h6>
+                  <span id="receiptCountBadge" class="badge bg-success rounded-pill px-3 py-1 shadow-sm">0 รายการ</span>
+              </div>
+              <div id="receiptHistoryContainer" class="d-flex flex-nowrap overflow-auto pb-2 gap-3 px-1" style="-webkit-overflow-scrolling: touch;">
+                  <div class="text-center text-muted py-3 w-100 bg-white rounded-4 border">กำลังโหลดข้อมูล...</div>
+              </div>
+          </div>
+
+          <!-- รายการรอตรวจสอบ (Pending) -->
+          <div class="d-flex align-items-center mb-3 mt-4 ps-1">
+              <span class="dot-yellow me-2 blink-anim"></span><h6 class="fw-bold text-dark mb-0">รายการรอตรวจสอบ / รอส่งมอบ</h6>
+          </div>
+          <div id="list-pending-transactions">ไม่มีรายการค้าง</div>
+          
+          <!-- ประวัติธุรกรรมที่สำเร็จแล้ว (Approved History) -->
+          <div class="d-flex justify-content-between align-items-center mb-3 mt-4 pt-3 border-top px-1">
+              <div class="d-flex align-items-center"><span class="dot-green me-2"></span><h6 class="fw-bold text-dark mb-0">ประวัติธุรกรรมระบบ</h6></div>
+              <div class="d-flex align-items-center gap-1 bg-white rounded-pill p-1 shadow-sm border" style="max-width: 170px;">
+                  <input type="date" id="searchTxDate" class="form-control border-0 bg-transparent py-0 small text-primary fw-bold" style="font-size: 0.75rem;" onchange="filterTxByDate(this.value)">
+                  <button class="btn btn-sm btn-light rounded-circle text-danger p-0 d-flex justify-content-center align-items-center" style="width: 24px; height: 24px; flex-shrink: 0;" onclick="clearTxFilter()"><i class="fa-solid fa-xmark"></i></button>
+              </div>
+          </div>
+          <div id="list-approved-transactions"></div>
+          <div id="tx-pagination" class="d-flex justify-content-center flex-wrap gap-2 mt-4 mb-3"></div>
+          
+      </div>
+    </div>
+    <!-- 🏥 ADMIN TAB: สวัสดิการ -->
+    <div class="admin-tab-pane d-none" id="admin-view-claims">
+      <div class="d-flex align-items-center mb-4 px-1"><span class="dot-red me-2"></span><h5 class="fw-bold text-dark mb-0">คำขอเบิกสวัสดิการ</h5></div>
+      <div id="list-pending-claims">กำลังโหลด...</div>
+      <div class="d-flex align-items-center mb-3 mt-5 px-1"><span class="dot-green me-2"></span><h6 class="fw-bold text-dark mb-0">ประวัติการจ่ายเงินล่าสุด</h6></div>
+      <div id="list-approved-claims"></div>
+    </div>
+
+    <!-- 🏪 ADMIN TAB: จัดการร้านค้าสวัสดิการ -->
+    <div class="admin-tab-pane d-none" id="admin-view-shops">
+      <div class="d-flex justify-content-between align-items-center mb-4 px-1">
+        <div class="d-flex align-items-center">
+          <i class="fa-solid fa-store text-success me-2 fs-5"></i>
+          <h5 class="fw-bold text-dark mb-0">อนุมัติร้านค้าสวัสดิการ</h5>
+        </div>
+      </div>
+
+      <!-- คำขอเปิดร้านรออนุมัติ -->
+      <div class="d-flex align-items-center mb-3 ps-1">
+        <span class="dot-yellow me-2 blink-anim"></span>
+        <h6 class="fw-bold text-dark mb-0">คำขอเปิดร้านค้า (รอตรวจสอบ)</h6>
+      </div>
+      <div id="list-pending-shops" class="mb-4">กำลังโหลด...</div>
+
+      <!-- ร้านค้าที่อนุมัติแล้ว -->
+      <div class="d-flex align-items-center mb-3 ps-1 pt-3 border-top">
+        <span class="dot-green me-2"></span>
+        <h6 class="fw-bold text-dark mb-0">ร้านค้าที่เปิดจำหน่ายแล้ว</h6>
+      </div>
+      <div id="list-approved-shops">กำลังโหลด...</div>
+    </div>
+
+    <!-- 📰 ADMIN TAB: ข่าวสารและประกาศ -->
+    <div class="admin-tab-pane d-none" id="admin-view-news">
+      <div class="d-flex justify-content-between align-items-center mb-4 px-1">
+        <div class="d-flex align-items-center">
+          <i class="fa-solid fa-bullhorn text-primary me-2 fs-5"></i>
+          <h5 class="fw-bold text-dark mb-0">ข่าวสารและประกาศชุมชน</h5>
+        </div>
+        <button class="btn btn-sm btn-primary rounded-pill px-3 fw-bold shadow-sm" onclick="openCreateNewsModal()">
+          <i class="fa-solid fa-plus me-1"></i> โพสต์ข่าวใหม่
+        </button>
+      </div>
+      <div id="list-admin-news" class="d-flex flex-column gap-2">กำลังโหลดข่าวสาร...</div>
+    </div>
+
+    <!-- ⚙️ ADMIN TAB: ตั้งค่าระบบ -->
+    <div class="admin-tab-pane d-none" id="admin-view-settings">
+      <div class="d-flex justify-content-between align-items-center mb-4 px-1 sticky-top pt-2" style="background: var(--bg-light); z-index: 100;">
+        <div class="d-flex align-items-center"><i class="fa-solid fa-gear text-secondary me-2 fs-5"></i><h5 class="fw-bold text-dark mb-0">ตั้งค่าระบบ (Global)</h5></div>
+        <button onclick="saveGlobalSettings()" class="btn btn-primary rounded-pill px-4 py-2 fw-bold shadow-sm"><i class="fa-solid fa-floppy-disk me-1"></i> บันทึกข้อมูล</button>
+      </div>
+
+      <!-- ข้อมูลองค์กรและการติดต่อ -->
+      <div class="admin-card border-0 p-4 mb-3">
+        <div class="d-flex align-items-center mb-3 border-bottom pb-2"><i class="fa-solid fa-sitemap text-primary me-2"></i><h6 class="fw-bold text-dark mb-0">1. ข้อมูลองค์กรและการติดต่อ</h6></div>
+        <div class="row g-2 mb-3">
+            <div class="col-8"><label class="small fw-bold text-muted mb-1">ชื่อกองทุนสวัสดิการ</label><input type="text" id="setFundName" class="form-control-modern w-100 fw-bold text-primary"></div>
+            <!-- 🌟 เพิ่ม รหัสจัดตั้งกองทุน -->
+            <div class="col-4"><label class="small fw-bold text-muted mb-1">รหัสจัดตั้งกองทุน</label><input type="text" id="setFundCode" class="form-control-modern w-100 text-center" placeholder="เช่น 100241803"></div>
+            
+            <div class="col-4"><label class="small fw-bold text-muted mb-1">ที่อยู่เลขที่</label><input type="text" id="setAddressNo" class="form-control-modern w-100"></div>
+            <div class="col-4"><label class="small fw-bold text-muted mb-1">หมู่ที่</label><input type="text" id="setAddressMoo" class="form-control-modern w-100"></div>
+            <div class="col-4"><label class="small fw-bold text-muted mb-1">ตำบล</label><input type="text" id="setAddressSub" class="form-control-modern w-100"></div>
+            <div class="col-4"><label class="small fw-bold text-muted mb-1">อำเภอ</label><input type="text" id="setAddressDist" class="form-control-modern w-100"></div>
+            <div class="col-4"><label class="small fw-bold text-muted mb-1">จังหวัด</label><input type="text" id="setAddressProv" class="form-control-modern w-100"></div>
+            <div class="col-4"><label class="small fw-bold text-muted mb-1">รหัสไปรษณีย์</label><input type="text" id="setAddressZip" class="form-control-modern w-100"></div>
+            
+            <!-- 🌟 เพิ่ม พิกัดกองทุน -->
+<div class="col-6">
+    <label class="small fw-bold text-muted mb-1">ละติจูด (Latitude)</label>
+    <input type="text" id="setFundLat" class="form-control-modern w-100" placeholder="เช่น 5.92159">
+</div>
+<div class="col-6">
+    <label class="small fw-bold text-muted mb-1">ลองจิจูด (Longitude)</label>
+    <div class="input-group">
+        <input type="text" id="setFundLng" class="form-control-modern flex-grow-1" placeholder="เช่น 101.76996">
+        <button type="button" class="btn btn-danger px-3 rounded-end-4 ms-1 shadow-sm" onclick="getCurrentLocation()" title="ดึงพิกัดตำแหน่งปัจจุบัน">
+            <i class="fa-solid fa-map-location-dot"></i>
+        </button>
+    </div>
+</div>
+            
+            <div class="col-6"><label class="small fw-bold text-muted mb-1">เบอร์ติดต่อกองทุน</label><input type="tel" id="setFundPhone" class="form-control-modern w-100"></div>
+            <div class="col-6"><label class="small fw-bold text-muted mb-1">อีเมลกองทุน</label><input type="email" id="setFundEmail" class="form-control-modern w-100"></div>
+            <div class="col-12"><label class="small fw-bold text-muted mb-1">เพจ Facebook / เว็บไซต์</label><input type="text" id="setFundFb" class="form-control-modern w-100"></div>
+        </div>
+
+        <!-- 🌟 อัปเดต ข้อมูลประธานกองทุน -->
+        <div class="p-3 bg-light rounded-4 border mb-3">
+            <div class="d-flex justify-content-between align-items-center mb-2">
+                <h6 class="small fw-bold text-dark mb-0"><i class="fa-solid fa-user-tie text-secondary me-1"></i> ข้อมูลประธานกองทุน</h6>
+                <button type="button" class="btn btn-sm btn-outline-primary rounded-pill px-3 shadow-sm" onclick="openMemberSearchModal('president')"><i class="fa-solid fa-search me-1"></i> ดึงจากทะเบียนสมาชิก</button>
+            </div>
+            <div class="row g-2">
+                <div class="col-12"><input type="text" id="setPresidentName" class="form-control-modern w-100" placeholder="ชื่อ-สกุล ประธาน"></div>
+                <div class="col-12"><input type="text" id="setPresidentAddress" class="form-control-modern w-100 text-muted" placeholder="ที่อยู่ (เลขที่, หมู่, อปท., ตำบล, อำเภอ, จังหวัด, รหัสไปรษณีย์)"></div>
+                <div class="col-6"><input type="tel" id="setPresidentPhone" class="form-control-modern w-100" placeholder="เบอร์โทรศัพท์"></div>
+                <div class="col-6"><input type="email" id="setPresidentEmail" class="form-control-modern w-100" placeholder="อีเมลประธาน"></div>
+            </div>
+        </div>
+
+        <!-- 🌟 เพิ่ม ข้อมูลผู้ประสานงาน -->
+        <div class="p-3 bg-light rounded-4 border">
+            <div class="d-flex justify-content-between align-items-center mb-2">
+                <h6 class="small fw-bold text-dark mb-0"><i class="fa-solid fa-headset text-secondary me-1"></i> ข้อมูลผู้ประสานงาน</h6>
+                <button type="button" class="btn btn-sm btn-outline-primary rounded-pill px-3 shadow-sm" onclick="openMemberSearchModal('coordinator')"><i class="fa-solid fa-search me-1"></i> ดึงจากทะเบียนสมาชิก</button>
+            </div>
+            <div class="row g-2">
+                <div class="col-12"><input type="text" id="setCoordinatorName" class="form-control-modern w-100" placeholder="ชื่อ-สกุล ผู้ประสานงาน"></div>
+                <div class="col-12"><input type="text" id="setCoordinatorAddress" class="form-control-modern w-100 text-muted" placeholder="ที่อยู่ (เลขที่, หมู่, อปท., ตำบล, อำเภอ, จังหวัด, รหัสไปรษณีย์)"></div>
+                <div class="col-6"><input type="tel" id="setCoordinatorPhone" class="form-control-modern w-100" placeholder="เบอร์โทรศัพท์"></div>
+                <div class="col-6"><input type="email" id="setCoordinatorEmail" class="form-control-modern w-100" placeholder="อีเมลผู้ประสานงาน"></div>
+            </div>
+        </div>
+      </div>
+
+      <!-- 🌟 เพิ่ม ประวัติการก่อตั้งและวัตถุประสงค์ -->
+      <div class="admin-card border-0 p-4 mb-3">
+        <div class="d-flex align-items-center mb-3 border-bottom pb-2"><i class="fa-solid fa-clock-rotate-left text-info me-2"></i><h6 class="fw-bold text-dark mb-0">2. ประวัติการก่อตั้งและวัตถุประสงค์</h6></div>
+        <div class="row g-2 mb-3">
+            <div class="col-6"><label class="small fw-bold text-muted mb-1">วันที่ก่อตั้งกองทุน</label><input type="date" id="setEstablishDate" class="form-control-modern w-100"></div>
+            <div class="col-6"><label class="small fw-bold text-muted mb-1">องค์กรที่สนับสนุน</label><input type="text" id="setSupportOrg" class="form-control-modern w-100" placeholder="เช่น สถาบันพัฒนาองค์กรชุมชน (พอช.)"></div>
+        </div>
+        
+        <label class="small fw-bold text-muted mb-1">วัตถุประสงค์ของการจัดตั้งกองทุน</label>
+        <div class="input-group mb-2">
+            <input type="text" id="newObjectiveInput" class="form-control-modern flex-grow-1" placeholder="พิมพ์วัตถุประสงค์..." onkeypress="if(event.key === 'Enter') addObjectiveItem();">
+            <button type="button" class="btn btn-info px-3 rounded-end-4 ms-1 text-white" onclick="addObjectiveItem()"><i class="fa-solid fa-plus"></i> เพิ่ม</button>
+        </div>
+        <div id="objectivesContainer" class="d-flex flex-column gap-2 mb-2"></div>
+      </div>
+     
+
+      <!-- เศรษฐศาสตร์แต้ม (Tokenomics) (ของเดิม) -->
+      <div class="admin-card border-0 p-4 mb-3" style="background: linear-gradient(135deg, #1E293B 0%, #0F172A 100%); border: 1px solid #334155;">
+        <div class="d-flex align-items-center mb-3 border-bottom pb-2" style="border-color: rgba(255,255,255,0.1) !important;">
+          <i class="fa-solid fa-coins text-warning me-2 fs-4"></i>
+          <h6 class="fw-bold text-white mb-0">5. เศรษฐศาสตร์แต้ม (Tokenomics)</h6>
+        </div>
+        <div class="row g-3">
+          <div class="col-12">
+             <label class="small text-white-50 fw-bold mb-1">งบประมาณแต้มรวมรายปี</label>
+             <input type="number" id="setGlobalPointPool" class="form-control form-control-lg text-warning fw-bold text-center border-0" style="background: rgba(255,255,255,0.1);" placeholder="เช่น 50000">
+          </div>
+          <div class="col-12 mt-4">
+             <label class="small text-white-50 fw-bold mb-1">การแจกแต้มแบบขั้นบันได (FOMO)</label>
+             <div class="d-flex gap-2 align-items-center mb-2">
+                <span class="text-white small w-50">กลุ่มที่ 1 (1-10 คน) :</span>
+                <input type="number" id="setFomoTier1" class="form-control form-control-sm text-center fw-bold" style="width: 80px;" value="5">
+             </div>
+             <div class="d-flex gap-2 align-items-center mb-2">
+                <span class="text-white small w-50">กลุ่มที่ 2 (11-30 คน) :</span>
+                <input type="number" id="setFomoTier2" class="form-control form-control-sm text-center fw-bold" style="width: 80px;" value="3">
+             </div>
+             <div class="d-flex gap-2 align-items-center">
+                <span class="text-white small w-50">กลุ่มที่ 3 (31 ขึ้นไป) :</span>
+                <input type="number" id="setFomoTier3" class="form-control form-control-sm text-center fw-bold" style="width: 80px;" value="1">
+             </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ภารกิจและของรางวัล (ของเดิม) -->
+      <div class="admin-card border-0 p-4 mb-3">
+        <div class="d-flex justify-content-between align-items-center mb-3 border-bottom pb-2">
+            <div class="d-flex align-items-center"><i class="fa-solid fa-gamepad text-info me-2"></i><h6 class="fw-bold text-dark mb-0">6. ตั้งค่าภารกิจสะสมแต้ม</h6></div>
+            <button class="btn btn-sm btn-outline-info rounded-pill px-3 fw-bold" onclick="openMissionModal()">+ เพิ่ม</button>
+        </div>
+        <div id="missionsContainer"></div>
+      </div>
+      <div class="admin-card border-0 p-4 mb-4">
+        <div class="d-flex justify-content-between align-items-center mb-3 border-bottom pb-2">
+            <div class="d-flex align-items-center"><i class="fa-solid fa-gift text-danger me-2"></i><h6 class="fw-bold text-dark mb-0">7. ตั้งค่าของรางวัล</h6></div>
+            <button class="btn btn-sm btn-outline-danger rounded-pill px-3 fw-bold" onclick="openRewardModal()">+ เพิ่ม</button>
+        </div>
+        <div id="rewardsContainer"></div>
+      </div>
+    </div>
+
+    <!-- 🗺️ ADMIN TAB: แผนที่ (GIS) -->
+    <div class="admin-tab-pane d-none" id="admin-view-gis">
+      <div class="admin-card border-0 p-3">
+        <div class="d-flex flex-column gap-3 mb-3">
+          <h5 class="fw-bold text-dark mb-0"><i class="fa-solid fa-map-location-dot text-primary me-2"></i>พิกัดสมาชิก (GIS)</h5>
+          <div class="btn-group w-100 shadow-sm" role="group">
+            <input type="radio" class="btn-check" name="btnMapMode" id="btnMapMacro" autocomplete="off" onchange="switchMapMode('macro')">
+            <label class="btn btn-outline-primary py-2" for="btnMapMacro"><i class="fa-solid fa-fire me-1"></i> ภาพรวม</label>
+            <input type="radio" class="btn-check" name="btnMapMode" id="btnMapMicro" autocomplete="off" checked onchange="switchMapMode('micro')">
+            <label class="btn btn-outline-primary py-2" for="btnMapMicro"><i class="fa-solid fa-location-dot me-1"></i> รายบุคคล</label>
+          </div>
+        </div>
+        <div class="border-0 rounded-4 overflow-hidden shadow-sm position-relative">
+          <div id="adminGISMap" style="width: 100%; height: 50vh; background-color: #E2E8F0; display: flex; align-items: center; justify-content: center;">
+            <div class="text-center text-muted"><div class="spinner-border mb-2 text-primary"></div></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ⚖️ ADMIN TAB: ระเบียบกองทุน และ โครงสร้าง -->
+    <div class="admin-tab-pane d-none" id="admin-view-rules">
+      <!-- Header -->
+      <div class="d-flex justify-content-between align-items-center mb-4 px-1 sticky-top pt-2" style="background: var(--bg-light); z-index: 100;">
+        <h5 class="fw-bold text-dark mb-0"><i class="fa-solid fa-scale-balanced text-warning me-2"></i> ระเบียบและโครงสร้างกองทุน</h5>
+        </div>
+
+      <!-- ตัวแปรจัดการฐานข้อมูล (ย้ายมาจากตั้งค่าระบบ) -->
+      <div class="admin-card border-0 p-4 mb-3">
+        <div class="d-flex align-items-center mb-3 border-bottom pb-2"><i class="fa-solid fa-sliders text-success me-2"></i><h6 class="fw-bold text-dark mb-0">ตัวแปรจัดการฐานข้อมูล</h6></div>
+        <label class="small fw-bold text-muted mb-1">เงินสมทบเป้าหมายต่อปี (บาท)</label><input type="number" id="setAnnualFee" class="form-control-modern w-100 mb-4 text-success fw-bold" value="365" step="0.01">
+        
+        <label class="small fw-bold text-muted mb-1">ประเภทสมาชิก</label>
+        <div class="input-group mb-2"><input type="text" id="newMemberTypeInput" class="form-control-modern flex-grow-1" placeholder="เช่น สมาชิกสามัญ..." onkeypress="if(event.key === 'Enter') addMemberTypeBadge();"><button type="button" class="btn btn-dark px-3 rounded-end-4 ms-1" onclick="addMemberTypeBadge()"><i class="fa-solid fa-plus"></i></button></div>
+        <div id="memberTypesContainer" class="d-flex flex-wrap gap-2 mb-4"></div>
+
+        <label class="small fw-bold text-muted mb-1">หมู่บ้านในเขตพื้นที่</label>
+        <div class="input-group mb-2"><input type="text" id="newVillageInput" class="form-control-modern flex-grow-1" placeholder="พิมพ์ชื่อหมู่บ้าน..." onkeypress="if(event.key === 'Enter') addVillageBadge();"><button type="button" class="btn btn-success px-3 rounded-end-4 ms-1" onclick="addVillageBadge()"><i class="fa-solid fa-plus"></i></button></div>
+        <div id="villagesContainer" class="d-flex flex-wrap gap-2 mb-4"></div>
+        
+        <label class="small fw-bold text-muted mb-1">รายชื่อศูนย์ประสานงาน</label>
+        <div class="input-group mb-2"><input type="text" id="newCenterInput" class="form-control-modern flex-grow-1" placeholder="พิมพ์ชื่อศูนย์ประสานงาน..." onkeypress="if(event.key === 'Enter') addCenterBadge();"><button type="button" class="btn btn-primary px-3 rounded-end-4 ms-1" onclick="addCenterBadge()"><i class="fa-solid fa-plus"></i></button></div>
+        <div id="centersContainer" class="d-flex flex-wrap gap-2 mb-4"></div>
+      </div>
+      
+      <!-- 🌟 เพิ่มช่องตัวแปรประเภทสวัสดิการและเงื่อนไข (ต่อท้ายศูนย์ประสานงาน) -->
+        <label class="small fw-bold text-muted mb-1 mt-2"><i class="fa-solid fa-hand-holding-heart text-danger"></i> ประเภทสวัสดิการ (สำหรับตั้งระเบียบ)</label>
+        <div class="input-group mb-2">
+            <input type="text" id="newWelfareTypeInput" class="form-control-modern flex-grow-1" placeholder="เช่น ค่าคลอดบุตร, ค่าทำศพ..." onkeypress="if(event.key === 'Enter') addWelfareTypeBadge();">
+            <button type="button" class="btn btn-danger px-3 rounded-end-4 ms-1" onclick="addWelfareTypeBadge()"><i class="fa-solid fa-plus"></i></button>
+        </div>
+        <div id="welfareTypesContainer" class="d-flex flex-wrap gap-2 mb-4"></div>
+
+        <label class="small fw-bold text-muted mb-1"><i class="fa-solid fa-filter text-warning"></i> ประเภทเงื่อนไขการรับสิทธิ์</label>
+        <div class="input-group mb-2">
+            <input type="text" id="newConditionTypeInput" class="form-control-modern flex-grow-1" placeholder="เช่น อายุสมาชิกขั้นต่ำ, จ่ายสูงสุดต่อครั้ง..." onkeypress="if(event.key === 'Enter') addConditionTypeBadge();">
+            <button type="button" class="btn btn-warning px-3 rounded-end-4 ms-1 text-dark" onclick="addConditionTypeBadge()"><i class="fa-solid fa-plus"></i></button>
+        </div>
+        <div id="conditionTypesContainer" class="d-flex flex-wrap gap-2 mb-4"></div> 
+
+
+      <!-- โครงสร้างคณะกรรมการ -->
+      <div class="admin-card border-0 p-4 mb-3">
+        <div class="d-flex justify-content-between align-items-center mb-3 border-bottom pb-2">
+            <div class="d-flex align-items-center">
+                <i class="fa-solid fa-users-gear text-warning me-2"></i>
+                <h6 class="fw-bold text-dark mb-0">โครงสร้างคณะกรรมการ</h6>
+            </div>
+            <!-- ปุ่มกดเพื่อกางฟอร์ม -->
+            <button class="btn btn-sm btn-outline-warning rounded-pill px-3 fw-bold shadow-sm" type="button" data-bs-toggle="collapse" data-bs-target="#collapseCommitteeForm" aria-expanded="false" aria-controls="collapseCommitteeForm">
+                <i class="fa-solid fa-plus"></i> เพิ่ม
+            </button>
+        </div>
+
+        <!-- ฟอร์มเพิ่มกรรมการ (ถูกซ่อนไว้โดยค่าเริ่มต้น) -->
+        <div class="collapse mb-3" id="collapseCommitteeForm">
+            <div class="bg-warning bg-opacity-10 p-3 rounded-4 border border-warning shadow-sm">
+                <h6 class="small fw-bold text-dark mb-2">กรอกข้อมูลกรรมการ</h6>
+                <div class="row g-2">
+                    <div class="col-12"><input type="text" id="comName" class="form-control-modern w-100 form-control-sm" placeholder="ชื่อ-นามสกุล"></div>
+                    <div class="col-6"><input type="text" id="comPos" class="form-control-modern w-100 form-control-sm" placeholder="ตำแหน่ง"></div>
+                    <div class="col-6"><input type="text" id="comRole" class="form-control-modern w-100 form-control-sm" placeholder="หน้าที่"></div>
+                    <div class="col-6"><input type="tel" id="comPhone" class="form-control-modern w-100 form-control-sm" placeholder="เบอร์ติดต่อ"></div>
+                    <div class="col-6"><input type="email" id="comEmail" class="form-control-modern w-100 form-control-sm" placeholder="อีเมล"></div>
+                    <div class="col-12 mt-2">
+                        <button type="button" onclick="addCommitteeMember()" class="btn btn-sm btn-warning w-100 fw-bold rounded-pill shadow-sm">
+                            <i class="fa-solid fa-save"></i> บันทึกกรรมการ
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- พื้นที่แสดงรายชื่อที่บันทึกแล้ว (จะถูกสร้างจาก JavaScript) -->
+        <div id="committeeContainer" class="d-flex flex-column gap-2"></div>
+      </div>>
+
+      <!-- รายการระเบียบสวัสดิการ -->
+      <div class="admin-card border-0 p-4 mb-4">
+        <div class="d-flex justify-content-between align-items-center mb-3 border-bottom pb-2">
+            <div class="d-flex align-items-center">
+                <i class="fa-solid fa-list-check text-primary me-2"></i>
+                <h6 class="fw-bold text-dark mb-0">รายการระเบียบสวัสดิการ</h6>
+            </div>
+            <!-- ปุ่มกดเพื่อกางฟอร์มเพิ่มระเบียบ -->
+            <button class="btn btn-sm btn-outline-primary rounded-pill px-3 fw-bold shadow-sm" type="button" data-bs-toggle="collapse" data-bs-target="#collapseRuleForm" aria-expanded="false" aria-controls="collapseRuleForm">
+                <i class="fa-solid fa-plus"></i> เพิ่มระเบียบ
+            </button>
+        </div>
+
+        <!-- ฟอร์มเพิ่มระเบียบและเงื่อนไข (ถูกซ่อนไว้โดยค่าเริ่มต้น) -->
+        <div class="collapse mb-3" id="collapseRuleForm">
+            <div class="bg-primary bg-opacity-10 p-3 rounded-4 border border-primary shadow-sm">
+                <h6 class="small fw-bold text-primary mb-2">กำหนดระเบียบและเงื่อนไขการจ่าย</h6>
+                
+                <div class="row g-2 mb-2">
+                    <div class="col-12">
+                        <label class="small text-muted fw-bold mb-1">ชื่อประเภทสวัสดิการ</label>
+                        <input type="text" id="ruleName" class="form-control-modern w-100 form-control-sm" placeholder="เช่น สวัสดิการเจ็บป่วย/รักษาพยาบาล">
+                    </div>
+                </div>
+                
+                <!-- กล่องสำหรับเพิ่มเงื่อนไขแบบไดนามิก -->
+                <div class="p-2 bg-white rounded-3 border mb-2">
+                    <div class="d-flex justify-content-between align-items-center mb-2 border-bottom pb-1">
+                        <small class="fw-bold text-dark"><i class="fa-solid fa-filter text-secondary me-1"></i> เงื่อนไขการรับสิทธิ์</small>
+                        <button type="button" class="btn btn-sm btn-light text-primary py-0 px-2 rounded-pill border shadow-sm" onclick="addRuleConditionRow()" style="font-size: 0.7rem;">
+                            <i class="fa-solid fa-plus"></i> เพิ่มเงื่อนไข
+                        </button>
+                    </div>
+                    <!-- พื้นที่แสดงเงื่อนไขที่ถูกเพิ่ม -->
+                    <div id="ruleConditionsContainer" class="d-flex flex-column gap-2">
+                        <!-- แถวเงื่อนไขจะถูกเพิ่มด้วย JavaScript ที่นี่ -->
+                    </div>
+                </div>
+
+                <div class="col-12 mt-2 text-end">
+                    <button type="button" onclick="saveWelfareRule()" class="btn btn-sm btn-primary w-100 fw-bold rounded-pill shadow-sm">
+                        <i class="fa-solid fa-save"></i> บันทึกระเบียบ
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- พื้นที่แสดงระเบียบที่บันทึกแล้วแบบย่อ-ขยาย -->
+        <div id="list-rules" class="d-flex flex-column gap-2">กำลังโหลด...</div>
+      </div>
+    </div>
+
+    <!-- 🛡️ ADMIN TAB: ผู้ดูแลระบบ -->
+    <div class="admin-tab-pane d-none" id="admin-view-admins">
+      <div class="d-flex justify-content-between align-items-center mb-3 px-1">
+        <h5 class="fw-bold text-dark mb-0"><i class="fa-solid fa-user-shield text-info me-2"></i> ผู้ดูแลระบบ</h5>
+        <button class="btn btn-sm btn-primary rounded-pill px-4 py-2 fw-bold shadow-sm" id="btnAddAdmin" onclick="openAddAdminModal()" style="display:none;">+ เพิ่มแอดมิน</button>
+      </div>
+      <div class="alert bg-info bg-opacity-10 text-info small rounded-4 border-0 mb-4 px-3 py-2"><i class="fa-solid fa-circle-info me-1"></i> เฉพาะ <b>Admin-Master</b> เท่านั้นที่เพิ่มผู้ดูแลได้</div>
+      <div id="list-admins">กำลังโหลด...</div>
+    </div>
+
+    <!-- 🏦 ADMIN TAB: จัดการบัญชีธนาคาร -->
+    <div class="admin-tab-pane d-none" id="admin-view-bank">
+      <div class="d-flex align-items-center mb-4 px-1"><i class="fa-solid fa-building-columns text-success me-2 fs-5"></i><h5 class="fw-bold text-dark mb-0">จัดการบัญชีธนาคาร</h5></div>
+      <div class="admin-card border-0 p-3 mb-3 text-center text-muted py-4 small bg-light rounded-3">กำลังพัฒนา...</div>
+    </div>
+
+    <!-- 🔗 ADMIN TAB: ตั้งค่าและการเชื่อมต่อบัญชี -->
+    <div class="admin-tab-pane d-none" id="admin-view-connection">
+      <div class="d-flex align-items-center mb-4 px-1"><i class="fa-solid fa-link text-primary me-2 fs-5"></i><h5 class="fw-bold text-dark mb-0">ตั้งค่าและการเชื่อมต่อบัญชี</h5></div>
+      <div class="admin-card border-0 p-3 mb-3 text-center text-muted py-4 small bg-light rounded-3">กำลังพัฒนา...</div>
+    </div>
+
+    <!-- 🛡️ ADMIN TAB: ความเป็นส่วนตัวและความปลอดภัย -->
+    <div class="admin-tab-pane d-none" id="admin-view-privacy">
+      <div class="d-flex align-items-center mb-4 px-1"><i class="fa-solid fa-shield-halved text-danger me-2 fs-5"></i><h5 class="fw-bold text-dark mb-0">ความเป็นส่วนตัวและความปลอดภัย</h5></div>
+      <div class="admin-card border-0 p-3 mb-3 text-center text-muted py-4 small bg-light rounded-3">กำลังพัฒนา...</div>
+    </div>
+    
+    <!-- ℹ️ ADMIN TAB: การใช้งานทั่วไป -->
+    <div class="admin-tab-pane d-none" id="admin-view-support">
+      <div class="d-flex align-items-center mb-4 px-1"><i class="fa-solid fa-circle-info text-secondary me-2 fs-5"></i><h5 class="fw-bold text-dark mb-0">การใช้งานทั่วไป</h5></div>
+      <div class="admin-card border-0 p-4 text-center mt-2">
+          <div class="bg-primary bg-opacity-10 text-primary rounded-circle d-inline-flex justify-content-center align-items-center mb-3" style="width: 60px; height: 60px;"><i class="fa-solid fa-shield-halved fa-2x"></i></div>
+          <h5 class="fw-bold text-dark mb-1">SmartWelf <span class="text-warning">5.0</span></h5>
+          <p class="text-muted small mb-3">เวอร์ชัน 5.0.1 (Build 20260903)</p>
+          <hr class="border-light my-3">
+          <small class="text-muted" style="font-size: 0.7rem;">&copy; 2026 SmartWelf All rights reserved.</small>
+      </div>
+    </div>
+
+  </div> <!-- End container-fluid -->
+</div> <!-- End adminApp -->
+<!-- ==========================================
+     MODAL: ฟอร์มเพิ่ม/แก้ไขข้อมูลสมาชิก
+=========================================== -->
+<div class="modal fade" id="memberFormModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered modal-lg">
+        <div class="modal-content border-0 shadow-lg rounded-4 overflow-hidden">
+            <div class="modal-header bg-primary bg-opacity-10 border-0 p-4">
+                <h5 class="modal-title fw-bold text-primary" id="memberModalTitle"><i class="fa-solid fa-user-plus me-2"></i>ขึ้นทะเบียนสมาชิกใหม่</h5>
+                <button type="button" class="btn-close shadow-none" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body p-4 bg-light">
+                <form id="memberDataForm" onsubmit="saveMemberData(event)">
+                    <!-- ซ่อน ID ไว้ใช้กรณีแก้ไขข้อมูล -->
+                    <input type="hidden" id="memDocId" value="">
+
+                    <div class="row g-3">
+                        <!-- ส่วนที่ 1: ข้อมูลส่วนตัว -->
+                        <div class="col-12"><h6 class="fw-bold text-dark mb-1 border-bottom pb-2">1. ข้อมูลส่วนตัวพื้นฐาน</h6></div>
+                        
+                        <div class="col-md-6">
+                            <label class="small text-muted fw-bold mb-1">เลขประจำตัวประชาชน (13 หลัก) *</label>
+                            <input type="text" id="memNationalId" class="form-control-modern w-100" maxlength="13" required placeholder="เลข 13 หลัก">
+                        </div>
+                        <div class="col-md-6">
+                            <label class="small text-muted fw-bold mb-1">ชื่อ-นามสกุล *</label>
+                            <input type="text" id="memFullName" class="form-control-modern w-100" required placeholder="นาย/นาง/นางสาว...">
+                        </div>
+                        
+                        <div class="col-md-6">
+                            <label class="small text-muted fw-bold mb-1">วัน/เดือน/ปีเกิด (เพื่อคำนวณอายุ) *</label>
+                            <input type="date" id="memDob" class="form-control-modern w-100" required>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="small text-muted fw-bold mb-1">เบอร์โทรศัพท์</label>
+                            <input type="tel" id="memPhone" class="form-control-modern w-100" placeholder="08X-XXX-XXXX">
+                        </div>
+
+                        <!-- ส่วนที่ 2: ข้อมูลที่อยู่และสถานะทางสังคม (สำคัญสำหรับรายงาน) -->
+                        <div class="col-12 mt-4"><h6 class="fw-bold text-dark mb-1 border-bottom pb-2">2. ข้อมูลที่อยู่และกลุ่มเปราะบาง</h6></div>
+
+                        <div class="col-md-4">
+                            <label class="small text-muted fw-bold mb-1">บ้านเลขที่</label>
+                            <input type="text" id="memAddressNo" class="form-control-modern w-100" placeholder="เลขที่ / ซอย">
+                        </div>
+                        <div class="col-md-4">
+                            <label class="small text-muted fw-bold mb-1">หมู่ที่ (ดึงจากตั้งค่า)</label>
+                            <select id="memVillage" class="form-select-modern w-100 border-0 bg-white shadow-sm"></select>
+                        </div>
+                        <div class="col-md-4">
+                            <label class="small text-muted fw-bold mb-1">กลุ่มเปราะบาง *</label>
+                            <select id="memVulnerability" class="form-select-modern w-100 border-0 bg-white shadow-sm" required>
+                                <option value="ปกติ">ปกติ (ไม่มีความเปราะบาง)</option>
+                                <option value="ผู้ด้อยโอกาส">ผู้ด้อยโอกาส</option>
+                                <option value="ผู้พิการ">ผู้พิการ</option>
+                                <option value="ผู้ป่วยติดเตียง">ผู้ป่วยติดเตียง</option>
+                            </select>
+                        </div>
+
+                        <!-- ส่วนที่ 3: ข้อมูลกองทุนสวัสดิการ -->
+                        <div class="col-12 mt-4"><h6 class="fw-bold text-dark mb-1 border-bottom pb-2">3. ข้อมูลทางกองทุน</h6></div>
+
+                        <div class="col-md-6">
+                            <label class="small text-muted fw-bold mb-1">รหัสสมาชิกกองทุน</label>
+                            <input type="text" id="memFundId" class="form-control-modern w-100 text-primary fw-bold" placeholder="ปล่อยว่างเพื่อรันอัตโนมัติ">
+                        </div>
+                        <div class="col-md-6">
+                            <label class="small text-muted fw-bold mb-1">วันที่สมัครเข้ากองทุน *</label>
+                            <input type="date" id="memRegDate" class="form-control-modern w-100" required>
+                        </div>
+                        <div class="col-md-4">
+                            <label class="small text-muted fw-bold mb-1">ประเภทสมาชิก *</label>
+                            <select id="memType" class="form-select-modern w-100 border-0 bg-white shadow-sm" required></select>
+                        </div>
+                        <div class="col-md-4">
+                            <label class="small text-muted fw-bold mb-1">ศูนย์ประสานงาน *</label>
+                            <select id="memCenter" class="form-select-modern w-100 border-0 bg-white shadow-sm" required></select>
+                        </div>
+                        <div class="col-md-4">
+                            <label class="small text-muted fw-bold mb-1">ผู้รับผลประโยชน์</label>
+                            <input type="text" id="memBeneficiary" class="form-control-modern w-100" placeholder="ชื่อ-สกุล (ความสัมพันธ์)">
+                        </div>
+
+                        <!-- ซ่อนฟิลด์สำหรับแอดมินศูนย์ -->
+                        <div class="col-12">
+                            <p class="small text-danger mb-0 mt-2 d-none" id="adminLockWarning"><i class="fa-solid fa-lock"></i> สิทธิ์ของคุณถูกล็อกให้เพิ่ม/แก้ไขสมาชิกได้เฉพาะในศูนย์ประสานงานของคุณเท่านั้น</p>
+                        </div>
+                    </div>
+                    
+                    <div class="d-flex justify-content-end gap-2 mt-4 pt-3 border-top">
+                        <button type="button" class="btn btn-light rounded-pill px-4 fw-bold shadow-sm" data-bs-dismiss="modal">ยกเลิก</button>
+                        <button type="submit" class="btn btn-primary rounded-pill px-4 fw-bold shadow-sm"><i class="fa-solid fa-save me-1"></i> บันทึกข้อมูลสมาชิก</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+<!-- ==========================================
+     MODAL: สมุดบัญชีและประวัติรายบุคคล (Member Passbook)
+=========================================== -->
+<div class="modal fade" id="passbookModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered modal-lg modal-dialog-scrollable">
+        <div class="modal-content border-0 shadow-lg rounded-4 overflow-hidden" style="background-color: #F8FAFC;">
+            <!-- Header -->
+            <div class="modal-header bg-primary bg-opacity-10 border-0 p-4 align-items-start">
+                <div class="d-flex align-items-center gap-3">
+                    <div id="pbProfileImage" class="icon-box bg-primary text-white shadow-sm flex-shrink-0" style="width: 55px; height: 55px; font-size: 1.5rem; border-radius: 16px;">
+                        <i class="fa-solid fa-user"></i>
+                    </div>
+                    <div>
+                        <h5 class="fw-bold text-dark mb-0" id="pbMemberName">ชื่อ-นามสกุล</h5>
+                        <div class="d-flex align-items-center gap-2 mt-1 flex-wrap">
+                            <span class="badge bg-primary bg-opacity-10 text-primary rounded-pill px-2 shadow-sm" id="pbMemberId">ID: </span>
+                            <span class="badge bg-white border text-muted shadow-sm" id="pbMemberType">ประเภทสมาชิก</span>
+                        </div>
+                    </div>
+                </div>
+                <button type="button" class="btn-close shadow-none" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            
+            <!-- Body -->
+            <div class="modal-body p-0">
+                <!-- Summary Cards -->
+                <div class="row g-2 p-3 bg-white border-bottom mx-0">
+                    <div class="col-6">
+                        <div class="p-3 bg-success bg-opacity-10 rounded-4 border border-success border-opacity-25 h-100">
+                            <small class="text-success fw-bold d-block mb-1"><i class="fa-solid fa-coins me-1"></i> สมทบแล้วสะสม</small>
+                            <h4 class="text-success fw-bold mb-0" id="pbTotalContribute">฿0.00</h4>
+                        </div>
+                    </div>
+                    <div class="col-6">
+                        <div class="p-3 bg-danger bg-opacity-10 rounded-4 border border-danger border-opacity-25 h-100">
+                            <small class="text-danger fw-bold d-block mb-1"><i class="fa-solid fa-hand-holding-medical me-1"></i> รับสวัสดิการสะสม</small>
+                            <h4 class="text-danger fw-bold mb-0" id="pbTotalClaim">฿0.00</h4>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Passbook Table -->
+                <div class="p-3">
+                    <div class="d-flex justify-content-between align-items-center mb-3">
+                        <h6 class="fw-bold text-dark mb-0"><i class="fa-solid fa-book-open text-primary me-2"></i> รายการเดินบัญชี (Statement)</h6>
+                    </div>
+                    <div class="table-responsive bg-white rounded-4 shadow-sm border">
+                        <table class="table table-hover table-borderless align-middle mb-0" style="font-size: 0.8rem;">
+                            <thead class="bg-light text-muted border-bottom" style="font-size: 0.75rem;">
+                                <tr>
+                                    <th class="py-3 px-3">วันที่ / เวลา</th>
+                                    <th class="py-3">รายการ</th>
+                                    <th class="py-3 text-end text-success">ยอดรับ (In)</th>
+                                    <th class="py-3 text-end text-danger">ยอดจ่าย (Out)</th>
+                                    <th class="py-3 text-end px-3">คงเหลือ</th>
+                                </tr>
+                            </thead>
+                            <tbody id="passbookTableBody">
+                                <!-- ข้อมูลจาก JS จะมาแทรกที่นี่ -->
+                                <tr><td colspan="5" class="text-center py-4 text-muted">กำลังโหลดข้อมูล...</td></tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+<!-- ==========================================
+     [6] JAVASCRIPT MODULES 
+=========================================== -->
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+
+<!-- 1. โหลดตั้งค่าและตัวแปร Global ก่อนเสมอ -->
+<script src="assets/js/config.js"></script>
+
+<!-- 2. โหลดระบบสิทธิ์และการควบคุม UI -->
+<script src="assets/js/auth.js"></script>
+<script src="assets/js/ui-core.js"></script>
+
+<!-- 3. โหลด Modules การทำงานต่างๆ -->
+<script src="assets/js/modules/dashboard.js"></script>
+<script src="assets/js/modules/members.js"></script>
+<script src="assets/js/modules/ledger.js"></script>
+<script src="assets/js/modules/settings.js"></script>
+<script src="assets/js/modules/shops-news.js"></script>
+<!-- โหลด Module ร้านค้าที่เราเพิ่งสร้าง -->
+<script src="./assets/js/modules/shops.js"></script>
+</body>
+</html>

@@ -1,0 +1,309 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>ระบบสมาชิกกองทุนสวัสดิการชุมชน</title>
+  
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Prompt:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  
+  <!-- 🌟 โหลดสไตล์ CSS ที่แยกไฟล์ไว้ 🌟 -->
+  <link rel="stylesheet" href="./assets/css/member-style.css">
+
+  <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+  <script src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
+
+  <script src="https://www.gstatic.com/firebasejs/10.8.1/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.8.1/firebase-firestore-compat.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+
+  
+</head>
+<body>
+
+<div id="systemLoading">
+    <div class="loading-container">
+        <svg class="sw-logo-svg" viewBox="0 0 500 200" xmlns="http://www.w3.org/2000/svg">
+            <defs>
+                <linearGradient id="smartwelfGradient" x1="0%" y1="100%" x2="100%" y2="0%">
+                    <stop offset="0%" stop-color="#059669" />
+                    <stop offset="100%" stop-color="#2563EB" />
+                </linearGradient>
+            </defs>
+            <g class="sw-depth">
+                <circle cx="100" cy="100" r="60" />
+                <rect x="180" y="70" width="200" height="60" rx="15" />
+            </g>
+            <g class="sw-face">
+                <circle cx="100" cy="100" r="60" />
+                <rect x="180" y="70" width="200" height="60" rx="15" />
+            </g>
+            <g>
+                <circle class="sw-energy-path" cx="100" cy="100" r="60" pathLength="1000" />
+            </g>
+        </svg>
+        <p class="loading-text-glow text-center">SmartWelf 5.0</p>
+        <p id="systemLoadingText" class="text-muted fw-bold small mt-1 text-center">กำลังเชื่อมต่อฐานข้อมูล...</p>
+    </div>
+</div>
+
+<div class="app-header">
+  <h4 class="fw-bold mb-1">กองทุนสวัสดิการชุมชน</h4>
+  <p class="text-white-50 small mb-0" id="headerFundName">รอโหลดข้อมูล...</p>
+</div>
+
+<div class="container mb-5 px-3">
+  
+  <!-- 📝 [หน้าต่าง 1] หน้าจอลงทะเบียนสมาชิกใหม่ -->
+  <div id="registerView" class="card-box" style="display: none;">
+    <div class="text-center mb-4">
+      <div class="icon-box bg-primary bg-opacity-10 text-primary mx-auto mb-3"><i class="fa-solid fa-user-plus"></i></div>
+      <h5 class="fw-bold text-dark mb-1">ลงทะเบียนสมาชิกใหม่</h5>
+      <p class="text-muted small">กรอกข้อมูลให้ครบถ้วนเพื่อรับสิทธิประโยชน์</p>
+    </div>
+    
+    <form id="registerForm" onsubmit="handleRegister(event)">
+      <input type="hidden" id="uid" name="uid">
+      <input type="hidden" id="refCode" name="refCode"> 
+      
+      <div class="row g-2 mb-3">
+        <div class="col-4">
+          <select class="form-select" name="prefix" required>
+            <option value="" disabled selected>คำนำหน้า</option>
+            <option value="นาย">นาย</option><option value="นาง">นาง</option><option value="นางสาว">นางสาว</option>
+          </select>
+        </div>
+        <div class="col-8">
+          <input type="text" class="form-control" name="fullName" placeholder="ชื่อ-นามสกุล" required>
+        </div>
+      </div>
+      <div class="mb-3">
+        <input type="tel" class="form-control fw-bold" name="nationalId" placeholder="เลข ปชช. (13 หลัก)" maxlength="13" oninput="this.value = this.value.replace(/[^0-9]/g, '').slice(0, 13);" required>
+      </div>
+      <div class="mb-3">
+        <input type="tel" class="form-control" name="phone" placeholder="เบอร์โทรศัพท์" maxlength="10" oninput="this.value = this.value.replace(/[^0-9]/g, '').slice(0, 10);" required>
+      </div>
+      
+      <!-- 🌟 ข้อมูลที่เชื่อมกับ Global Settings อัตโนมัติ -->
+      <div class="mb-3">
+        <select class="form-select fw-bold text-dark" name="center" id="regCenterSelect" required>
+          <option value="" disabled selected>-- เลือกศูนย์ประสานงานใกล้บ้าน --</option>
+        </select>
+      </div>
+      <div class="mb-4">
+        <select class="form-select text-dark" name="village" id="regVillageSelect" required>
+          <option value="" disabled selected>-- เลือกหมู่บ้านที่พักอาศัยปัจจุบัน --</option>
+        </select>
+      </div>
+      <div class="mb-4">
+        <select class="form-select text-dark border-primary" name="responsibleAdmin" id="regResponsibleAdmin" required>
+          <option value="" disabled selected>-- เลือกกรรมการผู้ดูแลคุณ --</option>
+          <option value="ไม่มีผู้ดูแล">ไม่มีผู้ดูแล (ขึ้นตรงส่วนกลาง)</option>
+        </select>
+        <small class="text-muted" style="font-size: 0.7rem;"><i class="fa-solid fa-circle-info"></i> ระบบดึงรายชื่อกรรมการที่แอคทีฟมาแสดงอัตโนมัติ</small>
+      </div>
+
+      <div class="pdpa-box mb-4">
+        <div class="form-check">
+          <input class="form-check-input mt-1" type="checkbox" name="pdpaConsent" id="pdpaCheck" value="true" required>
+          <label class="form-check-label text-muted ms-1" for="pdpaCheck">
+            <strong>นโยบายความเป็นส่วนตัว (PDPA)</strong><br>
+            ยินยอมให้จัดเก็บข้อมูลส่วนบุคคล เพื่อพิจารณาสิทธิประโยชน์
+          </label>
+        </div>
+      </div>
+      <button type="submit" class="btn btn-fintech w-100" id="submitRegBtn">สมัครสมาชิก</button>
+    </form>
+  </div>
+
+  <!-- 🔗 [หน้าต่าง 1.5] หน้าจอขอผูกบัญชีเดิม -->
+  <div id="accountLinkView" class="card-box text-center" style="display: none;">
+    <div class="icon-box bg-primary bg-opacity-10 text-primary mx-auto mb-3" style="width: 80px; height: 80px; font-size: 2.5rem;">
+      <i class="fa-solid fa-link"></i>
+    </div>
+    <h5 class="fw-bold text-dark mb-2">คุณเคยเป็นสมาชิกแล้วใช่ไหม?</h5>
+    <p class="text-muted small mb-4">ผูกบัญชี LINE กับข้อมูลเดิมที่กรรมการเคยลงทะเบียนให้ เพื่อดูยอดสะสมและขอเบิกสวัสดิการได้ทันที</p>
+    <input type="tel" id="linkNatId" class="form-control text-center fw-bold mb-3 py-3" placeholder="เลขประจำตัวประชาชน 13 หลัก" maxlength="13" oninput="this.value = this.value.replace(/[^0-9]/g, '').slice(0, 13);">
+    <button onclick="requestAccountLink()" class="btn btn-primary w-100 rounded-pill fw-bold py-3 shadow-sm mb-3">ตรวจสอบข้อมูล</button>
+    <button onclick="document.getElementById('accountLinkView').style.display='none'; document.getElementById('registerView').style.display='block';" class="btn btn-light w-100 rounded-pill fw-bold py-2 text-muted">ไม่ใช่, ฉันต้องการสมัครใหม่</button>
+  </div>
+
+  <!-- ✅ [หน้าต่าง 2] หน้าจอสมัครสำเร็จ -->
+  <div id="registrationSuccessView" class="card-box text-center" style="display: none;">
+    <div class="icon-box bg-success bg-opacity-10 text-success mx-auto mb-4" style="width: 80px; height: 80px; font-size: 2.5rem;">
+      <i class="fa-solid fa-check"></i>
+    </div>
+    <h4 class="fw-bold text-dark mb-2">ลงทะเบียนสำเร็จ!</h4>
+    <p class="text-muted mb-4">ข้อมูลของคุณถูกส่งไปยังคณะกรรมการแล้ว โปรดรอการตรวจสอบ</p>
+    <button onclick="location.reload()" class="btn btn-outline-primary rounded-pill px-4 mt-2">เข้าสู่หน้าหลักสมาชิก</button>
+  </div>
+
+  <!-- 📊 [หน้าต่าง 3] แดชบอร์ดหลักของสมาชิก -->
+  <div id="dashboardView" style="display: none;">
+    
+    <div class="fintech-profile-header">
+      <div class="text-start text-white">
+        
+        <!-- 🌟 เริ่มต้นส่วนที่เพิ่มไอคอนตา -->
+        <div class="d-flex align-items-center gap-2 mb-1">
+            <h5 id="dashName" class="fw-bold mb-0" style="text-shadow: 0 2px 4px rgba(0,0,0,0.3);"></h5>
+            <div class="bg-white bg-opacity-25 rounded-circle d-flex align-items-center justify-content-center shadow-sm" style="width: 26px; height: 26px; backdrop-filter: blur(5px); cursor: pointer;" onclick="showProfilePopup()">
+                <i class="fa-solid fa-eye text-white" style="font-size: 0.8rem;"></i>
+            </div>
+        </div>
+        <!-- 🌟 สิ้นสุดส่วนที่เพิ่มไอคอนตา -->
+        
+        <div class="d-flex align-items-center gap-2">
+            <span id="dashStatusBadge" class="badge-status shadow-sm mb-0 px-2 py-1" style="font-size: 0.7rem;">รอตรวจสอบ</span>
+            <div id="dashTierBadge" class="badge-tier shadow-sm mb-0 px-2 py-1" style="display: none; font-size: 0.7rem; margin-top: 0;"></div>
+        </div>
+      </div>
+      <img id="userAvatar" src="" class="profile-img shadow" style="width: 65px; height: 65px;" alt="Profile">
+    </div>
+
+    <!-- การ์ดกระเป๋าเงิน -->
+    <div class="wallet-card mb-4 mx-1">
+      <div class="d-flex justify-content-between align-items-center mb-3">
+        <span class="text-white-50 small fw-bold"><i class="fa-solid fa-wallet me-1"></i> ยอดสมทบสะสม</span>
+        <small class="text-white-50" id="dashCenterText" style="font-size: 0.65rem;"></small>
+      </div>
+      <h1 class="text-white fw-bold mb-1" style="font-size: 2.5rem;">฿<span id="dashTotalContrib">0</span></h1>
+      <p class="text-white-50 small mb-4">ยอดค้างชำระ: <span id="dashOutstanding" class="text-warning fw-bold">0</span> บาท</p>
+
+      <div class="d-flex justify-content-between align-items-center pt-3" style="border-top: 1px solid rgba(255,255,255,0.15);">
+        <div>
+          <span class="text-white-50 d-block mb-1" style="font-size: 0.7rem;">คะแนนอาสาสมัคร</span>
+          <span class="text-warning fw-bold"><i class="fa-solid fa-star me-1"></i><span id="dashCwfPoints">0</span> แต้ม</span>
+        </div>
+        <div class="text-end">
+          <span class="text-white-50 d-block mb-1" style="font-size: 0.7rem;">รับสวัสดิการรวม</span>
+          <span class="text-info fw-bold">฿<span id="dashTotalWelfare">0</span></span>
+        </div>
+      </div>
+    </div>
+
+    <!-- เมนูด่วน 4 ปุ่ม (เชื่อมกับ contribution.html และ claim.html) -->
+    <div class="row g-2 mb-4 px-2">
+      <div class="col-3">
+        <div class="quick-action-wrapper" onclick="scanToPayAdmin()">
+          <div class="quick-action-btn bg-success text-white shadow-sm" style="background: linear-gradient(135deg, #10B981 0%, #059669 100%);"><i class="fa-solid fa-qrcode"></i></div>
+          <span class="quick-action-text text-dark fw-bold">สแกนจ่าย</span>
+        </div>
+      </div>
+      <div class="col-3">
+        <a href="contribution.html" class="text-decoration-none w-100">
+          <div class="quick-action-wrapper">
+            <div class="quick-action-btn bg-white text-primary border"><i class="fa-solid fa-plus"></i></div>
+            <span class="quick-action-text">สมทบ</span>
+          </div>
+        </a>
+      </div>
+      <div class="col-3">
+        <a href="claim.html" class="text-decoration-none w-100">
+          <div class="quick-action-wrapper">
+            <div class="quick-action-btn bg-white text-danger border"><i class="fa-solid fa-file-medical"></i></div>
+            <span class="quick-action-text">ขอเบิก</span>
+          </div>
+        </a>
+      </div>
+      <div class="col-3">
+        <div class="quick-action-wrapper" onclick="openShareModal('invite')">
+          <div class="quick-action-btn bg-white text-warning border"><i class="fa-solid fa-user-plus"></i></div>
+          <span class="quick-action-text">ชวนเพื่อน</span>
+        </div>
+      </div>
+    </div>
+
+    <hr class="my-4 border-secondary border-opacity-25 mx-2">
+
+    <!-- 📰 ข่าวสารและประกาศชุมชน (News Feed) -->
+    <div class="text-start mt-4 mx-1">
+      <div class="d-flex align-items-center justify-content-between mb-3 px-1">
+        <div class="d-flex align-items-center">
+          <i class="fa-solid fa-bullhorn text-primary fs-4 me-2"></i>
+          <h6 class="fw-bold text-dark mb-0 m-0">ข่าวสารชุมชน</h6>
+        </div>
+      </div>
+      <div id="memberNewsFeed" class="horizontal-scroll-row">
+         <div class="text-center text-muted small p-3 w-100 bg-white rounded-4 border">
+            <div class="spinner-border spinner-border-sm mb-2 text-primary"></div><br>กำลังโหลดข่าวสาร...
+         </div>
+      </div>
+    </div>
+    
+    <!-- ศูนย์ภารกิจ & เช็คอิน -->
+    <div class="mission-hub text-start mt-4 mx-1">
+      <div class="d-flex align-items-center justify-content-between mb-3">
+        <div class="d-flex align-items-center">
+          <i class="fa-solid fa-fire text-warning fs-4 me-2" style="text-shadow: 0 0 10px rgba(245,158,11,0.5);"></i>
+          <h6 class="fw-bold hub-title mb-0 m-0">เช็คอินต่อเนื่อง 7 วัน</h6>
+        </div>
+        <small class="text-white-50" style="font-size: 0.7rem;">(รีเซ็ตทุกสัปดาห์)</small>
+      </div>
+      <div class="d-flex justify-content-between align-items-center mb-4 px-1" id="streakContainer">
+          <div class="streak-circle" id="streak-1">1</div>
+          <div class="streak-circle" id="streak-2">2</div>
+          <div class="streak-circle" id="streak-3">3</div>
+          <div class="streak-circle" id="streak-4">4</div>
+          <div class="streak-circle" id="streak-5">5</div>
+          <div class="streak-circle" id="streak-6">6</div>
+          <div class="streak-circle gift" id="streak-7"><i class="fa-solid fa-gift"></i></div>
+      </div>
+      <button id="btnCheckIn" class="btn btn-success w-100 rounded-pill py-2 fw-bold shadow-sm" onclick="processDailyCheckIn()" style="background: linear-gradient(135deg, #10B981 0%, #059669 100%); border: none;">
+        <i class="fa-solid fa-calendar-check me-1"></i> กดเช็คอินรับแต้มวันนี้
+      </button>
+    </div>
+
+    <!-- กระดานตรวจสอบความโปร่งใสชุมชน (ดึงบิลที่รอตรวจสอบมาแสดง) -->
+    <div class="text-start mt-4 mx-1">
+      <div class="d-flex align-items-center mb-3 px-1">
+        <i class="fa-solid fa-magnifying-glass-chart text-primary fs-4 me-2"></i>
+        <h6 class="fw-bold text-dark mb-0 m-0">กระดานความโปร่งใสชุมชน</h6>
+      </div>
+      <div class="alert alert-info border-0 rounded-4 small p-3 mb-3 bg-primary bg-opacity-10 text-primary shadow-sm">
+        <i class="fa-solid fa-circle-info me-1"></i> ร่วมตรวจสอบรับทราบการเบิกจ่ายสวัสดิการ เพื่อชิงแต้มโควต้าพิเศษรายวัน!
+      </div>
+      <div id="transparencyFeed">
+         <div class="text-center text-muted small p-3 w-100"><div class="spinner-border spinner-border-sm mb-2 text-primary"></div><br>กำลังโหลดกระดานชุมชน...</div>
+      </div>
+    </div>
+
+    <!-- กระดานติดตามสถานะเงินสมทบ (Timeline) -->
+    <div class="text-start mt-4 mx-1">
+      <div class="section-title px-1 mb-3"><i class="fa-solid fa-route text-muted me-2"></i> ติดตามเงินสมทบล่าสุด</div>
+      <div id="dashTxTimeline" class="bg-white p-4 rounded-4 shadow-sm border border-light mb-4">
+         <div class="text-center text-muted small py-2">กำลังดึงข้อมูล...</div>
+      </div>
+    </div>
+
+    <!-- ประวัติรับสวัสดิการล่าสุด -->
+    <div class="text-start mt-4 mx-1 bg-white p-4 rounded-4 shadow-sm border border-light">
+      <div class="section-title m-0 mb-3"><i class="fa-solid fa-clock-rotate-left text-muted me-2"></i> ประวัติรับสวัสดิการล่าสุด</div>
+      <div id="dashWelfareList" class="info-list shadow-none mb-0"></div>
+    </div>
+
+<!-- 🌐 ป๊อปอัปสำหรับแชร์ (Share Modal) -->
+<div id="shareModal" class="share-modal" onclick="closeShareModal(event)">
+  <div class="share-content" onclick="event.stopPropagation()">
+    <h5 class="fw-bold mb-3" id="shareTitleText">แชร์ให้เพื่อน</h5>
+    <div class="d-flex justify-content-center mb-4">
+      <button class="social-btn btn-line" onclick="executeShare('line')"><i class="fa-brands fa-line"></i></button>
+      <button class="social-btn btn-fb" onclick="executeShare('facebook')"><i class="fa-brands fa-facebook-f"></i></button>
+      <button class="social-btn btn-copy" onclick="executeShare('copy')"><i class="fa-solid fa-link"></i></button>
+    </div>
+    <button class="btn btn-light w-100 rounded-pill fw-bold" onclick="closeShareModal(true)">ปิด</button>
+  </div>
+</div>
+
+<!-- ==========================================
+     JAVASCRIPT MODULES 
+=========================================== -->
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+<script src="./assets/js/member-config.js"></script>
+<script src="./assets/js/modules/member-main.js"></script>
+</body>
+</html>

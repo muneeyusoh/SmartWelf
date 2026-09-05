@@ -1,0 +1,129 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>สมทบเงินกองทุน | SmartWelf</title>
+  <link href="https://fonts.googleapis.com/css2?family=Prompt:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  
+  <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+  <script src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.8.1/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.8.1/firebase-firestore-compat.js"></script>
+  
+  <style>
+    :root { --fintech-primary: #0F172A; --fintech-accent: #2563EB; --bg-light: #F8FAFC; }
+    body { background-color: var(--bg-light); font-family: 'Prompt', sans-serif; color: #1E293B; padding-bottom: 40px; }
+    
+    .app-header { background: linear-gradient(135deg, var(--fintech-primary) 0%, #1e3a8a 100%); color: white; padding: 40px 20px 60px; border-radius: 0 0 30px 30px; box-shadow: 0 4px 15px rgba(0,0,0,0.1); }
+    .card-box { background: white; padding: 25px; border-radius: 24px; box-shadow: 0 10px 30px rgba(0,0,0,0.05); max-width: 500px; margin: -40px auto 20px; position: relative; z-index: 2;}
+    
+    .wallet-status { background: linear-gradient(135deg, #10B981, #059669); border-radius: 20px; padding: 20px; color: white; margin-bottom: 20px; box-shadow: 0 8px 15px rgba(16, 185, 129, 0.2); }
+    
+    .payment-option { border: 2px solid #E2E8F0; border-radius: 16px; padding: 16px; cursor: pointer; display: flex; align-items: center; gap: 12px; margin-bottom: 12px; transition: 0.2s; }
+    .payment-option:active { transform: scale(0.98); }
+    .payment-option.active { border-color: var(--fintech-accent); background-color: #EFF6FF; box-shadow: 0 4px 10px rgba(37, 99, 235, 0.1); }
+    .form-check-input { display: none; }
+    
+    .form-control, .form-select { border-radius: 12px; padding: 14px; font-weight: 500; border: 1px solid #CBD5E1; background-color: #F8FAFC; }
+    .form-control:focus, .form-select:focus { border-color: var(--fintech-accent); background-color: white; box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1); }
+    
+    .btn-fintech { background-color: var(--fintech-accent); color: white; border-radius: 14px; padding: 16px; font-weight: 700; width: 100%; border: none; box-shadow: 0 4px 15px rgba(37, 99, 235, 0.3); transition: 0.3s; }
+    .btn-fintech:disabled { background-color: #94A3B8; box-shadow: none; }
+    
+    #systemLoading { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(255, 255, 255, 0.95); z-index: 9999; display: flex; flex-direction: column; justify-content: center; align-items: center; }
+  </style>
+</head>
+<body>
+
+<div id="systemLoading">
+    <div class="spinner-border text-primary mb-3" style="width: 3rem; height: 3rem;"></div>
+    <h6 class="text-muted fw-bold">กำลังเตรียมข้อมูล...</h6>
+</div>
+
+<div class="app-header">
+  <div class="d-flex align-items-center mb-2">
+    <button onclick="liff.closeWindow()" class="btn btn-sm text-white px-0 border-0 fs-4"><i class="fa-solid fa-arrow-left"></i></button>
+    <h4 class="fw-bold mb-0 ms-3">สมทบเงินกองทุน</h4>
+  </div>
+  <p class="text-white-50 small text-start ms-4 ps-2 mb-0">ชำระเงินประจำเดือน / ชำระย้อนหลัง</p>
+</div>
+
+<div class="container px-3 mb-5">
+  <div class="card-box">
+    
+    <!-- Status Card -->
+    <div class="wallet-status">
+      <div class="d-flex justify-content-between align-items-end mb-2">
+        <div>
+          <small class="opacity-75 fw-bold d-block">ยอดสมทบสะสมทั้งหมด</small>
+          <h2 class="fw-bold mb-0">฿<span id="dashTotalContrib">0.00</span></h2>
+        </div>
+        <div class="text-end">
+          <small class="opacity-75 fw-bold d-block">สถานะ</small>
+          <span class="badge bg-white text-success rounded-pill px-2 shadow-sm" id="statusBadge">ปกติ</span>
+        </div>
+      </div>
+      <div class="progress mt-3 bg-white bg-opacity-25" style="height: 8px;">
+        <div class="progress-bar bg-white" id="progressBar" style="width: 0%;"></div>
+      </div>
+      <div class="d-flex justify-content-between mt-2 small fw-bold">
+        <span>ค้างชำระ: <span id="debtText" class="text-warning">0</span> ฿</span>
+        <span>เป้าหมายปีนี้: <span id="annualFeeText">365</span> ฿</span>
+      </div>
+    </div>
+
+    <!-- Payment Form -->
+    <form id="contribForm" onsubmit="submitContrib(event)">
+      <input type="hidden" id="uid" name="uid"> 
+      <input type="hidden" id="fullName" name="fullName">
+      <input type="hidden" id="memberCenter" name="center">
+      
+      <div class="mb-4">
+          <label class="small text-muted fw-bold mb-1">ระบุจำนวนเงินที่ต้องการชำระ (บาท)</label>
+          <input type="number" id="amount" name="amount" class="form-control text-primary fw-bold fs-3 text-center" placeholder="0.00" step="0.01" required>
+      </div>
+      
+      <label class="small text-muted fw-bold mb-2">เลือกช่องทางการชำระเงิน</label>
+      <label class="payment-option active" id="lblTransfer">
+        <input class="form-check-input" type="radio" name="paymentType" value="transfer" onchange="togglePaymentSection()" checked required>
+        <div class="icon-box bg-primary bg-opacity-10 text-primary rounded-circle" style="width:40px; height:40px;"><i class="fa-solid fa-money-bill-transfer"></i></div>
+        <div class="fw-bold text-dark flex-grow-1">โอนเงินเข้าบัญชีกองทุน<small class="d-block text-muted fw-normal">แนบสลิปโอนเงิน</small></div>
+        <i class="fa-solid fa-circle-check text-primary fs-5 check-icon"></i>
+      </label>
+
+      <label class="payment-option" id="lblCash">
+        <input class="form-check-input" type="radio" name="paymentType" value="cash" onchange="togglePaymentSection()">
+        <div class="icon-box bg-warning bg-opacity-10 text-warning rounded-circle" style="width:40px; height:40px;"><i class="fa-solid fa-hand-holding-dollar"></i></div>
+        <div class="fw-bold text-dark flex-grow-1">ฝากเงินสดผ่านกรรมการ<small class="d-block text-muted fw-normal">เลือกกรรมการผู้รับเงิน</small></div>
+        <i class="fa-solid fa-circle-check text-muted fs-5 check-icon opacity-25"></i>
+      </label>
+      
+      <!-- Upload Slip Section -->
+      <div id="transferSection" class="mb-4 p-3 bg-light rounded-4 border border-primary border-opacity-25">
+        <label class="small text-dark fw-bold mb-2"><i class="fa-solid fa-cloud-arrow-up text-primary me-1"></i> อัปโหลดสลิปโอนเงิน</label>
+        <input type="file" class="form-control bg-white" id="slipFile" accept="image/*" onchange="convertImg(this)">
+        <input type="hidden" id="slipBase64" name="slipBase64">
+        <small class="text-danger mt-1 d-block" id="slipError" style="display:none;"><i class="fa-solid fa-circle-exclamation"></i> กรุณาแนบสลิป</small>
+      </div>
+
+      <!-- Select Admin Section -->
+      <div id="cashSection" style="display:none;" class="mb-4 p-3 bg-light rounded-4 border border-warning border-opacity-25">
+        <label class="small text-dark fw-bold mb-2"><i class="fa-solid fa-user-tie text-warning me-1"></i> มอบเงินสดให้กรรมการท่านใด?</label>
+        <select class="form-select bg-white fw-bold text-primary" id="committeeSelect" name="committeeName">
+            <option value="ไม่ระบุ">-- กำลังโหลดรายชื่อกรรมการ --</option>
+        </select>
+      </div>
+      
+      <button type="submit" class="btn btn-fintech" id="submitBtn">ยืนยันทำรายการ</button>
+    </form>
+  </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+<script src="./assets/js/member-config.js"></script>
+<script src="./assets/js/modules/member-contrib.js"></script>
+</body>
+</html>
