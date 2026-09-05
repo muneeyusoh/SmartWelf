@@ -756,51 +756,134 @@
       </div>
      
 
-      <!-- เศรษฐศาสตร์แต้ม (Tokenomics) (ของเดิม) -->
-      <div class="admin-card border-0 p-4 mb-3" style="background: linear-gradient(135deg, #1E293B 0%, #0F172A 100%); border: 1px solid #334155;">
-        <div class="d-flex align-items-center mb-3 border-bottom pb-2" style="border-color: rgba(255,255,255,0.1) !important;">
+      <!-- 💰 5. เศรษฐศาสตร์แต้ม (Tokenomics & Earning) -->
+      <div class="admin-card border-0 p-4 mb-4" style="background: linear-gradient(135deg, #1E293B 0%, #0F172A 100%); border: 1px solid #334155;">
+        
+        <div class="d-flex align-items-center mb-4 border-bottom pb-3" style="border-color: rgba(255,255,255,0.1) !important;">
           <i class="fa-solid fa-coins text-warning me-2 fs-4"></i>
-          <h6 class="fw-bold text-white mb-0">5. เศรษฐศาสตร์แต้ม (Tokenomics)</h6>
+          <h6 class="fw-bold text-white mb-0">5. เศรษฐศาสตร์แต้ม (รับแต้ม 6 ช่องทาง)</h6>
         </div>
+        
+       <div class="mb-4">
+           <label class="small text-white-50 fw-bold mb-2">สถานะงบประมาณแต้มรวมรายปี (Global Point Pool)</label>
+           <div class="row g-2">
+              <div class="col-4">
+                 <div class="p-2 rounded-3 text-center" style="background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1);">
+                    <small class="text-white-50 d-block" style="font-size: 0.7rem;">ตั้งงบเริ่มต้น</small>
+                    <input type="number" id="setInitialPointPool" class="form-control form-control-sm text-white fw-bold text-center border-0 bg-transparent p-0 mt-1" placeholder="ระบุแต้ม">
+                 </div>
+              </div>
+              <div class="col-4">
+                 <div class="p-2 rounded-3 text-center" style="background: rgba(239, 68, 68, 0.1); border: 1px solid rgba(239, 68, 68, 0.2);">
+                    <small class="text-danger d-block" style="font-size: 0.7rem;">สมาชิกรับแต้มไปแล้ว</small>
+                    <div id="displayPointsUsed" class="text-danger fw-bold mt-1" style="font-size: 0.95rem;">0</div>
+                 </div>
+              </div>
+              <div class="col-4">
+                 <div class="p-2 rounded-3 text-center" style="background: rgba(16, 185, 129, 0.1); border: 1px solid rgba(16, 185, 129, 0.2);">
+                    <small class="text-success d-block" style="font-size: 0.7rem;">แต้มคงเหลือแจกได้</small>
+                    <div id="displayPointsRemain" class="text-success fw-bold mt-1 fs-6">0</div>
+                 </div>
+              </div>
+           </div>
+        </div>
+
         <div class="row g-3">
-          <div class="col-12">
-             <label class="small text-white-50 fw-bold mb-1">งบประมาณแต้มรวมรายปี</label>
-             <input type="number" id="setGlobalPointPool" class="form-control form-control-lg text-warning fw-bold text-center border-0" style="background: rgba(255,255,255,0.1);" placeholder="เช่น 50000">
+          <!-- 1. เช็คอินรายวัน -->
+          <div class="col-md-6">
+            <div class="p-3 rounded-4 h-100" style="background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1);">
+               <label class="small text-white fw-bold mb-2"><i class="fa-solid fa-calendar-check text-success me-2"></i>1. เช็คอินรายวัน</label>
+               <div class="input-group input-group-sm">
+                  <span class="input-group-text bg-dark text-white-50 border-secondary">ได้รับ</span>
+                  <input type="number" id="setPtCheckIn" class="form-control bg-dark text-white border-secondary text-center" value="2">
+                  <span class="input-group-text bg-dark text-white-50 border-secondary">แต้ม/วัน</span>
+               </div>
+            </div>
           </div>
-          <div class="col-12 mt-4">
-             <label class="small text-white-50 fw-bold mb-1">การแจกแต้มแบบขั้นบันได (FOMO)</label>
-             <div class="d-flex gap-2 align-items-center mb-2">
-                <span class="text-white small w-50">กลุ่มที่ 1 (1-10 คน) :</span>
-                <input type="number" id="setFomoTier1" class="form-control form-control-sm text-center fw-bold" style="width: 80px;" value="5">
-             </div>
-             <div class="d-flex gap-2 align-items-center mb-2">
-                <span class="text-white small w-50">กลุ่มที่ 2 (11-30 คน) :</span>
-                <input type="number" id="setFomoTier2" class="form-control form-control-sm text-center fw-bold" style="width: 80px;" value="3">
-             </div>
-             <div class="d-flex gap-2 align-items-center">
-                <span class="text-white small w-50">กลุ่มที่ 3 (31 ขึ้นไป) :</span>
-                <input type="number" id="setFomoTier3" class="form-control form-control-sm text-center fw-bold" style="width: 80px;" value="1">
-             </div>
+
+          <!-- 2. ตรวจสอบธุรกรรม -->
+          <div class="col-md-6">
+            <div class="p-3 rounded-4 h-100" style="background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1);">
+               <label class="small text-white fw-bold mb-2"><i class="fa-solid fa-magnifying-glass-chart text-info me-2"></i>2. ตรวจสอบธุรกรรม (FOMO)</label>
+               <div class="d-flex gap-2 align-items-center mb-1">
+                  <span class="text-white-50 small w-50">1-10 คนแรก:</span>
+                  <input type="number" id="setFomoTier1" class="form-control form-control-sm bg-dark text-white border-secondary text-center w-50" value="5">
+               </div>
+               <div class="d-flex gap-2 align-items-center mb-1">
+                  <span class="text-white-50 small w-50">11-30 คน:</span>
+                  <input type="number" id="setFomoTier2" class="form-control form-control-sm bg-dark text-white border-secondary text-center w-50" value="3">
+               </div>
+               <div class="d-flex gap-2 align-items-center">
+                  <span class="text-white-50 small w-50">31 คนขึ้นไป:</span>
+                  <input type="number" id="setFomoTier3" class="form-control form-control-sm bg-dark text-white border-secondary text-center w-50" value="1">
+               </div>
+            </div>
+          </div>
+
+          <!-- 3. ร้านค้าชุมชน -->
+          <div class="col-md-6">
+            <div class="p-3 rounded-4 h-100" style="background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1);">
+               <label class="small text-white fw-bold mb-2"><i class="fa-solid fa-shop text-warning me-2"></i>3. กิจกรรมร้านค้า</label>
+               <div class="input-group input-group-sm mb-2">
+                  <span class="input-group-text bg-dark text-white-50 border-secondary">ซื้อสินค้า</span>
+                  <input type="number" id="setPtShopBuy" class="form-control bg-dark text-white border-secondary text-center" value="1">
+                  <span class="input-group-text bg-dark text-white-50 border-secondary">แต้ม/บิล</span>
+               </div>
+               <div class="input-group input-group-sm">
+                  <span class="input-group-text bg-dark text-white-50 border-secondary">ขายสินค้า</span>
+                  <input type="number" id="setPtShopSell" class="form-control bg-dark text-white border-secondary text-center" value="2">
+                  <span class="input-group-text bg-dark text-white-50 border-secondary">แต้ม/บิล</span>
+               </div>
+            </div>
+          </div>
+
+          <!-- 4. ชวนเพื่อน -->
+          <div class="col-md-6">
+            <div class="p-3 rounded-4 h-100" style="background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1);">
+               <label class="small text-white fw-bold mb-2"><i class="fa-solid fa-user-group text-primary me-2"></i>4. ชวนเพื่อนสมทบ</label>
+               <div class="input-group input-group-sm mt-3">
+                  <span class="input-group-text bg-dark text-white-50 border-secondary">สำเร็จรับ</span>
+                  <input type="number" id="setPtInvite" class="form-control bg-dark text-white border-secondary text-center" value="50">
+                  <span class="input-group-text bg-dark text-white-50 border-secondary">แต้ม/คน</span>
+               </div>
+            </div>
+          </div>
+
+          <!-- 5. แชร์ข่าว -->
+          <div class="col-md-6">
+            <div class="p-3 rounded-4 h-100" style="background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1);">
+               <label class="small text-white fw-bold mb-2"><i class="fa-solid fa-share-nodes text-danger me-2"></i>5. แชร์ข่าวสู่สาธารณะ</label>
+               <div class="input-group input-group-sm mt-3">
+                  <span class="input-group-text bg-dark text-white-50 border-secondary">แชร์ได้</span>
+                  <input type="number" id="setPtShare" class="form-control bg-dark text-white border-secondary text-center" value="5">
+                  <span class="input-group-text bg-dark text-white-50 border-secondary">แต้ม/ครั้ง</span>
+               </div>
+            </div>
+          </div>
+
+          <!-- 6. ทำความดี -->
+          <div class="col-md-6">
+            <div class="p-3 rounded-4 h-100 d-flex flex-column" style="background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1);">
+               <label class="small text-white fw-bold mb-1"><i class="fa-solid fa-hand-holding-heart text-pink me-2" style="color:#EC4899;"></i>6. ทำความดี (ตั้งค่าเอง)</label>
+               <p class="small text-white-50 mb-2" style="font-size: 0.7rem;">(เช่น เก็บขยะ, ช่วยเหลืองานศูนย์ฯ)</p>
+               <button class="btn btn-sm btn-outline-light rounded-pill w-100 mt-auto" onclick="openMissionModal()">+ เพิ่มรายการทำความดี</button>
+            </div>
           </div>
         </div>
       </div>
 
-      <!-- ภารกิจและของรางวัล (ของเดิม) -->
-      <div class="admin-card border-0 p-4 mb-3">
-        <div class="d-flex justify-content-between align-items-center mb-3 border-bottom pb-2">
-            <div class="d-flex align-items-center"><i class="fa-solid fa-gamepad text-info me-2"></i><h6 class="fw-bold text-dark mb-0">6. ตั้งค่าภารกิจสะสมแต้ม</h6></div>
-            <button class="btn btn-sm btn-outline-info rounded-pill px-3 fw-bold" onclick="openMissionModal()">+ เพิ่ม</button>
-        </div>
-        <div id="missionsContainer"></div>
-      </div>
+      <!-- รายการความดี (Missions Container) -->
+      <div id="missionsContainer" class="mb-4"></div>
+
+      <!-- 🎁 7. ตั้งค่าของรางวัล (Rewards) -->
       <div class="admin-card border-0 p-4 mb-4">
         <div class="d-flex justify-content-between align-items-center mb-3 border-bottom pb-2">
-            <div class="d-flex align-items-center"><i class="fa-solid fa-gift text-danger me-2"></i><h6 class="fw-bold text-dark mb-0">7. ตั้งค่าของรางวัล</h6></div>
-            <button class="btn btn-sm btn-outline-danger rounded-pill px-3 fw-bold" onclick="openRewardModal()">+ เพิ่ม</button>
+            <div class="d-flex align-items-center"><i class="fa-solid fa-gift text-danger me-2 fs-5"></i><h6 class="fw-bold text-dark mb-0">7. การแลกของรางวัล (Redeem)</h6></div>
+            <button class="btn btn-sm btn-danger rounded-pill px-3 fw-bold shadow-sm" onclick="openRewardModal()"><i class="fa-solid fa-plus me-1"></i> เพิ่มรางวัล</button>
         </div>
+        <div class="alert alert-danger bg-opacity-10 border-0 small py-2"><i class="fa-solid fa-circle-info me-1"></i> สามารถตั้งค่าให้ใช้ <strong>แต้ม + เงินสด</strong> ในการแลกรับสิทธิ์ได้</div>
         <div id="rewardsContainer"></div>
       </div>
-    </div>
 
     <!-- 🗺️ ADMIN TAB: แผนที่ (GIS) -->
     <div class="admin-tab-pane d-none" id="admin-view-gis">
@@ -964,19 +1047,49 @@
     <!-- 🏦 ADMIN TAB: จัดการบัญชีธนาคาร -->
     <div class="admin-tab-pane d-none" id="admin-view-bank">
       <div class="d-flex align-items-center mb-4 px-1"><i class="fa-solid fa-building-columns text-success me-2 fs-5"></i><h5 class="fw-bold text-dark mb-0">จัดการบัญชีธนาคาร</h5></div>
-      <div class="admin-card border-0 p-3 mb-3 text-center text-muted py-4 small bg-light rounded-3">กำลังพัฒนา...</div>
+      <div class="admin-card border-0 p-4 mb-3 bg-white rounded-4 shadow-sm text-start">
+          <label class="small fw-bold text-muted mb-1">ชื่อธนาคาร</label>
+          <input type="text" id="bankName" class="form-control mb-3" placeholder="เช่น ธนาคารกรุงไทย">
+          
+          <label class="small fw-bold text-muted mb-1">ชื่อบัญชี</label>
+          <input type="text" id="bankAccountName" class="form-control mb-3" placeholder="เช่น กองทุนสวัสดิการชุมชน...">
+          
+          <label class="small fw-bold text-muted mb-1">เลขที่บัญชี</label>
+          <input type="text" id="bankAccountNumber" class="form-control mb-4" placeholder="000-0-00000-0">
+          
+          <button class="btn btn-success w-100 rounded-pill fw-bold shadow-sm" onclick="saveBankSettings()"><i class="fa-solid fa-save me-1"></i> บันทึกข้อมูลธนาคาร</button>
+      </div>
     </div>
 
     <!-- 🔗 ADMIN TAB: ตั้งค่าและการเชื่อมต่อบัญชี -->
     <div class="admin-tab-pane d-none" id="admin-view-connection">
       <div class="d-flex align-items-center mb-4 px-1"><i class="fa-solid fa-link text-primary me-2 fs-5"></i><h5 class="fw-bold text-dark mb-0">ตั้งค่าและการเชื่อมต่อบัญชี</h5></div>
-      <div class="admin-card border-0 p-3 mb-3 text-center text-muted py-4 small bg-light rounded-3">กำลังพัฒนา...</div>
+      <div class="admin-card border-0 p-4 mb-3 bg-white rounded-4 shadow-sm text-start">
+          <label class="small fw-bold text-muted mb-1">LIFF ID (แอปสมาชิก)</label>
+          <input type="text" id="settingLiffId" class="form-control mb-3" placeholder="เช่น 1234567890-AbCdEfGh">
+          
+          <label class="small fw-bold text-muted mb-1">LINE Messaging API (Channel Access Token)</label>
+          <textarea id="settingLineToken" class="form-control mb-4" rows="3" placeholder="ใส่ Token สำหรับส่งข้อความแจ้งเตือนอัตโนมัติ"></textarea>
+          
+          <button class="btn btn-primary w-100 rounded-pill fw-bold shadow-sm" onclick="saveConnectionSettings()"><i class="fa-solid fa-save me-1"></i> บันทึกการเชื่อมต่อ API</button>
+      </div>
     </div>
 
     <!-- 🛡️ ADMIN TAB: ความเป็นส่วนตัวและความปลอดภัย -->
     <div class="admin-tab-pane d-none" id="admin-view-privacy">
       <div class="d-flex align-items-center mb-4 px-1"><i class="fa-solid fa-shield-halved text-danger me-2 fs-5"></i><h5 class="fw-bold text-dark mb-0">ความเป็นส่วนตัวและความปลอดภัย</h5></div>
-      <div class="admin-card border-0 p-3 mb-3 text-center text-muted py-4 small bg-light rounded-3">กำลังพัฒนา...</div>
+      <div class="admin-card border-0 p-4 mb-3 bg-white rounded-4 shadow-sm text-start">
+          <div class="form-check form-switch mb-3 mt-2">
+            <input class="form-check-input fs-5" type="checkbox" id="requirePdpa" checked>
+            <label class="form-check-label fw-bold text-dark ms-2 mt-1" for="requirePdpa">บังคับให้สมาชิกยอมรับนโยบาย PDPA ก่อนสมัคร</label>
+          </div>
+          <div class="form-check form-switch mb-4">
+            <input class="form-check-input fs-5" type="checkbox" id="maskSensitiveData" checked>
+            <label class="form-check-label fw-bold text-dark ms-2 mt-1" for="maskSensitiveData">ซ่อนข้อมูลอ่อนไหว (เช่น เลข ปชช.) เป็นค่าเริ่มต้น</label>
+          </div>
+          
+          <button class="btn btn-danger w-100 rounded-pill fw-bold shadow-sm" onclick="savePrivacySettings()"><i class="fa-solid fa-save me-1"></i> บันทึกการตั้งค่าความปลอดภัย</button>
+      </div>
     </div>
     
     <!-- ℹ️ ADMIN TAB: การใช้งานทั่วไป -->
@@ -1178,5 +1291,7 @@
 <script src="assets/js/modules/shops-news.js"></script>
 <!-- โหลด Module ร้านค้าที่เราเพิ่งสร้าง -->
 <script src="./assets/js/modules/shops.js"></script>
+<!-- 🌟 ปรับที่อยู่ไฟล์ (Path) ให้ตรงกับโฟลเดอร์ที่คุณเก็บไฟล์ไว้ 🌟 -->
+<script src="./assets/js/modules/admin-main.js"></script>
 </body>
 </html>
