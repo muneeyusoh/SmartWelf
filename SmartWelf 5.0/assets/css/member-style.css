@@ -384,3 +384,27 @@ body {
     -webkit-box-orient: vertical;  
     overflow: hidden;
 }
+/* 📌 11. การ์ดของรางวัล (Rewards Card) */
+.reward-card {
+    flex: 0 0 150px;
+    scroll-snap-align: start;
+    background: white;
+    border-radius: 16px;
+    border: 1px solid var(--card-border);
+    overflow: hidden;
+    box-shadow: 0 4px 15px rgba(0,0,0,0.03);
+    display: flex;
+    flex-direction: column;
+    position: relative;
+    cursor: pointer;
+    transition: transform 0.2s;
+}
+.reward-card:active { transform: scale(0.96); }
+
+.reward-img {
+    width: 100%;
+    height: 120px;
+    object-fit: cover;
+    background: #F1F5F9;
+    border-bottom: 1px solid #f3f4f6;
+}
