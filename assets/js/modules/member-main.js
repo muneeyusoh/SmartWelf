@@ -4,7 +4,7 @@
 
 // 📌 SECTION 1: ตัวแปรและการเริ่มต้นระบบ (Initialization)
 // 🌟 แก้ไข: ใช้ LIFF ID ที่ถูกต้องของคุณมุนี
-const LIFF_ID = "2011183541-zDAQXVLM";
+const LIFF_ID = "2010764982-wudH3EsZ";
 let unmaskedData = { NatId: '', Phone: '' };
 let isDataMasked = { natId: true, phone: true };
 let currentShareMode = 'news';
