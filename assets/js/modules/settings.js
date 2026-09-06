@@ -296,3 +296,110 @@ function renderConditionTypeBadges() {
 }
 function addConditionTypeBadge() { const val = document.getElementById('newConditionTypeInput').value.trim(); if(!val || uiSettingsConditionTypes.includes(val)) return; uiSettingsConditionTypes.push(val); document.getElementById('newConditionTypeInput').value = ""; renderConditionTypeBadges(); }
 function removeConditionTypeBadge(index) { uiSettingsConditionTypes.splice(index, 1); renderConditionTypeBadges(); }
+// =========================================================
+// 🏷️ จัดการประเภทสมาชิก หมู่บ้าน ศูนย์ประสานงาน และพิกัด GPS
+// =========================================================
+
+function renderMemberTypeBadges() {
+    const container = document.getElementById('memberTypesContainer');
+    if (!container) return;
+    container.innerHTML = "";
+    (uiSettingsMemberTypes || []).forEach((type, index) => {
+        container.innerHTML += `
+        <span class="badge bg-dark d-flex align-items-center py-2 px-3 shadow-sm" style="font-size: 0.8rem; border-radius: 12px;">
+            ${type} <i class="fa-solid fa-xmark ms-2 text-danger cursor-pointer" onclick="removeMemberTypeBadge(${index})" title="ลบออก"></i>
+        </span>`;
+    });
+}
+function addMemberTypeBadge() {
+    const input = document.getElementById('newMemberTypeInput');
+    const val = input.value.trim();
+    if (!val || uiSettingsMemberTypes.includes(val)) return;
+    uiSettingsMemberTypes.push(val);
+    input.value = "";
+    renderMemberTypeBadges();
+}
+function removeMemberTypeBadge(index) {
+    uiSettingsMemberTypes.splice(index, 1);
+    renderMemberTypeBadges();
+}
+
+function renderVillageBadges() {
+    const container = document.getElementById('villagesContainer');
+    if (!container) return;
+    container.innerHTML = "";
+    (uiSettingsVillages || []).forEach((v, index) => {
+        container.innerHTML += `
+        <span class="badge bg-success bg-opacity-10 text-success border border-success d-flex align-items-center py-2 px-3 shadow-sm" style="font-size: 0.8rem; border-radius: 12px;">
+            <i class="fa-solid fa-house-chimney me-1"></i> ${v} 
+            <i class="fa-solid fa-xmark ms-2 text-danger cursor-pointer" onclick="removeVillageBadge(${index})" title="ลบออก"></i>
+        </span>`;
+    });
+}
+function addVillageBadge() {
+    const input = document.getElementById('newVillageInput');
+    const val = input.value.trim();
+    if (!val || uiSettingsVillages.includes(val)) return;
+    uiSettingsVillages.push(val);
+    input.value = "";
+    renderVillageBadges();
+}
+function removeVillageBadge(index) {
+    uiSettingsVillages.splice(index, 1);
+    renderVillageBadges();
+}
+
+function renderCenterBadges() {
+    const container = document.getElementById('centersContainer');
+    if (!container) return;
+    container.innerHTML = "";
+    (uiSettingsCenters || []).forEach((c, index) => {
+        container.innerHTML += `
+        <span class="badge bg-primary bg-opacity-10 text-primary border border-primary d-flex align-items-center py-2 px-3 shadow-sm" style="font-size: 0.8rem; border-radius: 12px;">
+            <i class="fa-solid fa-building me-1"></i> ${c} 
+            <i class="fa-solid fa-xmark ms-2 text-danger cursor-pointer" onclick="removeCenterBadge(${index})" title="ลบออก"></i>
+        </span>`;
+    });
+}
+function addCenterBadge() {
+    const input = document.getElementById('newCenterInput');
+    const val = input.value.trim();
+    if (!val || uiSettingsCenters.includes(val)) return;
+    uiSettingsCenters.push(val);
+    input.value = "";
+    renderCenterBadges();
+}
+function removeCenterBadge(index) {
+    uiSettingsCenters.splice(index, 1);
+    renderCenterBadges();
+}
+
+function loadRulesData() {
+    if (typeof loadGlobalSettings === 'function') loadGlobalSettings();
+}
+
+function getCurrentLocation() {
+    if (!navigator.geolocation) {
+        return Swal.fire('แจ้งเตือน', 'เบราว์เซอร์ไม่รองรับการระบุพิกัด GPS', 'warning');
+    }
+    Swal.fire({ title: 'กำลังดึงพิกัด GPS...', didOpen: () => Swal.showLoading() });
+    navigator.geolocation.getCurrentPosition(
+        pos => {
+            const lat = pos.coords.latitude.toFixed(6);
+            const lng = pos.coords.longitude.toFixed(6);
+            if (document.getElementById('setFundLat')) document.getElementById('setFundLat').value = lat;
+            if (document.getElementById('setFundLng')) document.getElementById('setFundLng').value = lng;
+            Swal.fire({ 
+                icon: 'success', 
+                title: 'บันทึกพิกัดแล้ว', 
+                text: `ละติจูด: ${lat}, ลองจิจูด: ${lng}`, 
+                timer: 1500, 
+                showConfirmButton: false 
+            });
+        },
+        err => {
+            Swal.fire('ข้อผิดพลาด', 'ไม่สามารถเข้าถึงพิกัด GPS ได้ โปรดเปิดสิทธิ์เข้าถึงตำแหน่ง: ' + err.message, 'error');
+        },
+        { enableHighAccuracy: true, timeout: 10000 }
+    );
+}

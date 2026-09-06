@@ -1,19 +1,22 @@
 // =========================================================
 // 💸 member-contrib.js: ควบคุมหน้าสมทบเงิน (contribution.html)
 // =========================================================
-const LIFF_ID_CONTRIB = "2011183541-lPBacDBx";
+const LIFF_ID_CONTRIB = "2011183541-zDAQXVLM"; // 🌟 อัปเดตใช้ ID เดียวกันกับหน้าหลัก
 let annualFee = 365;
 
 document.addEventListener("DOMContentLoaded", async () => {
   try {
       await liff.init({ liffId: LIFF_ID_CONTRIB }); 
+      
       if(liff.isLoggedIn()) {
         const profile = await liff.getProfile(); 
         document.getElementById('uid').value = profile.userId;
         
+        let fundSettings = {};
         const sysSnap = await db.collection("settings").doc("master").get();
         if(sysSnap.exists) {
-            annualFee = sysSnap.data().annualFee || 365;
+            fundSettings = sysSnap.data();
+            annualFee = fundSettings.annualFee || 365;
             document.getElementById('annualFeeText').innerText = annualFee.toLocaleString();
         }
 
@@ -42,26 +45,28 @@ document.addEventListener("DOMContentLoaded", async () => {
                 document.getElementById('statusBadge').classList.replace('text-success', 'text-warning');
             }
 
-            const adminSnap = await db.collection("admins").where("status", "==", "ใช้งาน").get();
+            // 🌟 แก้ไข: ดึงรายชื่อกรรมการจากส่วนกลางแทนการดึงจาก Collection: admins (แก้ติด Permission Denied)
             const select = document.getElementById('committeeSelect');
             select.innerHTML = '<option value="" disabled selected>-- เลือกกรรมการผู้รับเงิน --</option>';
             
             if(d.responsibleAdmin && d.responsibleAdmin !== "ไม่มีผู้ดูแล") {
                 select.innerHTML += `<option value="${d.responsibleAdmin}">⭐ ${d.responsibleAdmin} (กรรมการประจำสาย)</option>`;
             }
-            adminSnap.forEach(a => { 
-                if(a.data().name !== d.responsibleAdmin) {
-                    select.innerHTML += `<option value="${a.data().name}">${a.data().name}</option>`; 
+            
+            const committeeArray = fundSettings.committee || [];
+            committeeArray.forEach(com => { 
+                if(com.name !== d.responsibleAdmin) {
+                    select.innerHTML += `<option value="${com.name}">${com.name}</option>`; 
                 }
             });
 
             document.getElementById('systemLoading').style.display = 'none';
         } else {
-            Swal.fire('ข้อผิดพลาด', 'ไม่พบข้อมูลสมาชิก กรุณาลงทะเบียนก่อน', 'error').then(()=> liff.closeWindow());
+            Swal.fire('ข้อผิดพลาด', 'ไม่พบข้อมูลสมาชิก กรุณาลงทะเบียนผ่านหน้าแรกก่อน', 'error').then(()=> liff.closeWindow());
         }
       } else { liff.login(); }
   } catch(e) {
-      document.getElementById('systemLoading').innerHTML = `<h6 class="text-danger">Error: ${e.message}</h6>`;
+      document.getElementById('systemLoading').innerHTML = `<div class="p-3 text-center"><h6 class="text-danger">Error Load:</h6><p class="small text-muted">${e.message}</p></div>`;
   }
 });
 
@@ -142,6 +147,6 @@ async function submitContrib(e) {
     Swal.fire({ title: 'ส่งข้อมูลสำเร็จ!', text: 'กรุณารอแอดมินตรวจสอบยอดเงิน', icon: 'success', confirmButtonColor: '#2563EB' }).then(()=>liff.closeWindow());
   } catch (err) { 
     btn.disabled = false; btn.innerHTML = 'ยืนยันทำรายการ'; 
-    Swal.fire('Error', 'ไม่สามารถเชื่อมต่อฐานข้อมูลได้', 'error');
+    Swal.fire('Error', 'ไม่สามารถเชื่อมต่อฐานข้อมูลได้: ' + err.message, 'error');
   }
 }

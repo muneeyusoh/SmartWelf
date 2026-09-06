@@ -1,14 +1,29 @@
 // =========================================================
-// 📊 dashboard.js: ภาพรวมการเงินและแดชบอร์ด
+// 📊 dashboard.js: ภาพรวมการเงินและแดชบอร์ด (ปรับปรุงระบบ Real-time)
 // =========================================================
+
+// ตัวแปรสำหรับเก็บ Listener เพื่อป้องกันการโหลดซ้ำซ้อน (Memory Leak)
+let dashboardListeners = [];
+
 async function loadDashboardOverview() {
-    if(currentAdminData.role === 'Admin-ผู้ดูแล' || currentAdminData.role === 'Admin-สวัสดิการ') { loadMembersData(); return; }
-    showLoader(true, "อัปเดตภาพรวม...");
+    // 1. ตรวจสอบสิทธิ์ (ถ้าไม่ใช่ Master หรือ การเงิน ให้ไปหน้าสมาชิกแทน)
+    if(currentAdminData.role === 'Admin-ผู้ดูแล' || currentAdminData.role === 'Admin-สวัสดิการ') { 
+        loadMembersData(); 
+        return; 
+    }
+
+    showLoader(true, "กำลังเชื่อมต่อระบบกระแสเงินสด (Real-time)...");
+
     try {
+        // เคลียร์ Listener เก่าออกก่อนเสมอเมื่อมีการโหลดหน้าแดชบอร์ดใหม่
+        dashboardListeners.forEach(unsubscribe => unsubscribe());
+        dashboardListeners = [];
+
         let mCount = 0, pCount = 0, sumIn = 0, sumOut = 0, bankBal = 0, cashBal = 0, totalDebt = 0;
         let chartData = { member: 0, codi: 0, local: 0, privateStore: 0, donate: 0, interest: 0, profit: 0, other: 0 };
         let pendingTxCount = 0, pendingClaimCount = 0, holderBalances = {};
         
+        // 2. โหลดข้อมูลสมาชิก (ใช้ดึงครั้งเดียวตอนเข้าหน้าเว็บ)
         const mSnap = await db.collection("members").get(); 
         mCount = mSnap.size;
         mSnap.forEach(doc => { 
@@ -18,95 +33,147 @@ async function loadDashboardOverview() {
                 totalDebt += parseFloat(data.outstandingBalance);
             }
         });
+
+        // 3. โหลดคำขอเบิกสวัสดิการที่รอตรวจสอบ (ดึงครั้งเดียว)
+        const cSnap = await db.collection("claims").where("status", "==", "รอตรวจสอบ").get();
+        pendingClaimCount = cSnap.size;
+        pCount += pendingClaimCount;
         
-        const tSnap = await db.collection("transactions").get();
-        tSnap.forEach(doc => {
-            const d = doc.data(); 
-            if(d.status === 'รอตรวจสอบ') { pCount++; pendingTxCount++; }
-            if(d.status === 'รอส่งมอบ' || d.status === 'รอตรวจสอบ') {
-                let holder = d.currentHolder || d.fullName.replace('แอดมิน: ', '');
-                if(!holderBalances[holder]) holderBalances[holder] = { count: 0, amount: 0 };
-                holderBalances[holder].count++; holderBalances[holder].amount += parseFloat(d.amount);
-            }
-            if(d.status === 'อนุมัติแล้ว') {
-                let amt = parseFloat(d.amount) || 0;
-                if(d.type.includes('รับ') || d.type === 'สมทบเงินกองทุน') {
-                    sumIn += amt;
-                    if(d.paymentMethod && d.paymentMethod.includes('ธนาคาร')) bankBal += amt; else cashBal += amt;
-                    let noteStr = (d.note||"").toLowerCase();
-                    if(d.type === 'สมทบเงินกองทุน' || noteStr.includes('สมาชิก')) chartData.member += amt;
-                    else if(noteStr.includes('พอช.')) chartData.codi += amt;
-                    else if(noteStr.includes('ท้องถิ่น')) chartData.local += amt;
-                    else chartData.other += amt;
-                } else if(d.type.includes('จ่าย') || d.type === 'จ่ายสวัสดิการ') {
-                    sumOut += amt;
-                    if(d.paymentMethod && d.paymentMethod.includes('ธนาคาร')) bankBal -= amt; else cashBal -= amt;
-                } else if(d.type === 'โอนย้ายสภาพคล่อง') {
-                    if(d.note && d.note.includes('โอนจาก bank ไป cash')) { bankBal -= amt; cashBal += amt; }
-                    if(d.note && d.note.includes('โอนจาก cash ไป bank')) { cashBal -= amt; bankBal += amt; }
+        // 🌟 4. ระบบ Real-time สำหรับธุรกรรม (Transactions) 🌟
+        // ใช้ .onSnapshot() เพื่อให้ยอดเงินวิ่งเปลี่ยนทันทีที่มีคนทำรายการ โดยไม่ต้องรีเฟรชหน้า
+        const txListener = db.collection("transactions").onSnapshot((tSnap) => {
+            // รีเซ็ตค่าเงินใหม่ทั้งหมดทุกครั้งที่มีบิลเข้ามาใหม่
+            sumIn = 0; sumOut = 0; bankBal = 0; cashBal = 0; pendingTxCount = 0;
+            holderBalances = {};
+            chartData = { member: 0, codi: 0, local: 0, privateStore: 0, donate: 0, interest: 0, profit: 0, other: 0 };
+
+            tSnap.forEach(doc => {
+                const d = doc.data(); 
+                if(d.status === 'รอตรวจสอบ') { pendingTxCount++; }
+                
+                // คำนวณเงินค้างอยู่กับกรรมการ
+                if(d.status === 'รอส่งมอบ' || d.status === 'รอตรวจสอบ') {
+                    let holder = d.currentHolder || (d.fullName ? d.fullName.replace('แอดมิน: ', '') : 'ไม่ระบุ');
+                    if(!holderBalances[holder]) holderBalances[holder] = { count: 0, amount: 0 };
+                    holderBalances[holder].count++; 
+                    holderBalances[holder].amount += parseFloat(d.amount) || 0;
                 }
-            }
-        });
-        
-        const cSnap = await db.collection("claims").get();
-        cSnap.forEach(doc => { 
-            if(doc.data().status === 'รอตรวจสอบ') { pCount++; pendingClaimCount++; } 
-        });
 
-        const radarContainer = document.getElementById('holderRadarContainer');
-        let radarHtml = "";
-        if (Object.keys(holderBalances).length === 0) {
-            radarHtml = `<div class="col-12"><div class="admin-card text-center m-0 border-0 border-success border-opacity-25 bg-success bg-opacity-10"><small class="text-success fw-bold"><i class="fa-solid fa-check-circle"></i> ไม่มีเงินค้างอยู่กับกรรมการ</small></div></div>`;
-        } else {
-            for (const [holder, data] of Object.entries(holderBalances)) {
-                let hAmt = data.amount.toLocaleString('en-US', {minimumFractionDigits: 2});
-                radarHtml += `
-                <div class="col-6">
-                  <div class="admin-card m-0 border-0 border-top border-4 border-warning bg-warning bg-opacity-10">
-                    <small class="text-dark fw-bold d-block mb-1 text-truncate" style="font-size:0.7rem;"><i class="fa-solid fa-user-tie me-1"></i> ${holder}</small>
-                    <h5 class="text-warning mb-0 fw-bold">฿${hAmt}</h5>
-                    <div class="badge bg-white text-muted mt-2 border shadow-sm" style="font-size:0.6rem;">${data.count} บิล</div>
-                  </div>
-                </div>`;
-            }
-        }
-        if(radarContainer) radarContainer.innerHTML = radarHtml;
+                // คำนวณรายรับ-รายจ่ายที่อนุมัติแล้ว
+                if(d.status === 'อนุมัติแล้ว') {
+                    let amt = parseFloat(d.amount) || 0;
+                    if(d.type.includes('รับ') || d.type === 'สมทบเงินกองทุน') {
+                        sumIn += amt;
+                        if(d.paymentMethod && d.paymentMethod.includes('ธนาคาร')) bankBal += amt; else cashBal += amt;
+                        
+                        let noteStr = (d.note || "").toLowerCase();
+                        if(d.type === 'สมทบเงินกองทุน' || noteStr.includes('สมาชิก')) chartData.member += amt;
+                        else if(noteStr.includes('พอช.')) chartData.codi += amt;
+                        else if(noteStr.includes('ท้องถิ่น')) chartData.local += amt;
+                        else chartData.other += amt;
 
-        if(document.getElementById('eq-population')) document.getElementById('eq-population').innerText = (townPopulation/1000).toFixed(1) + "k";
-        if(document.getElementById('eq-active')) document.getElementById('eq-active').innerText = mCount.toLocaleString(); 
-        let percentActive = ((mCount / townPopulation) * 100).toFixed(1);
-        if(document.getElementById('eq-percent-active')) document.getElementById('eq-percent-active').innerText = percentActive;
-        if(document.getElementById('eq-progress-bar')) document.getElementById('eq-progress-bar').style.width = percentActive + "%";
-        
-        if(document.getElementById('stat-total-in')) document.getElementById('stat-total-in').innerText = "฿" + formatMoney(sumIn);
-        if(document.getElementById('stat-total-debt')) document.getElementById('stat-total-debt').innerText = "฿" + formatMoney(totalDebt);
-        if(document.getElementById('stat-total-out')) document.getElementById('stat-total-out').innerText = "฿" + formatMoney(sumOut);
-        if(document.getElementById('cap-total')) document.getElementById('cap-total').innerText = formatMoney(sumIn - sumOut);
-        if(document.getElementById('liq-bank')) document.getElementById('liq-bank').innerText = "฿" + formatMoney(bankBal); 
-        if(document.getElementById('liq-cash')) document.getElementById('liq-cash').innerText = "฿" + formatMoney(cashBal);
-        if(document.getElementById('statPendingBadge')) document.getElementById('statPendingBadge').innerText = pCount;
-        if(document.getElementById('chart-sum-total')) document.getElementById('chart-sum-total').innerText = '฿' + formatMoney(sumIn - sumOut);
-
-        if(document.getElementById('nav-badge-ledger')) document.getElementById('nav-badge-ledger').style.display = pendingTxCount > 0 ? 'block' : 'none';
-        if(document.getElementById('nav-badge-claims')) document.getElementById('nav-badge-claims').style.display = pendingClaimCount > 0 ? 'block' : 'none';
-
-        if(window.charts && charts.doughnut) charts.doughnut.destroy();
-        if(!window.charts) window.charts = {};
-        const doughnutCtx = document.getElementById('doughnutChart');
-        if(doughnutCtx) {
-            charts.doughnut = new Chart(doughnutCtx.getContext('2d'), { 
-                type: 'doughnut', 
-                data: { 
-                    labels: ['สมาชิก', 'พอช.', 'ท้องถิ่น', 'เอกชน', 'บริจาค', 'ดอกเบี้ย', 'กำไร', 'อื่นๆ'], 
-                    datasets: [{ data: [ chartData.member, chartData.codi, chartData.local, chartData.privateStore, chartData.donate, chartData.interest, chartData.profit, chartData.other ], backgroundColor: ['#2563EB', '#10B981', '#F59E0B', '#8B5CF6', '#EC4899', '#06B6D4', '#14B8A6', '#94A3B8'], borderWidth: 2, borderColor: '#ffffff' }] 
-                }, 
-                options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { position: 'right', labels: { boxWidth: 12, font: { size: 10, family: "'Prompt'" } } } } } 
+                    } else if(d.type.includes('จ่าย') || d.type === 'จ่ายสวัสดิการ') {
+                        sumOut += amt;
+                        if(d.paymentMethod && d.paymentMethod.includes('ธนาคาร')) bankBal -= amt; else cashBal -= amt;
+                    } else if(d.type === 'โอนย้ายสภาพคล่อง') {
+                        if(d.note && d.note.includes('โอนจาก bank ไป cash')) { bankBal -= amt; cashBal += amt; }
+                        if(d.note && d.note.includes('โอนจาก cash ไป bank')) { cashBal -= amt; bankBal += amt; }
+                    }
+                }
             });
-        }
+
+            // อัปเดต UI ทันที
+            updateDashboardUI(mCount, pCount, pendingTxCount, pendingClaimCount, sumIn, sumOut, totalDebt, bankBal, cashBal, holderBalances);
+            updateDashboardChart(chartData);
+
+        }, (error) => {
+            console.error("Real-time Listener Error:", error);
+        });
+
+        // เก็บ Listener เข้า Array ไว้เคลียร์ทิ้งเมื่อสลับหน้า
+        dashboardListeners.push(txListener);
+
+        showLoader(false);
         renderTrendChart();
-    } catch (e) { console.error(e); } showLoader(false);
+
+    } catch (e) { 
+        console.error("Dashboard Load Error:", e); 
+        showLoader(false); 
+        Swal.fire('ข้อผิดพลาด', 'ไม่สามารถโหลดข้อมูลแดชบอร์ดได้', 'error');
+    }
 }
 
+// =========================================================
+// 🧩 ฟังก์ชันย่อยสำหรับอัปเดตหน้าจอ (แยกออกมาเพื่อให้โค้ดอ่านง่าย)
+// =========================================================
+function updateDashboardUI(mCount, pCount, pendingTxCount, pendingClaimCount, sumIn, sumOut, totalDebt, bankBal, cashBal, holderBalances) {
+    // 1. อัปเดตเรดาร์เงินค้างกรรมการ
+    const radarContainer = document.getElementById('holderRadarContainer');
+    let radarHtml = "";
+    if (Object.keys(holderBalances).length === 0) {
+        radarHtml = `<div class="col-12"><div class="admin-card text-center m-0 border-0 border-success border-opacity-25 bg-success bg-opacity-10"><small class="text-success fw-bold"><i class="fa-solid fa-check-circle"></i> ไม่มีเงินค้างอยู่กับกรรมการ</small></div></div>`;
+    } else {
+        for (const [holder, data] of Object.entries(holderBalances)) {
+            let hAmt = data.amount.toLocaleString('en-US', {minimumFractionDigits: 2});
+            radarHtml += `
+            <div class="col-6">
+              <div class="admin-card m-0 border-0 border-top border-4 border-warning bg-warning bg-opacity-10">
+                <small class="text-dark fw-bold d-block mb-1 text-truncate" style="font-size:0.7rem;"><i class="fa-solid fa-user-tie me-1"></i> ${holder}</small>
+                <h5 class="text-warning mb-0 fw-bold">฿${hAmt}</h5>
+                <div class="badge bg-white text-muted mt-2 border shadow-sm" style="font-size:0.6rem;">${data.count} บิล</div>
+              </div>
+            </div>`;
+        }
+    }
+    if(radarContainer) radarContainer.innerHTML = radarHtml;
+
+    // 2. อัปเดตสถิติสมาชิก
+    if(document.getElementById('eq-population')) document.getElementById('eq-population').innerText = (townPopulation/1000).toFixed(1) + "k";
+    if(document.getElementById('eq-active')) document.getElementById('eq-active').innerText = mCount.toLocaleString(); 
+    let percentActive = ((mCount / townPopulation) * 100).toFixed(1);
+    if(document.getElementById('eq-percent-active')) document.getElementById('eq-percent-active').innerText = percentActive;
+    if(document.getElementById('eq-progress-bar')) document.getElementById('eq-progress-bar').style.width = percentActive + "%";
+    
+    // 3. อัปเดตตัวเลขการเงิน
+    const netTotal = sumIn - sumOut;
+    if(document.getElementById('stat-total-in')) document.getElementById('stat-total-in').innerText = "฿" + formatMoney(sumIn);
+    if(document.getElementById('stat-total-debt')) document.getElementById('stat-total-debt').innerText = "฿" + formatMoney(totalDebt);
+    if(document.getElementById('stat-total-out')) document.getElementById('stat-total-out').innerText = "฿" + formatMoney(sumOut);
+    if(document.getElementById('cap-total')) document.getElementById('cap-total').innerText = formatMoney(netTotal);
+    if(document.getElementById('chart-sum-total')) document.getElementById('chart-sum-total').innerText = '฿' + formatMoney(netTotal);
+    if(document.getElementById('liq-bank')) document.getElementById('liq-bank').innerText = "฿" + formatMoney(bankBal); 
+    if(document.getElementById('liq-cash')) document.getElementById('liq-cash').innerText = "฿" + formatMoney(cashBal);
+    
+    // 4. อัปเดตป้ายแจ้งเตือน (Badges)
+    let totalOverallPending = pCount + pendingTxCount; // รวมการรอตรวจสอบทั้งหมด
+    if(document.getElementById('statPendingBadge')) document.getElementById('statPendingBadge').innerText = totalOverallPending;
+    if(document.getElementById('nav-badge-ledger')) document.getElementById('nav-badge-ledger').style.display = pendingTxCount > 0 ? 'block' : 'none';
+    if(document.getElementById('nav-badge-claims')) document.getElementById('nav-badge-claims').style.display = pendingClaimCount > 0 ? 'block' : 'none';
+}
+
+function updateDashboardChart(chartData) {
+    if(window.charts && charts.doughnut) charts.doughnut.destroy();
+    if(!window.charts) window.charts = {};
+    const doughnutCtx = document.getElementById('doughnutChart');
+    if(doughnutCtx) {
+        charts.doughnut = new Chart(doughnutCtx.getContext('2d'), { 
+            type: 'doughnut', 
+            data: { 
+                labels: ['สมาชิก', 'พอช.', 'ท้องถิ่น', 'เอกชน', 'บริจาค', 'ดอกเบี้ย', 'กำไร', 'อื่นๆ'], 
+                datasets: [{ 
+                    data: [ chartData.member, chartData.codi, chartData.local, chartData.privateStore, chartData.donate, chartData.interest, chartData.profit, chartData.other ], 
+                    backgroundColor: ['#2563EB', '#10B981', '#F59E0B', '#8B5CF6', '#EC4899', '#06B6D4', '#14B8A6', '#94A3B8'], 
+                    borderWidth: 2, borderColor: '#ffffff' 
+                }] 
+            }, 
+            options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { position: 'right', labels: { boxWidth: 12, font: { size: 10, family: "'Prompt'" } } } } } 
+        });
+    }
+}
+
+// =========================================================
+// 📈 กราฟแนวโน้มรายรับรายจ่าย (คงโค้ดเดิมไว้)
+// =========================================================
 async function renderTrendChart() {
     const filterSelect = document.getElementById('trendFilter');
     if(!filterSelect) return;
