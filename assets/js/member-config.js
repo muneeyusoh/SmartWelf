@@ -32,7 +32,7 @@ if (!firebase.apps.length) {
 const db = firebase.firestore();
 
 // ประกาศตัวแปร Global
-var LIFF_ID = "2011183541-zDAQXVLM"; // เปลี่ยนจาก const เป็น var ป้องกันการพังกรณีประกาศซ้ำในไฟล์อื่น
+var LIFF_ID = "2010764982-wudH3EsZ"; // เปลี่ยนจาก const เป็น var ป้องกันการพังกรณีประกาศซ้ำในไฟล์อื่น
 let cachedUserData = null;
 let fundSettings = { inZoneVillages: [], centers: [], annualFee: 365, fundName: "กองทุนสวัสดิการชุมชน" };
 
