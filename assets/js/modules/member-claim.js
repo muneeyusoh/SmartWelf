@@ -1,7 +1,7 @@
 // =========================================================
 // 🏥 member-claim.js: ควบคุมหน้าขอรับสวัสดิการ (claim.html)
 // =========================================================
-const LIFF_ID_CLAIM = "2011183541-zDAQXVLM"; // 🌟 อัปเดตใช้ ID เดียวกันกับหน้าหลัก
+const LIFF_ID_CLAIM = "2010764982-wudH3EsZ"; // 🌟 อัปเดตใช้ ID เดียวกันกับหน้าหลัก
 
 document.addEventListener("DOMContentLoaded", async () => {
   try {
