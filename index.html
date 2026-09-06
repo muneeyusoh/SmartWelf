@@ -25,30 +25,90 @@
 </head>
 <body>
 
+<!-- ==========================================
+     SYSTEM LOADER (SmartWelf 3D Logo Loader)
+=========================================== -->
 <div id="systemLoading">
-    <div class="loading-container">
-        <svg class="sw-logo-svg" viewBox="0 0 500 200" xmlns="http://www.w3.org/2000/svg">
-            <defs>
-                <linearGradient id="smartwelfGradient" x1="0%" y1="100%" x2="100%" y2="0%">
-                    <stop offset="0%" stop-color="#059669" />
-                    <stop offset="100%" stop-color="#2563EB" />
-                </linearGradient>
-            </defs>
-            <g class="sw-depth">
-                <circle cx="100" cy="100" r="60" />
-                <rect x="180" y="70" width="200" height="60" rx="15" />
-            </g>
-            <g class="sw-face">
-                <circle cx="100" cy="100" r="60" />
-                <rect x="180" y="70" width="200" height="60" rx="15" />
-            </g>
-            <g>
-                <circle class="sw-energy-path" cx="100" cy="100" r="60" pathLength="1000" />
-            </g>
-        </svg>
-        <p class="loading-text-glow text-center">SmartWelf 5.0</p>
-        <p id="systemLoadingText" class="text-muted fw-bold small mt-1 text-center">กำลังเชื่อมต่อฐานข้อมูล...</p>
-    </div>
+  <div class="loading-container">
+    <svg class="svg-logo-loader" viewBox="0 0 1886 867" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="SmartWelf loading">
+      <defs>
+        <!-- Main gradients -->
+        <linearGradient id="swMark3D" x1="420" y1="550" x2="1320" y2="40" gradientUnits="userSpaceOnUse">
+          <stop offset="0%"   stop-color="#075E50"/>
+          <stop offset="25%"  stop-color="#0B8068"/>
+          <stop offset="52%"  stop-color="#18A18A"/>
+          <stop offset="78%"  stop-color="#168DB5"/>
+          <stop offset="100%" stop-color="#35B7E8"/>
+        </linearGradient>
+        <linearGradient id="swText3D" x1="350" y1="830" x2="1450" y2="650" gradientUnits="userSpaceOnUse">
+          <stop offset="0%"   stop-color="#075E50"/>
+          <stop offset="48%"  stop-color="#0B8068"/>
+          <stop offset="100%" stop-color="#0795A0"/>
+        </linearGradient>
+        <!-- Moving light beam -->
+        <linearGradient id="swEnergy" x1="0%" y1="0%" x2="100%" y2="0%">
+          <stop offset="0%"   stop-color="#FFFFFF" stop-opacity="0"/>
+          <stop offset="38%"  stop-color="#FFFFFF" stop-opacity="0"/>
+          <stop offset="48%"  stop-color="#DFFFFF" stop-opacity=".95"/>
+          <stop offset="52%"  stop-color="#FFFFFF" stop-opacity="1"/>
+          <stop offset="56%"  stop-color="#B8F8FF" stop-opacity=".95"/>
+          <stop offset="70%"  stop-color="#FFFFFF" stop-opacity="0"/>
+          <stop offset="100%" stop-color="#FFFFFF" stop-opacity="0"/>
+        </linearGradient>
+        <!-- Soft glow for the moving line -->
+        <filter id="swGlow" x="-60%" y="-60%" width="220%" height="220%">
+          <feGaussianBlur stdDeviation="7" result="blur"/>
+          <feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>
+        </filter>
+        <!-- 3D shadow / depth -->
+        <filter id="swDepthShadow" x="-30%" y="-30%" width="160%" height="180%">
+          <feDropShadow dx="0" dy="12" stdDeviation="12" flood-color="#064C45" flood-opacity=".25"/>
+          <feDropShadow dx="0" dy="3" stdDeviation="2" flood-color="#083B52" flood-opacity=".25"/>
+        </filter>
+        <!-- Tiny highlight -->
+        <filter id="swHighlight" x="-30%" y="-30%" width="160%" height="160%">
+          <feGaussianBlur stdDeviation="1.3"/>
+        </filter>
+      </defs>
+
+      <!-- 3D depth: several offset layers -->
+      <g class="sw-depth" filter="url(#swDepthShadow)">
+        <g transform="translate(0 10)">
+          <path id="depth-symbol-2" class="sw-base" pathLength="1000" d="M 1346 58 L 1343 58 L 1317 73 L 1276 92 L 1223 108 L 1173 115 L 1056 116 L 1027 119 L 1024 121 L 1000 125 L 968 135 L 942 148 L 939 148 L 919 160 L 888 183 L 878 193 L 876 193 L 843 231 L 801 296 L 794 310 L 788 316 L 787 321 L 724 424 L 708 442 L 691 452 L 678 455 L 667 455 L 654 452 L 641 446 L 628 437 L 614 423 L 604 409 L 584 389 L 566 375 L 537 359 L 512 350 L 489 346 L 488 343 L 511 324 L 532 315 L 549 312 L 581 313 L 608 320 L 636 324 L 663 324 L 679 320 L 690 314 L 705 298 L 711 287 L 714 267 L 697 274 L 680 278 L 653 279 L 619 275 L 585 267 L 557 265 L 530 268 L 498 279 L 488 284 L 464 301 L 442 325 L 433 338 L 423 359 L 416 394 L 422 395 L 456 390 L 488 392 L 511 398 L 544 416 L 564 434 L 580 454 L 615 514 L 641 549 L 672 578 L 686 587 L 707 596 L 727 600 L 761 599 L 781 594 L 807 580 L 820 570 L 842 548 L 866 514 L 867 510 L 890 475 L 893 476 L 901 489 L 903 495 L 905 496 L 941 559 L 949 570 L 967 586 L 984 595 L 1004 600 L 1026 600 L 1050 594 L 1064 586 L 1086 564 L 1180 409 L 1236 321 L 1240 311 L 1233 313 L 1199 331 L 1166 343 L 1162 343 L 1160 345 L 1079 362 L 1063 370 L 1050 382 L 1039 399 L 1035 414 L 1036 418 L 1049 412 L 1126 399 L 1130 399 L 1131 402 L 1049 536 L 1039 547 L 1024 554 L 1013 555 L 1004 553 L 993 548 L 986 542 L 919 430 L 920 424 L 922 423 L 926 414 L 1022 259 L 1019 257 L 994 257 L 976 263 L 967 269 L 952 284 L 945 298 L 925 328 L 923 334 L 919 338 L 823 496 L 801 524 L 782 541 L 768 549 L 752 554 L 730 554 L 718 551 L 706 545 L 691 533 L 666 505 L 665 501 L 686 500 L 711 493 L 730 483 L 748 468 L 764 448 L 804 380 L 813 368 L 816 360 L 882 256 L 898 237 L 921 215 L 926 213 L 948 196 L 972 183 L 1005 171 L 1045 163 L 1081 161 L 1168 161 L 1210 157 L 1253 148 L 1288 136 L 1289 139 L 1284 152 L 1265 182 L 1249 199 L 1241 204 L 1232 213 L 1189 236 L 1156 247 L 1121 254 L 1103 262 L 1090 272 L 1079 284 L 1069 302 L 1068 308 L 1070 309 L 1086 305 L 1139 298 L 1179 288 L 1214 275 L 1250 256 L 1273 239 L 1290 223 L 1302 209 L 1324 176 L 1324 172 L 1337 143 L 1344 113 L 1347 85 Z" fill="rgba(4,72,65,.25)" fill-rule="evenodd" clip-rule="evenodd"/>
+          <path id="depth-wordmark-2" class="sw-base" pathLength="1000" d="M 855 709 L 838 711 L 827 717 L 817 728 L 814 727 L 813 711 L 795 712 L 796 821 L 808 822 L 814 820 L 814 767 L 816 756 L 823 743 L 830 736 L 839 731 L 857 727 L 857 712 Z M 682 718 L 680 723 L 687 734 L 710 726 L 727 726 L 738 730 L 747 740 L 749 753 L 747 755 L 725 752 L 705 753 L 694 756 L 684 762 L 676 770 L 671 786 L 673 803 L 677 809 L 690 820 L 705 824 L 720 824 L 735 820 L 746 812 L 750 813 L 750 821 L 768 821 L 768 745 L 765 731 L 759 723 L 748 714 L 733 709 L 705 710 Z M 692 779 L 699 772 L 715 767 L 730 767 L 743 769 L 750 772 L 750 785 L 746 795 L 736 804 L 724 808 L 710 808 L 703 806 L 693 798 L 690 789 Z M 484 712 L 484 821 L 503 821 L 503 752 L 507 739 L 515 731 L 526 726 L 538 726 L 544 728 L 551 733 L 556 741 L 558 748 L 559 821 L 577 821 L 578 819 L 578 748 L 582 739 L 590 731 L 601 726 L 618 728 L 628 737 L 632 747 L 632 819 L 636 822 L 652 820 L 652 753 L 650 736 L 644 724 L 633 714 L 619 709 L 602 709 L 589 713 L 580 719 L 574 726 L 571 726 L 564 717 L 554 711 L 546 709 L 523 710 L 513 715 L 506 722 L 503 721 L 502 711 Z M 1199 709 L 1180 720 L 1173 728 L 1165 743 L 1162 760 L 1162 773 L 1166 791 L 1170 799 L 1180 810 L 1198 821 L 1212 824 L 1230 824 L 1246 820 L 1264 808 L 1267 803 L 1266 799 L 1257 791 L 1250 788 L 1242 795 L 1231 800 L 1211 800 L 1204 797 L 1196 790 L 1192 784 L 1191 777 L 1194 775 L 1271 775 L 1272 754 L 1270 752 L 1267 737 L 1254 719 L 1241 711 L 1226 707 Z M 1191 751 L 1197 739 L 1203 734 L 1212 730 L 1222 730 L 1232 734 L 1239 741 L 1243 749 L 1243 754 L 1241 756 L 1193 756 Z M 884 678 L 883 709 L 867 712 L 867 726 L 883 728 L 884 804 L 888 812 L 899 821 L 912 824 L 934 821 L 937 815 L 936 803 L 926 806 L 914 806 L 909 804 L 903 797 L 902 729 L 905 727 L 936 727 L 936 712 L 904 711 L 902 709 L 902 679 Z M 945 674 L 994 822 L 1020 823 L 1022 821 L 1054 725 L 1058 728 L 1089 822 L 1115 823 L 1117 821 L 1160 689 L 1165 680 L 1165 673 L 1137 673 L 1135 675 L 1104 774 L 1100 772 L 1069 674 L 1042 674 L 1010 774 L 1006 771 L 976 674 Z M 391 671 L 376 676 L 360 689 L 353 707 L 355 727 L 359 735 L 366 742 L 379 749 L 402 756 L 415 758 L 432 765 L 438 771 L 441 779 L 440 790 L 434 799 L 425 804 L 416 806 L 401 806 L 387 803 L 376 798 L 361 786 L 358 786 L 353 791 L 348 800 L 363 812 L 383 821 L 400 824 L 415 824 L 432 821 L 446 813 L 454 805 L 459 795 L 461 775 L 457 763 L 450 753 L 435 744 L 405 737 L 385 730 L 374 720 L 373 707 L 376 700 L 383 693 L 397 688 L 413 688 L 433 695 L 444 703 L 447 703 L 454 693 L 455 687 L 439 677 L 424 672 Z M 1293 665 L 1291 670 L 1291 820 L 1315 822 L 1320 820 L 1320 667 L 1318 665 Z M 1407 666 L 1385 664 L 1368 669 L 1357 681 L 1353 695 L 1353 708 L 1351 710 L 1337 711 L 1338 734 L 1353 735 L 1353 821 L 1381 821 L 1381 735 L 1409 734 L 1411 732 L 1410 710 L 1382 710 L 1381 699 L 1383 694 L 1391 688 L 1400 688 L 1411 691 L 1413 670 Z" fill="rgba(4,72,65,.25)" fill-rule="evenodd" clip-rule="evenodd"/>
+        </g>
+        <g transform="translate(0 5)">
+          <path id="depth-symbol-1" class="sw-base" pathLength="1000" d="M 1346 58 L 1343 58 L 1317 73 L 1276 92 L 1223 108 L 1173 115 L 1056 116 L 1027 119 L 1024 121 L 1000 125 L 968 135 L 942 148 L 939 148 L 919 160 L 888 183 L 878 193 L 876 193 L 843 231 L 801 296 L 794 310 L 788 316 L 787 321 L 724 424 L 708 442 L 691 452 L 678 455 L 667 455 L 654 452 L 641 446 L 628 437 L 614 423 L 604 409 L 584 389 L 566 375 L 537 359 L 512 350 L 489 346 L 488 343 L 511 324 L 532 315 L 549 312 L 581 313 L 608 320 L 636 324 L 663 324 L 679 320 L 690 314 L 705 298 L 711 287 L 714 267 L 697 274 L 680 278 L 653 279 L 619 275 L 585 267 L 557 265 L 530 268 L 498 279 L 488 284 L 464 301 L 442 325 L 433 338 L 423 359 L 416 394 L 422 395 L 456 390 L 488 392 L 511 398 L 544 416 L 564 434 L 580 454 L 615 514 L 641 549 L 672 578 L 686 587 L 707 596 L 727 600 L 761 599 L 781 594 L 807 580 L 820 570 L 842 548 L 866 514 L 867 510 L 890 475 L 893 476 L 901 489 L 903 495 L 905 496 L 941 559 L 949 570 L 967 586 L 984 595 L 1004 600 L 1026 600 L 1050 594 L 1064 586 L 1086 564 L 1180 409 L 1236 321 L 1240 311 L 1233 313 L 1199 331 L 1166 343 L 1162 343 L 1160 345 L 1079 362 L 1063 370 L 1050 382 L 1039 399 L 1035 414 L 1036 418 L 1049 412 L 1126 399 L 1130 399 L 1131 402 L 1049 536 L 1039 547 L 1024 554 L 1013 555 L 1004 553 L 993 548 L 986 542 L 919 430 L 920 424 L 922 423 L 926 414 L 1022 259 L 1019 257 L 994 257 L 976 263 L 967 269 L 952 284 L 945 298 L 925 328 L 923 334 L 919 338 L 823 496 L 801 524 L 782 541 L 768 549 L 752 554 L 730 554 L 718 551 L 706 545 L 691 533 L 666 505 L 665 501 L 686 500 L 711 493 L 730 483 L 748 468 L 764 448 L 804 380 L 813 368 L 816 360 L 882 256 L 898 237 L 921 215 L 926 213 L 948 196 L 972 183 L 1005 171 L 1045 163 L 1081 161 L 1168 161 L 1210 157 L 1253 148 L 1288 136 L 1289 139 L 1284 152 L 1265 182 L 1249 199 L 1241 204 L 1232 213 L 1189 236 L 1156 247 L 1121 254 L 1103 262 L 1090 272 L 1079 284 L 1069 302 L 1068 308 L 1070 309 L 1086 305 L 1139 298 L 1179 288 L 1214 275 L 1250 256 L 1273 239 L 1290 223 L 1302 209 L 1324 176 L 1324 172 L 1337 143 L 1344 113 L 1347 85 Z" fill="#087361" fill-rule="evenodd" clip-rule="evenodd"/>
+          <path id="depth-wordmark-1" class="sw-base" pathLength="1000" d="M 855 709 L 838 711 L 827 717 L 817 728 L 814 727 L 813 711 L 795 712 L 796 821 L 808 822 L 814 820 L 814 767 L 816 756 L 823 743 L 830 736 L 839 731 L 857 727 L 857 712 Z M 682 718 L 680 723 L 687 734 L 710 726 L 727 726 L 738 730 L 747 740 L 749 753 L 747 755 L 725 752 L 705 753 L 694 756 L 684 762 L 676 770 L 671 786 L 673 803 L 677 809 L 690 820 L 705 824 L 720 824 L 735 820 L 746 812 L 750 813 L 750 821 L 768 821 L 768 745 L 765 731 L 759 723 L 748 714 L 733 709 L 705 710 Z M 692 779 L 699 772 L 715 767 L 730 767 L 743 769 L 750 772 L 750 785 L 746 795 L 736 804 L 724 808 L 710 808 L 703 806 L 693 798 L 690 789 Z M 484 712 L 484 821 L 503 821 L 503 752 L 507 739 L 515 731 L 526 726 L 538 726 L 544 728 L 551 733 L 556 741 L 558 748 L 559 821 L 577 821 L 578 819 L 578 748 L 582 739 L 590 731 L 601 726 L 618 728 L 628 737 L 632 747 L 632 819 L 636 822 L 652 820 L 652 753 L 650 736 L 644 724 L 633 714 L 619 709 L 602 709 L 589 713 L 580 719 L 574 726 L 571 726 L 564 717 L 554 711 L 546 709 L 523 710 L 513 715 L 506 722 L 503 721 L 502 711 Z M 1199 709 L 1180 720 L 1173 728 L 1165 743 L 1162 760 L 1162 773 L 1166 791 L 1170 799 L 1180 810 L 1198 821 L 1212 824 L 1230 824 L 1246 820 L 1264 808 L 1267 803 L 1266 799 L 1257 791 L 1250 788 L 1242 795 L 1231 800 L 1211 800 L 1204 797 L 1196 790 L 1192 784 L 1191 777 L 1194 775 L 1271 775 L 1272 754 L 1270 752 L 1267 737 L 1254 719 L 1241 711 L 1226 707 Z M 1191 751 L 1197 739 L 1203 734 L 1212 730 L 1222 730 L 1232 734 L 1239 741 L 1243 749 L 1243 754 L 1241 756 L 1193 756 Z M 884 678 L 883 709 L 867 712 L 867 726 L 883 728 L 884 804 L 888 812 L 899 821 L 912 824 L 934 821 L 937 815 L 936 803 L 926 806 L 914 806 L 909 804 L 903 797 L 902 729 L 905 727 L 936 727 L 936 712 L 904 711 L 902 709 L 902 679 Z M 945 674 L 994 822 L 1020 823 L 1022 821 L 1054 725 L 1058 728 L 1089 822 L 1115 823 L 1117 821 L 1160 689 L 1165 680 L 1165 673 L 1137 673 L 1135 675 L 1104 774 L 1100 772 L 1069 674 L 1042 674 L 1010 774 L 1006 771 L 976 674 Z M 391 671 L 376 676 L 360 689 L 353 707 L 355 727 L 359 735 L 366 742 L 379 749 L 402 756 L 415 758 L 432 765 L 438 771 L 441 779 L 440 790 L 434 799 L 425 804 L 416 806 L 401 806 L 387 803 L 376 798 L 361 786 L 358 786 L 353 791 L 348 800 L 363 812 L 383 821 L 400 824 L 415 824 L 432 821 L 446 813 L 454 805 L 459 795 L 461 775 L 457 763 L 450 753 L 435 744 L 405 737 L 385 730 L 374 720 L 373 707 L 376 700 L 383 693 L 397 688 L 413 688 L 433 695 L 444 703 L 447 703 L 454 693 L 455 687 L 439 677 L 424 672 Z M 1293 665 L 1291 670 L 1291 820 L 1315 822 L 1320 820 L 1320 667 L 1318 665 Z M 1407 666 L 1385 664 L 1368 669 L 1357 681 L 1353 695 L 1353 708 L 1351 710 L 1337 711 L 1338 734 L 1353 735 L 1353 821 L 1381 821 L 1381 735 L 1409 734 L 1411 732 L 1410 710 L 1382 710 L 1381 699 L 1383 694 L 1391 688 L 1400 688 L 1411 691 L 1413 670 Z" fill="#087361" fill-rule="evenodd" clip-rule="evenodd"/>
+        </g>
+      </g>
+
+      <!-- Main face -->
+      <g class="sw-face">
+        <path id="smartwelf-symbol" class="sw-main" pathLength="1000" d="M 1346 58 L 1343 58 L 1317 73 L 1276 92 L 1223 108 L 1173 115 L 1056 116 L 1027 119 L 1024 121 L 1000 125 L 968 135 L 942 148 L 939 148 L 919 160 L 888 183 L 878 193 L 876 193 L 843 231 L 801 296 L 794 310 L 788 316 L 787 321 L 724 424 L 708 442 L 691 452 L 678 455 L 667 455 L 654 452 L 641 446 L 628 437 L 614 423 L 604 409 L 584 389 L 566 375 L 537 359 L 512 350 L 489 346 L 488 343 L 511 324 L 532 315 L 549 312 L 581 313 L 608 320 L 636 324 L 663 324 L 679 320 L 690 314 L 705 298 L 711 287 L 714 267 L 697 274 L 680 278 L 653 279 L 619 275 L 585 267 L 557 265 L 530 268 L 498 279 L 488 284 L 464 301 L 442 325 L 433 338 L 423 359 L 416 394 L 422 395 L 456 390 L 488 392 L 511 398 L 544 416 L 564 434 L 580 454 L 615 514 L 641 549 L 672 578 L 686 587 L 707 596 L 727 600 L 761 599 L 781 594 L 807 580 L 820 570 L 842 548 L 866 514 L 867 510 L 890 475 L 893 476 L 901 489 L 903 495 L 905 496 L 941 559 L 949 570 L 967 586 L 984 595 L 1004 600 L 1026 600 L 1050 594 L 1064 586 L 1086 564 L 1180 409 L 1236 321 L 1240 311 L 1233 313 L 1199 331 L 1166 343 L 1162 343 L 1160 345 L 1079 362 L 1063 370 L 1050 382 L 1039 399 L 1035 414 L 1036 418 L 1049 412 L 1126 399 L 1130 399 L 1131 402 L 1049 536 L 1039 547 L 1024 554 L 1013 555 L 1004 553 L 993 548 L 986 542 L 919 430 L 920 424 L 922 423 L 926 414 L 1022 259 L 1019 257 L 994 257 L 976 263 L 967 269 L 952 284 L 945 298 L 925 328 L 923 334 L 919 338 L 823 496 L 801 524 L 782 541 L 768 549 L 752 554 L 730 554 L 718 551 L 706 545 L 691 533 L 666 505 L 665 501 L 686 500 L 711 493 L 730 483 L 748 468 L 764 448 L 804 380 L 813 368 L 816 360 L 882 256 L 898 237 L 921 215 L 926 213 L 948 196 L 972 183 L 1005 171 L 1045 163 L 1081 161 L 1168 161 L 1210 157 L 1253 148 L 1288 136 L 1289 139 L 1284 152 L 1265 182 L 1249 199 L 1241 204 L 1232 213 L 1189 236 L 1156 247 L 1121 254 L 1103 262 L 1090 272 L 1079 284 L 1069 302 L 1068 308 L 1070 309 L 1086 305 L 1139 298 L 1179 288 L 1214 275 L 1250 256 L 1273 239 L 1290 223 L 1302 209 L 1324 176 L 1324 172 L 1337 143 L 1344 113 L 1347 85 Z" fill="url(#swMark3D)" fill-rule="evenodd" clip-rule="evenodd"/>
+        <path id="smartwelf-wordmark" class="sw-main" pathLength="1000" d="M 855 709 L 838 711 L 827 717 L 817 728 L 814 727 L 813 711 L 795 712 L 796 821 L 808 822 L 814 820 L 814 767 L 816 756 L 823 743 L 830 736 L 839 731 L 857 727 L 857 712 Z M 682 718 L 680 723 L 687 734 L 710 726 L 727 726 L 738 730 L 747 740 L 749 753 L 747 755 L 725 752 L 705 753 L 694 756 L 684 762 L 676 770 L 671 786 L 673 803 L 677 809 L 690 820 L 705 824 L 720 824 L 735 820 L 746 812 L 750 813 L 750 821 L 768 821 L 768 745 L 765 731 L 759 723 L 748 714 L 733 709 L 705 710 Z M 692 779 L 699 772 L 715 767 L 730 767 L 743 769 L 750 772 L 750 785 L 746 795 L 736 804 L 724 808 L 710 808 L 703 806 L 693 798 L 690 789 Z M 484 712 L 484 821 L 503 821 L 503 752 L 507 739 L 515 731 L 526 726 L 538 726 L 544 728 L 551 733 L 556 741 L 558 748 L 559 821 L 577 821 L 578 819 L 578 748 L 582 739 L 590 731 L 601 726 L 618 728 L 628 737 L 632 747 L 632 819 L 636 822 L 652 820 L 652 753 L 650 736 L 644 724 L 633 714 L 619 709 L 602 709 L 589 713 L 580 719 L 574 726 L 571 726 L 564 717 L 554 711 L 546 709 L 523 710 L 513 715 L 506 722 L 503 721 L 502 711 Z M 1199 709 L 1180 720 L 1173 728 L 1165 743 L 1162 760 L 1162 773 L 1166 791 L 1170 799 L 1180 810 L 1198 821 L 1212 824 L 1230 824 L 1246 820 L 1264 808 L 1267 803 L 1266 799 L 1257 791 L 1250 788 L 1242 795 L 1231 800 L 1211 800 L 1204 797 L 1196 790 L 1192 784 L 1191 777 L 1194 775 L 1271 775 L 1272 754 L 1270 752 L 1267 737 L 1254 719 L 1241 711 L 1226 707 Z M 1191 751 L 1197 739 L 1203 734 L 1212 730 L 1222 730 L 1232 734 L 1239 741 L 1243 749 L 1243 754 L 1241 756 L 1193 756 Z M 884 678 L 883 709 L 867 712 L 867 726 L 883 728 L 884 804 L 888 812 L 899 821 L 912 824 L 934 821 L 937 815 L 936 803 L 926 806 L 914 806 L 909 804 L 903 797 L 902 729 L 905 727 L 936 727 L 936 712 L 904 711 L 902 709 L 902 679 Z M 945 674 L 994 822 L 1020 823 L 1022 821 L 1054 725 L 1058 728 L 1089 822 L 1115 823 L 1117 821 L 1160 689 L 1165 680 L 1165 673 L 1137 673 L 1135 675 L 1104 774 L 1100 772 L 1069 674 L 1042 674 L 1010 774 L 1006 771 L 976 674 Z M 391 671 L 376 676 L 360 689 L 353 707 L 355 727 L 359 735 L 366 742 L 379 749 L 402 756 L 415 758 L 432 765 L 438 771 L 441 779 L 440 790 L 434 799 L 425 804 L 416 806 L 401 806 L 387 803 L 376 798 L 361 786 L 358 786 L 353 791 L 348 800 L 363 812 L 383 821 L 400 824 L 415 824 L 432 821 L 446 813 L 454 805 L 459 795 L 461 775 L 457 763 L 450 753 L 435 744 L 405 737 L 385 730 L 374 720 L 373 707 L 376 700 L 383 693 L 397 688 L 413 688 L 433 695 L 444 703 L 447 703 L 454 693 L 455 687 L 439 677 L 424 672 Z M 1293 665 L 1291 670 L 1291 820 L 1315 822 L 1320 820 L 1320 667 L 1318 665 Z M 1407 666 L 1385 664 L 1368 669 L 1357 681 L 1353 695 L 1353 708 L 1351 710 L 1337 711 L 1338 734 L 1353 735 L 1353 821 L 1381 821 L 1381 735 L 1409 734 L 1411 732 L 1410 710 L 1382 710 L 1381 699 L 1383 694 L 1391 688 L 1400 688 L 1411 691 L 1413 670 Z" fill="url(#swText3D)" fill-rule="evenodd" clip-rule="evenodd"/>
+      </g>
+
+      <!-- Permanent fine rim -->
+      <g class="sw-rim" fill="none" stroke-linejoin="round" stroke-linecap="round">
+        <path class="sw-rim-path" pathLength="1000" d="M 1346 58 L 1343 58 L 1317 73 L 1276 92 L 1223 108 L 1173 115 L 1056 116 L 1027 119 L 1024 121 L 1000 125 L 968 135 L 942 148 L 939 148 L 919 160 L 888 183 L 878 193 L 876 193 L 843 231 L 801 296 L 794 310 L 788 316 L 787 321 L 724 424 L 708 442 L 691 452 L 678 455 L 667 455 L 654 452 L 641 446 L 628 437 L 614 423 L 604 409 L 584 389 L 566 375 L 537 359 L 512 350 L 489 346 L 488 343 L 511 324 L 532 315 L 549 312 L 581 313 L 608 320 L 636 324 L 663 324 L 679 320 L 690 314 L 705 298 L 711 287 L 714 267 L 697 274 L 680 278 L 653 279 L 619 275 L 585 267 L 557 265 L 530 268 L 498 279 L 488 284 L 464 301 L 442 325 L 433 338 L 423 359 L 416 394 L 422 395 L 456 390 L 488 392 L 511 398 L 544 416 L 564 434 L 580 454 L 615 514 L 641 549 L 672 578 L 686 587 L 707 596 L 727 600 L 761 599 L 781 594 L 807 580 L 820 570 L 842 548 L 866 514 L 867 510 L 890 475 L 893 476 L 901 489 L 903 495 L 905 496 L 941 559 L 949 570 L 967 586 L 984 595 L 1004 600 L 1026 600 L 1050 594 L 1064 586 L 1086 564 L 1180 409 L 1236 321 L 1240 311 L 1233 313 L 1199 331 L 1166 343 L 1162 343 L 1160 345 L 1079 362 L 1063 370 L 1050 382 L 1039 399 L 1035 414 L 1036 418 L 1049 412 L 1126 399 L 1130 399 L 1131 402 L 1049 536 L 1039 547 L 1024 554 L 1013 555 L 1004 553 L 993 548 L 986 542 L 919 430 L 920 424 L 922 423 L 926 414 L 1022 259 L 1019 257 L 994 257 L 976 263 L 967 269 L 952 284 L 945 298 L 925 328 L 923 334 L 919 338 L 823 496 L 801 524 L 782 541 L 768 549 L 752 554 L 730 554 L 718 551 L 706 545 L 691 533 L 666 505 L 665 501 L 686 500 L 711 493 L 730 483 L 748 468 L 764 448 L 804 380 L 813 368 L 816 360 L 882 256 L 898 237 L 921 215 L 926 213 L 948 196 L 972 183 L 1005 171 L 1045 163 L 1081 161 L 1168 161 L 1210 157 L 1253 148 L 1288 136 L 1289 139 L 1284 152 L 1265 182 L 1249 199 L 1241 204 L 1232 213 L 1189 236 L 1156 247 L 1121 254 L 1103 262 L 1090 272 L 1079 284 L 1069 302 L 1068 308 L 1070 309 L 1086 305 L 1139 298 L 1179 288 L 1214 275 L 1250 256 L 1273 239 L 1290 223 L 1302 209 L 1324 176 L 1324 172 L 1337 143 L 1344 113 L 1347 85 Z"/>
+      </g>
+
+      <!-- Traveling energy line -->
+      <g class="sw-energy" fill="none" stroke="url(#swEnergy)" stroke-linejoin="round" stroke-linecap="round" filter="url(#swGlow)">
+        <path class="sw-energy-path sw-energy-symbol" pathLength="1000" d="M 1346 58 L 1343 58 L 1317 73 L 1276 92 L 1223 108 L 1173 115 L 1056 116 L 1027 119 L 1024 121 L 1000 125 L 968 135 L 942 148 L 939 148 L 919 160 L 888 183 L 878 193 L 876 193 L 843 231 L 801 296 L 794 310 L 788 316 L 787 321 L 724 424 L 708 442 L 691 452 L 678 455 L 667 455 L 654 452 L 641 446 L 628 437 L 614 423 L 604 409 L 584 389 L 566 375 L 537 359 L 512 350 L 489 346 L 488 343 L 511 324 L 532 315 L 549 312 L 581 313 L 608 320 L 636 324 L 663 324 L 679 320 L 690 314 L 705 298 L 711 287 L 714 267 L 697 274 L 680 278 L 653 279 L 619 275 L 585 267 L 557 265 L 530 268 L 498 279 L 488 284 L 464 301 L 442 325 L 433 338 L 423 359 L 416 394 L 422 395 L 456 390 L 488 392 L 511 398 L 544 416 L 564 434 L 580 454 L 615 514 L 641 549 L 672 578 L 686 587 L 707 596 L 727 600 L 761 599 L 781 594 L 807 580 L 820 570 L 842 548 L 866 514 L 867 510 L 890 475 L 893 476 L 901 489 L 903 495 L 905 496 L 941 559 L 949 570 L 967 586 L 984 595 L 1004 600 L 1026 600 L 1050 594 L 1064 586 L 1086 564 L 1180 409 L 1236 321 L 1240 311 L 1233 313 L 1199 331 L 1166 343 L 1162 343 L 1160 345 L 1079 362 L 1063 370 L 1050 382 L 1039 399 L 1035 414 L 1036 418 L 1049 412 L 1126 399 L 1130 399 L 1131 402 L 1049 536 L 1039 547 L 1024 554 L 1013 555 L 1004 553 L 993 548 L 986 542 L 919 430 L 920 424 L 922 423 L 926 414 L 1022 259 L 1019 257 L 994 257 L 976 263 L 967 269 L 952 284 L 945 298 L 925 328 L 923 334 L 919 338 L 823 496 L 801 524 L 782 541 L 768 549 L 752 554 L 730 554 L 718 551 L 706 545 L 691 533 L 666 505 L 665 501 L 686 500 L 711 493 L 730 483 L 748 468 L 764 448 L 804 380 L 813 368 L 816 360 L 882 256 L 898 237 L 921 215 L 926 213 L 948 196 L 972 183 L 1005 171 L 1045 163 L 1081 161 L 1168 161 L 1210 157 L 1253 148 L 1288 136 L 1289 139 L 1284 152 L 1265 182 L 1249 199 L 1241 204 L 1232 213 L 1189 236 L 1156 247 L 1121 254 L 1103 262 L 1090 272 L 1079 284 L 1069 302 L 1068 308 L 1070 309 L 1086 305 L 1139 298 L 1179 288 L 1214 275 L 1250 256 L 1273 239 L 1290 223 L 1302 209 L 1324 176 L 1324 172 L 1337 143 L 1344 113 L 1347 85 Z"/>
+        <path class="sw-energy-path sw-energy-wordmark" pathLength="1000" d="M 855 709 L 838 711 L 827 717 L 817 728 L 814 727 L 813 711 L 795 712 L 796 821 L 808 822 L 814 820 L 814 767 L 816 756 L 823 743 L 830 736 L 839 731 L 857 727 L 857 712 Z M 682 718 L 680 723 L 687 734 L 710 726 L 727 726 L 738 730 L 747 740 L 749 753 L 747 755 L 725 752 L 705 753 L 694 756 L 684 762 L 676 770 L 671 786 L 673 803 L 677 809 L 690 820 L 705 824 L 720 824 L 735 820 L 746 812 L 750 813 L 750 821 L 768 821 L 768 745 L 765 731 L 759 723 L 748 714 L 733 709 L 705 710 Z M 692 779 L 699 772 L 715 767 L 730 767 L 743 769 L 750 772 L 750 785 L 746 795 L 736 804 L 724 808 L 710 808 L 703 806 L 693 798 L 690 789 Z M 484 712 L 484 821 L 503 821 L 503 752 L 507 739 L 515 731 L 526 726 L 538 726 L 544 728 L 551 733 L 556 741 L 558 748 L 559 821 L 577 821 L 578 819 L 578 748 L 582 739 L 590 731 L 601 726 L 618 728 L 628 737 L 632 747 L 632 819 L 636 822 L 652 820 L 652 753 L 650 736 L 644 724 L 633 714 L 619 709 L 602 709 L 589 713 L 580 719 L 574 726 L 571 726 L 564 717 L 554 711 L 546 709 L 523 710 L 513 715 L 506 722 L 503 721 L 502 711 Z M 1199 709 L 1180 720 L 1173 728 L 1165 743 L 1162 760 L 1162 773 L 1166 791 L 1170 799 L 1180 810 L 1198 821 L 1212 824 L 1230 824 L 1246 820 L 1264 808 L 1267 803 L 1266 799 L 1257 791 L 1250 788 L 1242 795 L 1231 800 L 1211 800 L 1204 797 L 1196 790 L 1192 784 L 1191 777 L 1194 775 L 1271 775 L 1272 754 L 1270 752 L 1267 737 L 1254 719 L 1241 711 L 1226 707 Z M 1191 751 L 1197 739 L 1203 734 L 1212 730 L 1222 730 L 1232 734 L 1239 741 L 1243 749 L 1243 754 L 1241 756 L 1193 756 Z M 884 678 L 883 709 L 867 712 L 867 726 L 883 728 L 884 804 L 888 812 L 899 821 L 912 824 L 934 821 L 937 815 L 936 803 L 926 806 L 914 806 L 909 804 L 903 797 L 902 729 L 905 727 L 936 727 L 936 712 L 904 711 L 902 709 L 902 679 Z M 945 674 L 994 822 L 1020 823 L 1022 821 L 1054 725 L 1058 728 L 1089 822 L 1115 823 L 1117 821 L 1160 689 L 1165 680 L 1165 673 L 1137 673 L 1135 675 L 1104 774 L 1100 772 L 1069 674 L 1042 674 L 1010 774 L 1006 771 L 976 674 Z M 391 671 L 376 676 L 360 689 L 353 707 L 355 727 L 359 735 L 366 742 L 379 749 L 402 756 L 415 758 L 432 765 L 438 771 L 441 779 L 440 790 L 434 799 L 425 804 L 416 806 L 401 806 L 387 803 L 376 798 L 361 786 L 358 786 L 353 791 L 348 800 L 363 812 L 383 821 L 400 824 L 415 824 L 432 821 L 446 813 L 454 805 L 459 795 L 461 775 L 457 763 L 450 753 L 435 744 L 405 737 L 385 730 L 374 720 L 373 707 L 376 700 L 383 693 L 397 688 L 413 688 L 433 695 L 444 703 L 447 703 L 454 693 L 455 687 L 439 677 L 424 672 Z M 1293 665 L 1291 670 L 1291 820 L 1315 822 L 1320 820 L 1320 667 L 1318 665 Z M 1407 666 L 1385 664 L 1368 669 L 1357 681 L 1353 695 L 1353 708 L 1351 710 L 1337 711 L 1338 734 L 1353 735 L 1353 821 L 1381 821 L 1381 735 L 1409 734 L 1411 732 L 1410 710 L 1382 710 L 1381 699 L 1383 694 L 1391 688 L 1400 688 L 1411 691 L 1413 670 Z"/>
+      </g>
+
+      <!-- Small glossy highlight -->
+      <g class="sw-gloss" fill="none" stroke="#FFFFFF" stroke-opacity=".32" stroke-width="2.2" stroke-linecap="round" filter="url(#swHighlight)">
+        <path pathLength="1000" d="M 1346 58 L 1343 58 L 1317 73 L 1276 92 L 1223 108 L 1173 115 L 1056 116 L 1027 119 L 1024 121 L 1000 125 L 968 135 L 942 148 L 939 148 L 919 160 L 888 183 L 878 193 L 876 193 L 843 231 L 801 296 L 794 310 L 788 316 L 787 321 L 724 424 L 708 442 L 691 452 L 678 455 L 667 455 L 654 452 L 641 446 L 628 437 L 614 423 L 604 409 L 584 389 L 566 375 L 537 359 L 512 350 L 489 346 L 488 343 L 511 324 L 532 315 L 549 312 L 581 313 L 608 320 L 636 324 L 663 324 L 679 320 L 690 314 L 705 298 L 711 287 L 714 267 L 697 274 L 680 278 L 653 279 L 619 275 L 585 267 L 557 265 L 530 268 L 498 279 L 488 284 L 464 301 L 442 325 L 433 338 L 423 359 L 416 394 L 422 395 L 456 390 L 488 392 L 511 398 L 544 416 L 564 434 L 580 454 L 615 514 L 641 549 L 672 578 L 686 587 L 707 596 L 727 600 L 761 599 L 781 594 L 807 580 L 820 570 L 842 548 L 866 514 L 867 510 L 890 475 L 893 476 L 901 489 L 903 495 L 905 496 L 941 559 L 949 570 L 967 586 L 984 595 L 1004 600 L 1026 600 L 1050 594 L 1064 586 L 1086 564 L 1180 409 L 1236 321 L 1240 311 L 1233 313 L 1199 331 L 1166 343 L 1162 343 L 1160 345 L 1079 362 L 1063 370 L 1050 382 L 1039 399 L 1035 414 L 1036 418 L 1049 412 L 1126 399 L 1130 399 L 1131 402 L 1049 536 L 1039 547 L 1024 554 L 1013 555 L 1004 553 L 993 548 L 986 542 L 919 430 L 920 424 L 922 423 L 926 414 L 1022 259 L 1019 257 L 994 257 L 976 263 L 967 269 L 952 284 L 945 298 L 925 328 L 923 334 L 919 338 L 823 496 L 801 524 L 782 541 L 768 549 L 752 554 L 730 554 L 718 551 L 706 545 L 691 533 L 666 505 L 665 501 L 686 500 L 711 493 L 730 483 L 748 468 L 764 448 L 804 380 L 813 368 L 816 360 L 882 256 L 898 237 L 921 215 L 926 213 L 948 196 L 972 183 L 1005 171 L 1045 163 L 1081 161 L 1168 161 L 1210 157 L 1253 148 L 1288 136 L 1289 139 L 1284 152 L 1265 182 L 1249 199 L 1241 204 L 1232 213 L 1189 236 L 1156 247 L 1121 254 L 1103 262 L 1090 272 L 1079 284 L 1069 302 L 1068 308 L 1070 309 L 1086 305 L 1139 298 L 1179 288 L 1214 275 L 1250 256 L 1273 239 L 1290 223 L 1302 209 L 1324 176 L 1324 172 L 1337 143 L 1344 113 L 1347 85 Z"/>
+      </g>
+    </svg>
+
+    <p class="loading-text-glow">SmartWelf 5.0</p>
+    <p id="systemLoadingText">กำลังเชื่อมต่อฐานข้อมูล...</p>
+  </div>
 </div>
 
 <div class="app-header">
@@ -141,7 +201,84 @@
     <p class="text-muted mb-4">ข้อมูลของคุณถูกส่งไปยังคณะกรรมการแล้ว โปรดรอการตรวจสอบ</p>
     <button onclick="location.reload()" class="btn btn-outline-primary rounded-pill px-4 mt-2">เข้าสู่หน้าหลักสมาชิก</button>
   </div>
+  <!-- ✏️ Edit Profile View (หน้าจอแก้ไขข้อมูลส่วนตัว) -->
+  <div id="editProfileView" class="card-box" style="display: none;">
+    <div class="d-flex align-items-center mb-4 pb-3 border-bottom">
+      <button onclick="closeProfileEditor()" class="btn btn-light rounded-circle me-3 border px-2 py-1"><i class="fa-solid fa-arrow-left"></i></button>
+      <h5 class="fw-bold mb-0 text-dark">แก้ไขข้อมูลส่วนตัว</h5>
+    </div>
+    
+    <form id="editProfileForm" onsubmit="handleProfileUpdate(event)">
+      <input type="hidden" id="editUid" name="uid">
 
+      <div class="section-title"><i class="fa-solid fa-lock text-muted me-2"></i> ข้อมูลระบบ</div>
+      <div class="row g-2 mb-4">
+        <div class="col-6"><label class="small text-muted fw-bold ms-1 mb-1">รหัสสมาชิก</label><input type="text" id="editMemId" class="form-control fw-bold text-primary" readonly></div>
+        <div class="col-6"><label class="small text-muted fw-bold ms-1 mb-1">เลข ปชช.</label><input type="text" id="editNatId" class="form-control" readonly></div>
+      </div>
+
+      <div class="section-title"><i class="fa-solid fa-user text-muted me-2"></i> ข้อมูลบุคคล</div>
+      <div class="row g-2 mb-3">
+        <div class="col-4"><label class="small text-muted fw-bold ms-1 mb-1">คำนำหน้า</label>
+          <select id="editPrefix" name="prefix" class="form-select"><option value="นาย">นาย</option><option value="นาง">นาง</option><option value="นางสาว">นางสาว</option></select>
+        </div>
+        <div class="col-8"><label class="small text-muted fw-bold ms-1 mb-1">ชื่อ-นามสกุล</label><input type="text" id="editName" name="fullName" class="form-control" required></div>
+      </div>
+      <div class="mb-4"><label class="small text-muted fw-bold ms-1 mb-1">วันเกิด</label><input type="date" id="editBirth" name="birthDate" class="form-control"></div>
+
+      <div class="section-title"><i class="fa-solid fa-map-location-dot text-muted me-2"></i> ที่อยู่และการติดต่อ</div>
+      <div class="row g-2 mb-3">
+        <div class="col-6"><label class="small text-muted fw-bold ms-1 mb-1">โทรศัพท์</label><input type="tel" id="editPhone" name="phone" class="form-control" maxlength="10" oninput="this.value = this.value.replace(/[^0-9]/g, '').slice(0, 10);"></div>
+        <div class="col-6"><label class="small text-muted fw-bold ms-1 mb-1">อีเมล</label><input type="email" id="editEmail" name="email" class="form-control"></div>
+      </div>
+      
+      <div class="mb-3"><label class="small text-muted fw-bold ms-1 mb-1">หมู่บ้าน</label>
+        <!-- ตัวเลือกจะถูกโหลดจาก Firebase -->
+        <select id="editVillage" name="village" class="form-select"><option value="" disabled>-- เลือกหมู่บ้าน --</option></select>
+      </div>
+      <div class="mb-3"><label class="small text-muted fw-bold ms-1 mb-1">ศูนย์ประสานงาน</label>
+        <select id="editCenter" name="center" class="form-select"></select>
+      </div>
+      <div class="mb-3"><label class="small text-muted fw-bold ms-1 mb-1">บ้านเลขที่</label><textarea id="editAddress" name="address" class="form-control" rows="2"></textarea></div>
+
+      <div class="pdpa-box mb-4">
+        <label class="small text-muted fw-bold mb-2 d-block"><i class="fa-solid fa-location-crosshairs text-danger me-1"></i> ปักหมุดพิกัดบ้าน</label>
+        <div class="d-flex gap-2 mb-2">
+            <input type="text" id="editLatitude" name="latitude" class="form-control form-control-sm text-center" placeholder="ละติจูด" readonly>
+            <input type="text" id="editLongitude" name="longitude" class="form-control form-control-sm text-center" placeholder="ลองจิจูด" readonly>
+        </div>
+        <button type="button" class="btn btn-sm btn-outline-danger w-100 rounded-3" onclick="updateEditLocation(event)"><i class="fa-solid fa-map-pin me-1"></i> ดึงพิกัด GPS ปัจจุบัน</button>
+      </div>
+
+      <div class="section-title"><i class="fa-solid fa-briefcase text-muted me-2"></i> ข้อมูลเศรษฐกิจ</div>
+      <div class="row g-2 mb-3">
+        <div class="col-6"><label class="small text-muted fw-bold ms-1 mb-1">การศึกษา</label>
+          <select id="editEdu" name="education" class="form-select"><option value="">ไม่ระบุ</option><option value="ประถมศึกษา">ประถมศึกษา</option><option value="มัธยมศึกษา">มัธยมศึกษา</option><option value="ปวช./ปวส.">ปวช./ปวส.</option><option value="ปริญญาตรีขึ้นไป">ปริญญาตรีขึ้นไป</option></select>
+        </div>
+        <div class="col-6"><label class="small text-muted fw-bold ms-1 mb-1">อาชีพ</label>
+          <select id="editOcc" name="occupation" class="form-select"><option value="">ไม่ระบุ</option><option value="เกษตรกร">เกษตรกร</option><option value="รับจ้างทั่วไป">รับจ้างทั่วไป</option><option value="ค้าขาย/ธุรกิจส่วนตัว">ค้าขาย/ธุรกิจส่วนตัว</option><option value="พนักงานบริษัท">พนักงานบริษัท</option><option value="ข้าราชการ">ข้าราชการ</option><option value="อื่นๆ">อื่นๆ</option></select>
+        </div>
+      </div>
+      <div class="row g-2 mb-3">
+        <div class="col-4"><label class="small text-muted fw-bold ms-1 mb-1">รายได้/เดือน</label><input type="number" id="editInc" name="income" class="form-control"></div>
+        <div class="col-4"><label class="small text-muted fw-bold ms-1 mb-1">คนในบ้าน</label><input type="number" id="editFam" name="familyMembers" class="form-control"></div>
+        <div class="col-4"><label class="small text-muted fw-bold ms-1 mb-1">ผู้พิการ</label><input type="number" id="editDis" name="disabledPersons" class="form-control"></div>
+      </div>
+      <div class="row g-2 mb-4">
+        <div class="col-6"><label class="small text-muted fw-bold ms-1 mb-1">กรรมสิทธิ์บ้าน</label><select id="editHouseT" name="houseType" class="form-select"><option value="">ไม่ระบุ</option><option value="ของตนเอง">ของตนเอง</option><option value="เช่า">เช่า</option><option value="อาศัยผู้อื่น">อาศัยผู้อื่น</option></select></div>
+        <div class="col-6"><label class="small text-muted fw-bold ms-1 mb-1">สภาพบ้าน</label><select id="editHouseC" name="houseCondition" class="form-select"><option value="">ไม่ระบุ</option><option value="มั่นคง">มั่นคง</option><option value="ปานกลาง">ปานกลาง</option><option value="ทรุดโทรม">ทรุดโทรม</option></select></div>
+      </div>
+
+      <div class="section-title"><i class="fa-solid fa-people-roof text-muted me-2"></i> ผู้รับผลประโยชน์</div>
+      <div class="pdpa-box mb-4">
+        <div class="row g-2 mb-2"><div class="col-7"><input type="text" id="editBen1N" name="beneficiary1_name" class="form-control form-control-sm" placeholder="ชื่อคนที่ 1"></div><div class="col-5"><input type="text" id="editBen1R" name="beneficiary1_relation" class="form-control form-control-sm" placeholder="ความสัมพันธ์"></div></div>
+        <div class="row g-2 mb-2"><div class="col-7"><input type="text" id="editBen2N" name="beneficiary2_name" class="form-control form-control-sm" placeholder="ชื่อคนที่ 2"></div><div class="col-5"><input type="text" id="editBen2R" name="beneficiary2_relation" class="form-control form-control-sm" placeholder="ความสัมพันธ์"></div></div>
+        <div class="row g-2"><div class="col-7"><input type="text" id="editBen3N" name="beneficiary3_name" class="form-control form-control-sm" placeholder="ชื่อคนที่ 3"></div><div class="col-5"><input type="text" id="editBen3R" name="beneficiary3_relation" class="form-control form-control-sm" placeholder="ความสัมพันธ์"></div></div>
+      </div>
+
+      <button type="submit" class="btn btn-fintech w-100" id="submitEditBtn"><i class="fa-solid fa-save me-1"></i> บันทึกข้อมูล</button>
+    </form>
+  </div>
   <!-- 📊 [หน้าต่าง 3] แดชบอร์ดหลักของสมาชิก -->
   <div id="dashboardView" style="display: none;">
     
@@ -234,7 +371,21 @@
          </div>
       </div>
     </div>
-    
+    <!-- 🎁 ของรางวัลและแลกสิทธิประโยชน์ (Rewards) -->
+    <div class="text-start mt-4 mx-1">
+      <div class="d-flex align-items-center justify-content-between mb-3 px-1">
+        <div class="d-flex align-items-center">
+          <i class="fa-solid fa-gift text-danger fs-4 me-2"></i>
+          <h6 class="fw-bold text-dark mb-0 m-0">แลกของรางวัลชุมชน</h6>
+        </div>
+      </div>
+      <!-- คอนเทนเนอร์สำหรับเลื่อนซ้ายขวา -->
+      <div id="memberRewardsFeed" class="horizontal-scroll-row pb-2">
+         <div class="text-center text-muted small p-3 w-100 bg-white rounded-4 border">
+            <div class="spinner-border spinner-border-sm mb-2 text-danger"></div><br>กำลังโหลดของรางวัล...
+         </div>
+      </div>
+    </div>
     <!-- ศูนย์ภารกิจ & เช็คอิน -->
     <div class="mission-hub text-start mt-4 mx-1">
       <div class="d-flex align-items-center justify-content-between mb-3">
@@ -303,7 +454,7 @@
      JAVASCRIPT MODULES 
 =========================================== -->
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
-<script src="./assets/js/member-config.js"></script>
-<script src="./assets/js/modules/member-main.js"></script>
+<script src="./assets/js/member-config.js?v=2"></script>
+<script src="./assets/js/modules/member-main.js?v=2"></script>
 </body>
 </html>
