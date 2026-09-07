@@ -10,7 +10,7 @@ if (!firebase.apps.length) firebase.initializeApp(firebaseConfig);
 const db = firebase.firestore();
 const auth = firebase.auth(); 
 
-const LIFF_ID = "2010764982-wudH3EsZ";
+const LIFF_ID = "2011183541-zDAQXVLM";
 const MASTER_EMAIL = "mr.munee@gmail.com";
 
 let currentAdminData = null; 
