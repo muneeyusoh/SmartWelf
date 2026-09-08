@@ -245,6 +245,8 @@ function renderDashboardData(data, pictureUrl) {
   loadCommunityNews();
   loadMemberRewards();
   document.getElementById('dashboardView').style.display = 'block';
+  // เพิ่มบรรทัดนี้เข้าไปครับ
+  if(document.getElementById('bottomNavMenu')) document.getElementById('bottomNavMenu').style.display = 'flex';
 }
 
 // 📌 SECTION 4: ภารกิจและคะแนนสะสม (Gamification & Check-in)
