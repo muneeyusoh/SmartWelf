@@ -16,7 +16,8 @@ window.onunhandledrejection = function(e) {
     }
 };
 
-const LIFF_ID = "2011183541-9UDIqf8P"; // LIFF ของฝั่งสมาชิก (ใช้รหัสนี้รหัสเดียวทั้งระบบสมาชิก)
+// 🌟 อัปเดต LIFF ID เป็นตัวใหม่ล่าสุด
+const LIFF_ID = "2011183541-9UDIqf8P";
 
 // 🌟 สร้าง "กล่องเก็บข้อมูล (Namespace)" ชื่อ MemberState
 const MemberState = {
