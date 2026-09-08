@@ -1,0 +1,50 @@
+/* =========================================================
+   🛡️ style-admin.css: สไตล์สำหรับระบบหลังบ้านแอดมินโดยเฉพาะ
+   ========================================================= */
+
+:root { 
+    --bottom-nav-height: 75px; 
+}
+
+/* --- หน้าต่าง Login (Login Gate) --- */
+#loginGate { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: var(--primary-dark); color: white; z-index: 9998; display: flex; flex-direction: column; align-items: center; justify-content: center; overflow-y: auto;}
+.login-box { background: rgba(255,255,255,0.05); backdrop-filter: blur(15px); padding: 30px; border-radius: 24px; text-align: center; border: 1px solid rgba(255,255,255,0.1); width: 90%; max-width: 400px; box-shadow: 0 25px 50px -12px rgba(0,0,0,0.5); }
+.login-tabs { display: flex; background: rgba(0,0,0,0.2); border-radius: 12px; margin-bottom: 20px; overflow: hidden; }
+.login-tab { flex: 1; padding: 10px; cursor: pointer; font-size: 0.85rem; font-weight: 600; color: rgba(255,255,255,0.5); transition: 0.3s; }
+.login-tab.active { background: var(--primary-main); color: white; }
+
+.numpad { display: grid; grid-template-columns: repeat(3, 1fr); gap: 15px; max-width: 250px; margin: 0 auto; }
+.num-btn { width: 60px; height: 60px; border-radius: 50%; background: rgba(255,255,255,0.1); border: none; color: white; font-size: 1.5rem; font-weight: 600; display: flex; justify-content: center; align-items: center; cursor: pointer; transition: 0.1s; }
+.num-btn:active { background: rgba(255,255,255,0.3); transform: scale(0.9); }
+
+/* --- โครงสร้างหลักของแอดมิน (Admin App Structure) --- */
+.app-header-admin { background: var(--primary-dark); background-image: radial-gradient(circle at top right, #1E293B 0%, transparent 60%); color: white; position: fixed; top: 0; width: 100%; height: 68px; z-index: 1030; display: flex; align-items: center; justify-content: space-between; padding: 0 20px; box-shadow: 0 4px 20px rgba(0,0,0,0.1); }
+#adminApp { padding-top: 70px; padding-bottom: 95px; }
+
+.bottom-nav { position: fixed; bottom: 0; width: 100%; height: var(--bottom-nav-height); background: rgba(255,255,255,0.95); backdrop-filter: blur(10px); display: flex; justify-content: space-around; align-items: center; box-shadow: 0 -4px 25px rgba(0,0,0,0.06); z-index: 1030; border-top-left-radius: 24px; border-top-right-radius: 24px; }
+.nav-item { flex: 1; text-align: center; color: var(--text-muted); font-size: 0.65rem; font-weight: 600; background: none; border: none; position: relative; transition: 0.3s; }
+.nav-item.active { color: var(--primary-main); transform: translateY(-3px); }
+.nav-item i { font-size: 1.3rem; display: block; margin-bottom: 4px; }
+.nav-badge { position: absolute; top: 2px; left: calc(50% + 5px); width: 12px; height: 12px; background-color: var(--danger-main); border-radius: 50%; border: 2px solid white; display: none; }
+
+/* --- การ์ดต่างๆ ในหน้าแอดมิน (Admin Cards) --- */
+.admin-card { background: white; border-radius: 20px; padding: 1.2rem; box-shadow: 0 4px 20px rgba(0,0,0,0.03); border: 1px solid var(--card-border); margin-bottom: 12px; transition: transform 0.2s; }
+.admin-card-hover:active { transform: scale(0.98); }
+
+.wallet-card { background: linear-gradient(135deg, #0F172A 0%, #1E293B 100%); border-radius: 24px; padding: 24px; color: white; box-shadow: 0 20px 25px -5px rgba(15, 23, 42, 0.4), 0 8px 10px -6px rgba(15, 23, 42, 0.2); position: relative; overflow: hidden; border: 1px solid rgba(255,255,255,0.1); z-index: 1; margin-bottom: 1.5rem;}
+.wallet-card::before { content: ''; position: absolute; top: -50px; right: -30px; width: 150px; height: 150px; background: linear-gradient(135deg, rgba(37,99,235,0.4) 0%, rgba(16,185,129,0.4) 100%); border-radius: 50%; filter: blur(30px); z-index: -1; }
+.wallet-card::after { content: ''; position: absolute; bottom: -30px; left: -20px; width: 100px; height: 100px; background: linear-gradient(135deg, rgba(245,158,11,0.2) 0%, rgba(239,68,68,0.2) 100%); border-radius: 50%; filter: blur(20px); z-index: -1; }
+
+/* --- ทะเบียนสมาชิก (Members List UI) --- */
+.member-row { position: relative; overflow: hidden; transition: all 0.2s ease; }
+.member-checkbox-wrapper, .member-avatar-wrapper { position: relative; z-index: 10; }
+.input-overlay { position: absolute; top: 0; right: -100%; bottom: 0; width: calc(100% - 90px); background: linear-gradient(90deg, rgba(255,255,255,0.85) 0%, rgba(255,255,255,1) 15%); backdrop-filter: blur(2px); z-index: 5; transition: right 0.3s cubic-bezier(0.4, 0, 0.2, 1); }
+.member-row.show-input .input-overlay { right: 0; }
+.amount-badge-wrapper { cursor: pointer; }
+
+/* --- บัญชีการเงิน (Ledger & History UI) --- */
+.tab-btn-ledger { width: 50%; padding: 0.7rem; text-align: center; border-radius: 1rem; border: none; background: transparent; font-weight: 600; color: var(--text-muted); transition: 0.3s; font-size: 0.85rem; }
+.tab-btn-ledger.active { background: white; color: var(--primary-main); box-shadow: 0 4px 15px rgba(0,0,0,0.05); }
+
+#receiptHistoryContainer::-webkit-scrollbar { display: none; }
+#receiptHistoryContainer { -ms-overflow-style: none; scrollbar-width: none; }
