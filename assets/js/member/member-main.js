@@ -3,6 +3,82 @@
 // ============================================================================
 
 // 📌 SECTION 1: ตัวแปรและการเริ่มต้นระบบ (Initialization)
+let fundSettings = {};
+let cachedUserData = null;
+
+let unmaskedData = { NatId: '', Phone: '' };
+let isDataMasked = { natId: true, phone: true };
+let currentShareMode = 'news';
+
+// ฟังก์ชันผู้ช่วยสำหรับอัปเดตข้อความตอนโหลด
+function updateLoadingText(text) {
+    const loadingTxt = document.getElementById('systemLoadingText');
+    if (loadingTxt) loadingTxt.innerText = text;
+}
+
+// 🌟 สร้างฟังก์ชันหลักสำหรับเริ่มระบบ
+async function initMemberApp() {
+  try {
+    updateLoadingText("กำลังเชื่อมต่อฐานข้อมูล (1/3)...");
+    
+    const sysSnap = await db.collection("settings").doc("master").get();
+    if(sysSnap.exists) {
+       fundSettings = sysSnap.data();
+       const headerFundName = document.getElementById('headerFundName');
+       if(headerFundName) headerFundName.innerText = fundSettings.fundName || "กองทุนสวัสดิการชุมชน";
+       
+       const regCenter = document.getElementById('regCenterSelect');
+       const regVillage = document.getElementById('regVillageSelect');
+       if(regCenter) (fundSettings.centers || []).forEach(c => regCenter.add(new Option(c, c)));
+       if(regVillage) (fundSettings.inZoneVillages || []).forEach(v => regVillage.add(new Option(v, v)));
+    }
+
+    const regAdmin = document.getElementById('regResponsibleAdmin');
+    if (regAdmin) {
+        if (fundSettings.committee && fundSettings.committee.length > 0) {
+            fundSettings.committee.forEach(com => { regAdmin.add(new Option(com.name, com.name)); });
+        }
+    }
+
+    updateLoadingText("กำลังเชื่อมต่อระบบ LINE (2/3)...");
+    await liff.init({ liffId: LIFF_ID });
+    
+    const urlParams = new URLSearchParams(window.location.search);
+    if(urlParams.get('ref') && document.getElementById('refCode')) {
+        document.getElementById('refCode').value = urlParams.get('ref');
+    }
+
+    updateLoadingText("กำลังตรวจสอบสถานะผู้ใช้ (3/3)...");
+    
+    if (liff.isLoggedIn()) {
+      const profile = await liff.getProfile();
+      if(document.getElementById('uid')) document.getElementById('uid').value = profile.userId;
+      await checkMemberOnCloud(profile.userId, profile.pictureUrl || "https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.5/icons/person-circle.svg");
+    } else { 
+        if (window.location.hostname === "127.0.0.1" || window.location.hostname === "localhost") {
+            document.getElementById('systemLoading').innerHTML = `
+            <div class="text-center px-4" style="margin-top: 30vh;">
+                <i class="fa-solid fa-laptop-code text-primary fs-1 mb-3"></i>
+                <h6 class="fw-bold">โหมดทดสอบ Localhost</h6>
+                <p class="small text-muted">ระบบฝั่งสมาชิกต้องใช้บัญชี LINE ในการเข้าสู่ระบบ<br><br><b>วิธีทดสอบที่ถูกต้อง:</b><br>กรุณาอัปโหลดไฟล์ (Push) ขึ้น GitHub <br>และกดลิงก์เปิดผ่านแอป LINE ในมือถือครับ</p>
+            </div>`;
+        } else {
+            liff.login(); 
+        }
+    }
+  } catch (err) { 
+      document.getElementById('systemLoading').innerHTML = `<div class="text-danger text-center px-4" style="margin-top: 40vh;"><h6>System Error</h6><p class="small">${err.message}</p><button class="btn btn-sm btn-outline-danger mt-3" onclick="location.reload()">ลองใหม่</button></div>`; 
+  }
+}
+
+// 🌟 เคล็ดลับแก้จอค้าง: ถ้าระบบโหลดเสร็จแล้ว ให้ทำงานทันที ไม่ต้องรอ!
+if (document.readyState === "loading") {
+    document.addEventListener("DOMContentLoaded", initMemberApp);
+} else {
+    initMemberApp();
+}
+
+// ... (โค้ด SECTION 2: ระบบสมัครสมาชิกและผูกบัญชี ปล่อยไว้เหมือนเดิมครับ) ...
 
 // 🌟 เพิ่ม 2 บรรทัดนี้ เพื่อประกาศตัวแปรให้ระบบรู้จัก
 let fundSettings = {};
