@@ -5,38 +5,75 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
   <title>ระบบสมาชิกกองทุนสวัสดิการชุมชน</title>
   
-  <!-- 🌟 เรดาร์ดักจับ Error (ใส่ไว้ชั่วคราวเพื่อหาปัญหา) 🌟 -->
-  <script>
-    window.addEventListener('error', function(e) {
-      setTimeout(function() {
-        var loader = document.getElementById('systemLoadingText');
-        if(loader) {
-          loader.innerHTML = '<span style="color:#ef4444; font-size:0.8rem; font-weight:bold;">🚨 แจ้งเตือน: <br>' + (e.message || e.type) + '<br><small>' + (e.filename || '') + '</small></span>';
-        }
-      }, 500);
-    }, true);
-  </script>
-
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Prompt:wght@300;400;500;600;700&display=swap" rel="stylesheet">
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
   
-  <!-- 🌟 โหลดสไตล์ CSS ที่แยกไฟล์ไว้ 🌟 -->
+  <!-- 🌟 โหลดสไตล์ CSS เดิม -->
   <link rel="stylesheet" href="./assets/css/member-style.css">
+
+  <!-- 🌟 ฝัง CSS เสริมสำหรับระบบ Dashboard ใหม่ (ป้องกันหน้าจอเพี้ยน) 🌟 -->
+  <style>
+    body { background-color: #F8FAFC; font-family: 'Prompt', sans-serif; }
+    /* ส่วนหัวโปรไฟล์และกระเป๋าเงิน */
+    .fintech-profile-header { background: linear-gradient(135deg, #0F172A 0%, #1e3a8a 100%); padding: 30px 20px 60px; border-radius: 0 0 30px 30px; display: flex; justify-content: space-between; align-items: center; box-shadow: 0 4px 15px rgba(0,0,0,0.1); }
+    .wallet-card { background: linear-gradient(135deg, #10B981, #059669); border-radius: 20px; padding: 20px; margin-top: -40px; box-shadow: 0 10px 20px rgba(16, 185, 129, 0.2); position: relative; z-index: 2; color: white; }
+    
+    /* เมนูด่วน */
+    .quick-action-wrapper { text-align: center; cursor: pointer; transition: transform 0.2s; }
+    .quick-action-wrapper:active { transform: scale(0.95); }
+    .quick-action-btn { width: 50px; height: 50px; border-radius: 16px; display: flex; align-items: center; justify-content: center; font-size: 1.25rem; margin: 0 auto 8px; box-shadow: 0 4px 6px rgba(0,0,0,0.05); }
+    .quick-action-text { font-size: 0.75rem; font-weight: 600; color: #475569; }
+
+    /* แนวนอนเลื่อนได้ (ข่าวสาร & ของรางวัล) */
+    .horizontal-scroll-row { display: flex; overflow-x: auto; gap: 1rem; padding-bottom: 0.5rem; scroll-snap-type: x mandatory; -webkit-overflow-scrolling: touch; scrollbar-width: none; }
+    .horizontal-scroll-row::-webkit-scrollbar { display: none; }
+    
+    /* การ์ดข่าวสาร */
+    .vertical-news-card { min-width: 240px; max-width: 240px; background: white; border: 1px solid #E2E8F0; border-radius: 16px; overflow: hidden; display: flex; flex-direction: column; scroll-snap-align: start; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05); }
+    .news-img { width: 100%; height: 130px; object-fit: cover; }
+    .news-content { padding: 12px; display: flex; flex-direction: column; flex-grow: 1; }
+    .line-clamp-2 { display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+    
+    /* การ์ดของรางวัล */
+    .reward-card { min-width: 140px; max-width: 140px; background: white; border: 1px solid #E2E8F0; border-radius: 16px; overflow: hidden; display: flex; flex-direction: column; position: relative; scroll-snap-align: start; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05); }
+    .reward-img { width: 100%; height: 110px; object-fit: cover; }
+    
+    /* ภารกิจเช็คอิน */
+    .mission-hub { background: linear-gradient(135deg, #1E293B 0%, #0F172A 100%); padding: 20px; border-radius: 20px; color: white; box-shadow: 0 10px 25px rgba(15, 23, 42, 0.2); }
+    .streak-circle { width: 35px; height: 35px; border-radius: 50%; background: rgba(255,255,255,0.1); border: 2px solid rgba(255,255,255,0.2); display: flex; align-items: center; justify-content: center; font-weight: bold; font-size: 0.85rem; color: rgba(255,255,255,0.5); transition: 0.3s; }
+    .streak-circle.active { background: #10B981; border-color: #34D399; color: white; box-shadow: 0 0 10px rgba(16,185,129,0.5); }
+    .streak-circle.gift { background: rgba(245,158,11,0.2); border-color: #F59E0B; color: #F59E0B; }
+    .streak-circle.gift.active { background: linear-gradient(135deg, #F59E0B, #D97706); border-color: #FCD34D; color: white; box-shadow: 0 0 15px rgba(245,158,11,0.6); }
+    
+    /* กระดานโปร่งใส & ไทม์ไลน์ */
+    .transparency-card { background: white; border: 1px solid #E2E8F0; border-radius: 16px; padding: 15px; margin-bottom: 12px; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05); }
+    .timeline { position: relative; border-left: 2px solid #E2E8F0; margin-left: 10px; padding-left: 20px; }
+    .timeline-item { position: relative; margin-bottom: 20px; }
+    .timeline-item::before { content: ''; position: absolute; left: -27px; top: 0; width: 12px; height: 12px; border-radius: 50%; background: #E2E8F0; border: 2px solid white; box-shadow: 0 0 0 2px #E2E8F0; }
+    .timeline-item.active::before { background: #2563EB; box-shadow: 0 0 0 2px #BFDBFE; }
+    .timeline-item.warning::before { background: #F59E0B; box-shadow: 0 0 0 2px #FDE68A; }
+    
+    /* องค์ประกอบทั่วไป */
+    .card-box { background: white; padding: 25px 20px; border-radius: 24px; margin: -40px auto 20px; position: relative; border: 1px solid #E5E7EB; box-shadow: 0 10px 30px rgba(0,0,0,0.05); z-index: 5; }
+    .badge-status { padding: 4px 10px; border-radius: 20px; font-weight: bold; }
+    .status-active { background: #DCFCE7; color: #166534; }
+    .status-pending { background: #FEF3C7; color: #92400E; }
+    .profile-img { object-fit: cover; border-radius: 50%; border: 2px solid white; }
+  </style>
 
   <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
   <script src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
 
-  <!-- 🌟 โหลด Firebase ให้ครบทั้ง 3 ตัว (อย่าลืม auth-compat) -->
+  <!-- 🌟 โหลด Firebase ให้ครบทั้ง 3 ตัว -->
   <script src="https://www.gstatic.com/firebasejs/10.8.1/firebase-app-compat.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/10.8.1/firebase-auth-compat.js"></script> <!-- 👈 เติมบรรทัดนี้ครับ! -->
+  <script src="https://www.gstatic.com/firebasejs/10.8.1/firebase-auth-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.8.1/firebase-firestore-compat.js"></script>
 
   <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
 
-  
 </head>
 <body>
 
