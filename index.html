@@ -44,6 +44,77 @@
     .timeline-item::before { content: ''; position: absolute; left: -27px; top: 0; width: 12px; height: 12px; border-radius: 50%; background: #E2E8F0; border: 2px solid white; box-shadow: 0 0 0 2px #E2E8F0; }
     .timeline-item.active::before { background: #2563EB; box-shadow: 0 0 0 2px #BFDBFE; }
     .timeline-item.warning::before { background: #F59E0B; box-shadow: 0 0 0 2px #FDE68A; }
+
+    /* 🌟 Bottom Navigation (แบบแอปธนาคาร) 🌟 */
+    body { padding-bottom: 90px; } /* ดันเนื้อหาขึ้นไม่ให้เมนูบัง */
+    
+    .bottom-nav {
+      position: fixed;
+      bottom: 0;
+      left: 0;
+      width: 100%;
+      background: rgba(255, 255, 255, 0.95);
+      backdrop-filter: blur(10px);
+      box-shadow: 0 -4px 20px rgba(0,0,0,0.08);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 10px 15px 20px 15px; /* เผื่อพื้นที่ขอบจอด้านล่างของ iPhone */
+      z-index: 1000;
+      border-radius: 24px 24px 0 0;
+    }
+    
+    .nav-item {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      text-decoration: none;
+      color: #94A3B8;
+      font-size: 0.65rem;
+      font-weight: 600;
+      width: 20%;
+      transition: 0.2s;
+    }
+    
+    .nav-item i { font-size: 1.3rem; margin-bottom: 4px; transition: transform 0.2s; }
+    .nav-item.active { color: #0F172A; }
+    .nav-item:active i { transform: scale(0.9); }
+    
+    /* ปุ่มสแกนตรงกลาง (ลอยขึ้นมา) */
+    .nav-item-scan-wrapper {
+      position: relative;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      width: 20%;
+      cursor: pointer;
+    }
+    
+    .nav-item-scan {
+      position: absolute;
+      top: -45px;
+      background: linear-gradient(135deg, #10B981 0%, #059669 100%);
+      width: 65px;
+      height: 65px;
+      border-radius: 50%;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      color: white;
+      box-shadow: 0 8px 20px rgba(16, 185, 129, 0.4);
+      border: 5px solid #F8FAFC; /* สีเดียวกับพื้นหลังเว็บเพื่อให้ดูเป็นรอยตัด */
+      font-size: 1.8rem;
+      transition: transform 0.2s;
+    }
+    
+    .nav-item-scan-wrapper:active .nav-item-scan { transform: scale(0.95); }
+    
+    .nav-item-scan-text {
+      margin-top: 25px; /* ดันข้อความลงมาใต้ปุ่มลอย */
+      color: #10B981;
+      font-size: 0.7rem;
+      font-weight: 700;
+    }
   </style>
 
   <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
@@ -423,7 +494,36 @@
     <button class="btn btn-light w-100 rounded-pill fw-bold" onclick="closeShareModal(true)">ปิด</button>
   </div>
 </div>
-
+<!-- 📱 Bottom Navigation แบบแอปธนาคาร -->
+<div class="bottom-nav" id="bottomNavMenu" style="display: none;">
+  <a href="#" class="nav-item active">
+    <i class="fa-solid fa-house"></i>
+    <span>หน้าหลัก</span>
+  </a>
+  
+  <a href="contribution.html" class="nav-item">
+    <i class="fa-solid fa-hand-holding-dollar"></i>
+    <span>สมทบ</span>
+  </a>
+  
+  <!-- 🟢 ปุ่มสแกนขนาดใหญ่ตรงกลาง -->
+  <div class="nav-item-scan-wrapper" onclick="scanToPayAdmin()">
+    <div class="nav-item-scan">
+      <i class="fa-solid fa-qrcode"></i>
+    </div>
+    <span class="nav-item-scan-text">สแกนจ่าย</span>
+  </div>
+  
+  <a href="claim.html" class="nav-item">
+    <i class="fa-solid fa-file-medical"></i>
+    <span>ขอเบิก</span>
+  </a>
+  
+  <a href="#" class="nav-item" onclick="openShareModal('invite')">
+    <i class="fa-solid fa-user-plus"></i>
+    <span>ชวนเพื่อน</span>
+  </a>
+</div>
 <!-- ==========================================
      JAVASCRIPT MODULES 
 =========================================== -->
