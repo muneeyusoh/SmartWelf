@@ -3,7 +3,10 @@
 // ============================================================================
 
 // 📌 SECTION 1: ตัวแปรและการเริ่มต้นระบบ (Initialization)
-// 🌟 แก้ไข: ใช้ LIFF ID ที่ถูกต้องของคุณมุนี
+
+// 🌟 เพิ่ม 2 บรรทัดนี้ เพื่อประกาศตัวแปรให้ระบบรู้จัก
+let fundSettings = {};
+let cachedUserData = null;
 
 let unmaskedData = { NatId: '', Phone: '' };
 let isDataMasked = { natId: true, phone: true };
@@ -39,8 +42,6 @@ document.addEventListener("DOMContentLoaded", async () => {
     }
 
     updateLoadingText("กำลังเชื่อมต่อระบบ LINE (2/3)...");
-    
-    // 🌟 แก้ไข: Initialize LIFF ด้วย ID ที่ถูกต้อง
     await liff.init({ liffId: LIFF_ID });
     
     const urlParams = new URLSearchParams(window.location.search);
@@ -55,7 +56,18 @@ document.addEventListener("DOMContentLoaded", async () => {
       if(document.getElementById('uid')) document.getElementById('uid').value = profile.userId;
       await checkMemberOnCloud(profile.userId, profile.pictureUrl || "https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.5/icons/person-circle.svg");
     } else { 
-      liff.login(); 
+        // 🌟 จุดที่แก้ไข: ดักจับว่ารันบนคอมพิวเตอร์ (Localhost) หรือไม่
+        if (window.location.hostname === "127.0.0.1" || window.location.hostname === "localhost") {
+            document.getElementById('systemLoading').innerHTML = `
+            <div class="text-center px-4" style="margin-top: 30vh;">
+                <i class="fa-solid fa-laptop-code text-primary fs-1 mb-3"></i>
+                <h6 class="fw-bold">โหมดทดสอบ Localhost</h6>
+                <p class="small text-muted">ระบบฝั่งสมาชิกต้องใช้บัญชี LINE ในการเข้าสู่ระบบ<br><br><b>วิธีทดสอบที่ถูกต้อง:</b><br>กรุณาอัปโหลดไฟล์ (Push) ขึ้น GitHub <br>และกดลิงก์เปิดผ่านแอป LINE ในมือถือครับ</p>
+            </div>`;
+        } else {
+            // ถ้ารันบน GitHub ของจริง ให้ล็อกอินผ่าน LINE ตามปกติ
+            liff.login(); 
+        }
     }
   } catch (err) { 
       document.getElementById('systemLoading').innerHTML = `<div class="text-danger text-center px-4" style="margin-top: 40vh;"><h6>System Error</h6><p class="small">${err.message}</p><button class="btn btn-sm btn-outline-danger mt-3" onclick="location.reload()">ลองใหม่</button></div>`; 
