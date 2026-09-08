@@ -16,8 +16,13 @@ window.onunhandledrejection = function(e) {
     }
 };
 
-// 🌟 อัปเดต LIFF ID เป็นตัวใหม่ล่าสุด
-const LIFF_ID = "2011183541-9UDIqf8P";
+// 🌟 แยกรหัส LIFF ID สำหรับแต่ละหน้า (LINE บังคับ 1 ลิงก์ ต่อ 1 LIFF ID)
+const LIFF_ID_MAIN = "2011183541-9UDIqf8P";   // สำหรับหน้า index.html
+const LIFF_ID_CLAIM = "2011183541-uvW1j86T";  // 👈 อัปเดตใหม่ สำหรับหน้า claim.html
+const LIFF_ID_CONTRIB = "2011183541-lPBacDBx"; // สำหรับหน้า contribution.html (ใส่ของเดิมไว้ก่อน ถ้ามีของใหม่เดี๋ยวค่อยมาแก้ครับ)
+
+// ตัวแปรเดิมสำหรับหน้าหลัก (เพื่อไม่ให้โค้ดเก่าในหน้าอื่น Error)
+const LIFF_ID = LIFF_ID_MAIN;
 
 // 🌟 สร้าง "กล่องเก็บข้อมูล (Namespace)" ชื่อ MemberState
 const MemberState = {
