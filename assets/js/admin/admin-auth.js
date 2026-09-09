@@ -1,5 +1,5 @@
 // =========================================================
-// 🔐 admin/admin-auth.js: ระบบยืนยันตัวตนและการจัดการสิทธิ์ (Complete RBAC V2)
+// 🔐 admin/admin-auth.js: ระบบยืนยันตัวตนและการจัดการสิทธิ์ (Independent Login V3)
 // =========================================================
 
 // 🌟 1. ประกาศตัวแปรส่วนกลางเพื่อป้องกัน Error
@@ -30,11 +30,20 @@ document.addEventListener("DOMContentLoaded", async () => {
                     try {
                         const adminDoc = await db.collection("admins").doc(user.email).get();
                         if (adminDoc.exists && adminDoc.data().status === 'ใช้งาน') {
-                            // ปิด Loader และบังคับเข้าหน้า PIN
-                            AppHelper.showLoader(false);
-                            document.getElementById('loginGate').style.display = 'flex';
-                            document.getElementById('adminApp').style.display = 'none';
-                            switchLoginMode('pin'); 
+                            
+                            // 🌟 1. บันทึกอีเมลลงเครื่องเพื่อใช้กับระบบ PIN ในอนาคต
+                            localStorage.setItem('sw_admin_email', user.email);
+
+                            // 🌟 2. ตรวจสอบว่าเปิดผ่าน LINE ไหม ถ้าใช่ให้จับผูก UID ทันที
+                            if (typeof liff !== 'undefined' && liff.isLoggedIn()) {
+                                const profile = await liff.getProfile();
+                                if (adminDoc.data().lineUid !== profile.userId) {
+                                    await db.collection("admins").doc(user.email).update({ lineUid: profile.userId });
+                                }
+                            }
+
+                            // 🌟 3. เข้าระบบทันที ไม่บังคับใส่ PIN แล้ว
+                            grantAccess(adminDoc.data(), adminDoc.id);
                         } else {
                             await auth.signOut();
                             showLoginForm();
@@ -79,9 +88,8 @@ async function handleAdminLogin() {
     
     AppHelper.showLoader(true, "กำลังยืนยันตัวตน...");
     try {
+        // เมื่อผ่านแล้ว onAuthStateChanged จะทำงานและ grantAccess ให้อัตโนมัติทันที
         await auth.signInWithEmailAndPassword(email, pass);
-        // เมื่อผ่านแล้ว onAuthStateChanged จะสลับไปหน้า PIN ให้อัตโนมัติ
-        Swal.fire({ icon: 'success', title: 'อีเมลถูกต้อง', text: 'กรุณากรอกรหัส PIN 6 หลักเพื่อเข้าใช้งาน', showConfirmButton: false, timer: 1500 });
     } catch (e) { 
         AppHelper.showLoader(false); 
         console.error("Login Error:", e);
@@ -92,12 +100,12 @@ async function handleAdminLogin() {
 }
 
 // ==========================================
-// 🚀 ระบบลืมรหัสผ่าน (ส่งเข้าอีเมล)
+// 🚀 ระบบลืมรหัสผ่านและเปลี่ยน PIN (ส่งเข้าอีเมล)
 // ==========================================
 async function requestPasswordReset() {
     const { value: email } = await Swal.fire({
-        title: 'ลืมรหัสผ่าน?',
-        text: 'กรุณากรอกอีเมลแอดมินที่ลงทะเบียนไว้ ระบบจะส่งลิงก์ตั้งรหัสผ่านใหม่ไปให้ครับ',
+        title: 'ลืมรหัสผ่าน / PIN ?',
+        text: 'กรุณากรอกอีเมลแอดมินที่ลงทะเบียนไว้ ระบบจะส่งลิงก์ตั้งรหัสผ่านใหม่ไปให้ (เมื่อเข้าสู่ระบบด้วยรหัสผ่านใหม่แล้ว คุณสามารถตั้ง PIN ใหม่ในเมนูความปลอดภัยได้เลยครับ)',
         input: 'email',
         inputPlaceholder: 'admin@example.com',
         showCancelButton: true,
@@ -126,7 +134,7 @@ async function requestPasswordReset() {
 }
 
 // ==========================================
-// 🚀 สลับโหมดและจัดการ PIN
+// 🚀 สลับโหมดและจัดการ PIN (อิงจาก LocalStorage)
 // ==========================================
 function switchLoginMode(mode) {
     document.getElementById('tabEmail').classList.remove('active'); 
@@ -137,8 +145,9 @@ function switchLoginMode(mode) {
         document.getElementById('emailLoginSection').style.display = 'block'; 
         document.getElementById('pinLoginSection').style.display = 'none';
     } else {
-        if (!auth.currentUser) {
-            Swal.fire({ icon: 'info', title: 'ไม่สามารถใช้ PIN ได้', text: 'กรุณาล็อกอินด้วยอีเมลและรหัสผ่านก่อนครับ' });
+        const savedEmail = localStorage.getItem('sw_admin_email');
+        if (!savedEmail) {
+            Swal.fire({ icon: 'info', title: 'ไม่พบอุปกรณ์ที่บันทึกไว้', text: 'กรุณาเข้าสู่ระบบด้วย "อีเมล" หรือ "LINE" อย่างน้อย 1 ครั้งเพื่อจดจำเครื่องครับ' });
             return switchLoginMode('email');
         }
         document.getElementById('tabPin').classList.add('active'); 
@@ -173,14 +182,15 @@ function updatePinDisplay() {
 }
 
 async function verifyPinLogin() {
-    if (!auth.currentUser) return clearPin();
+    const savedEmail = localStorage.getItem('sw_admin_email');
+    if (!savedEmail) return clearPin();
 
     Swal.fire({ title: 'กำลังตรวจสอบ PIN...', allowOutsideClick: false, didOpen: () => Swal.showLoading() });
     try {
-        const adminDoc = await db.collection("admins").doc(auth.currentUser.email).get();
+        const adminDoc = await db.collection("admins").doc(savedEmail).get();
         
         if(adminDoc.exists && adminDoc.data().pin === AdminState.currentPin && adminDoc.data().status === 'ใช้งาน') { 
-            Swal.fire({ icon: 'success', title: 'ปลดล็อกสำเร็จ', showConfirmButton: false, timer: 1000 });
+            Swal.fire({ icon: 'success', title: 'เข้าสู่ระบบสำเร็จ', showConfirmButton: false, timer: 1000 });
             setTimeout(() => { 
                 grantAccess(adminDoc.data(), adminDoc.id); 
                 clearPin(); 
@@ -190,7 +200,7 @@ async function verifyPinLogin() {
             clearPin(); 
         }
     } catch(e) { 
-        Swal.fire('Error', 'การเชื่อมต่อขัดข้อง หรือ Session หมดอายุ', 'error'); 
+        Swal.fire('Error', 'การเชื่อมต่อขัดข้อง หรือตรวจไม่พบข้อมูล', 'error'); 
         clearPin(); 
     }
 }
@@ -393,7 +403,7 @@ window.createAuditLog = async function(actionTitle, detailDesc) {
 };
 
 // ==========================================
-// 🚀 ระบบล็อกอินด้วย LINE (LIFF)
+// 🚀 ระบบล็อกอินด้วย LINE (LIFF UID Verification)
 // ==========================================
 async function forceLiffLogin() { 
     try {
@@ -401,39 +411,35 @@ async function forceLiffLogin() {
             liff.login({ redirectUri: window.location.href }); 
         } else {
             AppHelper.showLoader(true, "กำลังตรวจสอบสิทธิ์ LINE...");
-            const idToken = liff.getDecodedIDToken();
-            const lineEmail = idToken?.email;
+            const profile = await liff.getProfile();
+            const lineUid = profile.userId;
 
-            if (!lineEmail) {
-                AppHelper.showLoader(false);
-                Swal.fire({ 
-                    icon: 'warning', title: 'กำลังอัปเดตสิทธิ์การเข้าถึง', 
-                    html: 'โปรดกดยืนยันเพื่อรีเซ็ตการเชื่อมต่อ<br><br><small class="text-danger">เมื่อรีเซ็ตแล้ว ให้กด "เข้าสู่ระบบด้วย LINE" อีกครั้งครับ</small>',
-                    confirmButtonText: '<i class="fa-solid fa-rotate"></i> รีเซ็ตและเริ่มใหม่', confirmButtonColor: '#F59E0B'
-                }).then(() => {
-                    liff.logout(); location.reload(); 
-                });
-                return; 
-            }
+            // ค้นหาแอดมินที่มี lineUid ตรงกับที่ดึงมาจาก LINE ทันที
+            const snap = await db.collection("admins").where("lineUid", "==", lineUid).get();
 
-            AppHelper.showLoader(false);
-            Swal.fire({
-                icon: 'info', title: 'พบข้อมูล LINE ของคุณ',
-                text: `พบอีเมล ${lineEmail} เพื่อความปลอดภัย กรุณากรอกรหัสผ่าน 1 ครั้งเพื่อเข้าสู่ระบบครับ`,
-                input: 'password', inputPlaceholder: 'กรอกรหัสผ่าน',
-                showCancelButton: true, confirmButtonText: '<i class="fa-solid fa-key"></i> ยืนยัน', cancelButtonText: 'ยกเลิก', confirmButtonColor: '#2563EB'
-            }).then(async (result) => {
-                if (result.isConfirmed && result.value) {
-                    AppHelper.showLoader(true, "กำลังยืนยันตัวตน...");
-                    try {
-                        await auth.signInWithEmailAndPassword(lineEmail, result.value);
-                        Swal.fire({ icon: 'success', title: 'เข้าสู่ระบบสำเร็จ!', showConfirmButton: false, timer: 1500 });
-                    } catch (e) {
-                        AppHelper.showLoader(false);
-                        Swal.fire('ผิดพลาด', 'รหัสผ่านไม่ถูกต้อง หรืออีเมลยังไม่ถูกเพิ่มในระบบ', 'error');
-                    }
+            if (!snap.empty) {
+                const adminDoc = snap.docs[0];
+                if (adminDoc.data().status === 'ใช้งาน') {
+                    // จดจำเครื่องสำหรับการใช้ PIN ครั้งหน้า
+                    localStorage.setItem('sw_admin_email', adminDoc.id);
+                    AppHelper.showLoader(false);
+                    Swal.fire({ icon: 'success', title: 'เข้าสู่ระบบด้วย LINE สำเร็จ!', showConfirmButton: false, timer: 1500 });
+                    grantAccess(adminDoc.data(), adminDoc.id);
+                } else {
+                    AppHelper.showLoader(false);
+                    Swal.fire('ระงับการใช้งาน', 'บัญชีของคุณถูกระงับ หรือยังไม่ได้รับการอนุมัติ', 'error');
                 }
-            });
+            } else {
+                AppHelper.showLoader(false);
+                // กรณีไม่เคยผูก LINE ให้แจ้งเตือนให้เข้าด้วยอีเมล 1 ครั้ง
+                Swal.fire({
+                    icon: 'info', 
+                    title: 'ยังไม่เคยผูกบัญชี LINE',
+                    text: 'กรุณาเข้าสู่ระบบด้วย "อีเมลและรหัสผ่าน" ก่อน 1 ครั้ง ระบบจะทำการผูกบัญชี LINE ให้โดยอัตโนมัติครับ',
+                    confirmButtonText: 'เข้าสู่ระบบด้วยอีเมล', 
+                    confirmButtonColor: '#2563EB'
+                });
+            }
         }
     } catch(e) { 
         Swal.fire('แจ้งเตือน', 'การดึงข้อมูลจาก LINE ผิดพลาด', 'warning'); 
