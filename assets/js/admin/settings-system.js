@@ -77,91 +77,6 @@ window.switchMapMode = function(mode) {
 // ============================================================================
 
 window.loadAdminsData = async function() {
-    const container = document.getElementById('list-admins'); if (!container) return;
-    showLoader(true, "กำลังโหลดรายชื่อผู้ดูแลระบบ...");
-    try {
-        const snap = await db.collection("admins").get(); let html = "";
-        snap.forEach(doc => {
-            const adm = doc.data(); const email = doc.id;
-            const isMaster = email === MASTER_EMAIL || adm.role === 'Admin-Master'; const isActive = adm.status === 'ใช้งาน';
-
-            html += `
-            <div class="admin-card p-3 mb-2 d-flex justify-content-between align-items-center">
-                <div class="d-flex align-items-center gap-3">
-                    <div class="icon-box bg-primary bg-opacity-10 text-primary rounded-circle"><i class="fa-solid fa-user-shield"></i></div>
-                    <div><strong class="text-dark d-block" style="font-size: 0.95rem;">${adm.name || email}</strong><small class="text-muted d-block" style="font-size: 0.75rem;"><i class="fa-solid fa-envelope me-1"></i>${email} | <span class="badge bg-light text-primary border">${adm.role || 'Admin'}</span></small>${adm.center ? `<small class="text-muted" style="font-size: 0.7rem;"><i class="fa-solid fa-building me-1"></i>ศูนย์: ${adm.center}</small>` : ''}</div>
-                </div>
-                <div class="d-flex align-items-center gap-2">
-                    <span class="badge ${isActive ? 'bg-success' : 'bg-danger'} rounded-pill shadow-sm py-2 px-3">${adm.status || 'ใช้งาน'}</span>
-                    ${!isMaster && currentAdminData?.role === 'Admin-Master' ? `<button class="btn btn-sm btn-light text-muted border rounded-circle" onclick="toggleAdminStatus('${email}', '${adm.status}')" title="เปลี่ยนสถานะ"><i class="fa-solid fa-power-off"></i></button><button class="btn btn-sm btn-light text-danger border rounded-circle" onclick="deleteAdmin('${email}')" title="ลบแอดมิน"><i class="fa-solid fa-trash"></i></button>` : ''}
-                </div>
-            </div>`;
-        });
-        container.innerHTML = html || '<div class="text-center text-muted small p-3">ไม่พบรายชื่อผู้ดูแลระบบ</div>'; showLoader(false);
-    } catch (e) { showLoader(false); console.error(e); container.innerHTML = '<div class="text-danger small p-3 text-center">เกิดข้อผิดพลาดในการโหลดข้อมูล</div>'; }
-};
-
-window.openAddAdminModal = function() {
-    let centerOptsHtml = '<option value="">ไม่มีศูนย์ / ส่วนกลาง</option>';
-    (uiSettingsCenters || []).forEach(c => { centerOptsHtml += `<option value="${c}">${c}</option>`; });
-
-    Swal.fire({
-        title: 'เพิ่มผู้ดูแลระบบใหม่',
-        html: `
-            <div class="text-start" style="font-family:'Prompt';">
-                <label class="small fw-bold text-muted mb-1">อีเมลแอดมิน (ใช้ล็อกอิน) *</label>
-                <input type="email" id="newAdminEmail" class="form-control mb-3" placeholder="admin@sukhirin.org">
-                <label class="small fw-bold text-muted mb-1">ชื่อ-นามสกุล *</label>
-                <input type="text" id="newAdminName" class="form-control mb-3" placeholder="นายสมชาย ใจดี">
-                <label class="small fw-bold text-muted mb-1">สิทธิ์การใช้งาน (Role) *</label>
-                <select id="newAdminRole" class="form-select mb-3"><option value="Admin-ผู้ดูแล">Admin-ผู้ดูแล (เก็บเงิน/ดูแลสมาชิกประจำสาย)</option><option value="Admin-ศูนย์ประสานงาน">Admin-ศูนย์ประสานงาน (ดูแลสมาชิกในศูนย์)</option><option value="Admin-การเงิน">Admin-การเงิน (ดูแลบัญชี/รับยอดคลัง)</option><option value="Admin-สวัสดิการ">Admin-สวัสดิการ (พิจารณาคำขอเบิก)</option><option value="Admin-Master">Admin-Master (สิทธิ์สูงสุดทุกระบบ)</option></select>
-                <label class="small fw-bold text-muted mb-1">ศูนย์ประสานงานประจำตัว</label>
-                <select id="newAdminCenter" class="form-select mb-3">${centerOptsHtml}</select>
-                <label class="small fw-bold text-muted mb-1">รหัส PIN 6 หลักเริ่มต้น *</label>
-                <input type="text" id="newAdminPin" class="form-control text-center fw-bold fs-5" maxlength="6" value="123456">
-                <small class="text-muted d-block mt-2">* ต้องเพิ่มอีเมลนี้ในเมนู Authentication ของ Firebase Console ด้วย</small>
-            </div>
-        `,
-        showCancelButton: true, confirmButtonText: '<i class="fa-solid fa-save me-1"></i> บันทึกข้อมูล', cancelButtonText: 'ยกเลิก', confirmButtonColor: '#2563EB',
-        preConfirm: () => {
-            const email = document.getElementById('newAdminEmail').value.trim(); const name = document.getElementById('newAdminName').value.trim();
-            const role = document.getElementById('newAdminRole').value; const center = document.getElementById('newAdminCenter').value; const pin = document.getElementById('newAdminPin').value.trim();
-            if (!email || !name || pin.length !== 6) { Swal.showValidationMessage('กรุณากรอกข้อมูลให้ครบถ้วน และ PIN ต้องมี 6 หลัก'); return false; }
-            return { email, name, role, center, pin, status: 'ใช้งาน' };
-        }
-    }).then(async res => {
-        if (res.isConfirmed) {
-            showLoader(true, "กำลังบันทึกข้อมูลผู้ดูแล...");
-            try {
-                const payload = res.value; const emailKey = payload.email; delete payload.email; payload.createdAt = firebase.firestore.FieldValue.serverTimestamp();
-                await db.collection("admins").doc(emailKey).set(payload); showLoader(false); Swal.fire('สำเร็จ', 'เพิ่มผู้ดูแลระบบเรียบร้อยแล้ว', 'success'); loadAdminsData();
-            } catch (e) { showLoader(false); Swal.fire('Error', e.message, 'error'); }
-        }
-    });
-};
-
-window.toggleAdminStatus = async function(adminEmail, currentStatus) {
-    const nextStatus = currentStatus === 'ใช้งาน' ? 'ระงับ' : 'ใช้งาน'; showLoader(true, "กำลังเปลี่ยนสถานะ...");
-    try { await db.collection("admins").doc(adminEmail).update({ status: nextStatus }); showLoader(false); Swal.fire({ icon: 'success', title: 'อัปเดตสถานะสำเร็จ', timer: 1000, showConfirmButton: false }); loadAdminsData(); } 
-    catch (e) { showLoader(false); Swal.fire('Error', e.message, 'error'); }
-};
-
-window.deleteAdmin = function(adminEmail) {
-    Swal.fire({ title: 'ยืนยันการลบผู้ดูแล?', text: `คุณต้องการลบผู้ดูแล ${adminEmail} ออกจากระบบถาวรหรือไม่`, icon: 'warning', showCancelButton: true, confirmButtonColor: '#EF4444', confirmButtonText: 'ใช่, ลบออก', cancelButtonText: 'ยกเลิก' })
-    .then(async res => {
-        if (res.isConfirmed) {
-            showLoader(true, "กำลังลบ...");
-            try { await db.collection("admins").doc(adminEmail).delete(); showLoader(false); Swal.fire('สำเร็จ', 'ลบผู้ดูแลเรียบร้อย', 'success'); loadAdminsData(); } 
-            catch (e) { showLoader(false); Swal.fire('Error', e.message, 'error'); }
-        }
-    });
-};
-
-// =========================================================
-// 🛡️ ระบบจัดการผู้ดูแลระบบ (Admins Management)
-// =========================================================
-
-window.loadAdminsData = async function() {
     const container = document.getElementById('list-admins');
     const btnAdd = document.getElementById('btnAddAdmin');
     if (!container) return;
@@ -181,23 +96,21 @@ window.loadAdminsData = async function() {
         snap.forEach(doc => {
             const adm = doc.data(); 
             const email = doc.id; // ใช้ Email เป็น Document ID
-            const isMaster = email === 'mr.munee@gmail.com' || adm.role === 'Admin-Master'; 
-            const isActive = adm.status !== 'ระงับ';
+            const isMaster = adm.role === 'Admin-Master'; 
+            const isActive = adm.status !== 'ระงับการใช้งาน'; // เช็กจากสถานะจริง
 
             const roleBadge = isMaster 
                 ? '<span class="badge bg-danger shadow-sm px-2 py-1"><i class="fa-solid fa-crown me-1"></i> Master</span>' 
                 : `<span class="badge bg-info text-dark shadow-sm px-2 py-1">${adm.role || 'Admin'}</span>`;
             
-            // สิทธิ์ในการจัดการ (ลบ/ระงับ)
+            // สิทธิ์ในการจัดการ (ตัวเองลบตัวเองไม่ได้)
             const isMe = AdminState.currentAdmin?.email === email;
             const canManage = (AdminState.currentAdmin?.role === 'Admin-Master') && !isMe;
             
+            // 🌟 พระเอกของเรา! ปุ่มจัดการสิทธิ์ที่จะไปเรียกใช้ masterManageAdmin ในหน้า admin-auth.js
             const actionBtns = canManage ? `
-                <button class="btn btn-sm btn-light text-muted border rounded-circle shadow-sm me-1" onclick="window.toggleAdminStatus('${email}', '${adm.status}')" title="เปลี่ยนสถานะ">
-                    <i class="fa-solid fa-power-off"></i>
-                </button>
-                <button class="btn btn-sm btn-light text-danger border rounded-circle shadow-sm" onclick="window.deleteAdmin('${email}', '${adm.name}')" title="ลบแอดมิน">
-                    <i class="fa-solid fa-trash"></i>
+                <button class="btn btn-sm btn-outline-danger rounded-pill fw-bold px-3 shadow-sm" onclick="masterManageAdmin('${email}')">
+                    <i class="fa-solid fa-gear me-1"></i> จัดการบัญชี
                 </button>
             ` : '';
 
@@ -235,7 +148,9 @@ window.openAddAdminModal = function() {
 
     // ดึงรายชื่อศูนย์จาก AdminState
     let centerOptsHtml = '<option value="">ไม่มีศูนย์ / ส่วนกลาง</option>';
-    (AdminState.uiOptions.centers || []).forEach(c => { centerOptsHtml += `<option value="${c}">${c}</option>`; });
+    // ปรับวิธีดึงศูนย์ให้รองรับหลายรูปแบบ
+    const centerList = AdminState.uiOptions?.centers || AdminState.fundSettings?.centers || [];
+    centerList.forEach(c => { centerOptsHtml += `<option value="${c}">${c}</option>`; });
 
     Swal.fire({
         title: 'เพิ่มผู้ดูแลระบบใหม่',
@@ -249,7 +164,8 @@ window.openAddAdminModal = function() {
                 
                 <label class="small fw-bold text-muted mb-1">สิทธิ์การใช้งาน (Role) *</label>
                 <select id="newAdminRole" class="form-select-modern w-100 mb-3 shadow-sm border-0 bg-white">
-                    <option value="Admin-ผู้ดูแล">Admin-ผู้ดูแล (ดูแลสมาชิก)</option>
+                    <option value="Admin-ผู้ดูแล">Admin-ผู้ดูแล (ดูแลสมาชิกในหมู่บ้าน)</option>
+                    <option value="Admin-ศูนย์ประสานงาน">Admin-ศูนย์ประสานงาน (ดูแลสมาชิกในศูนย์)</option>
                     <option value="Admin-การเงิน">Admin-การเงิน (ดูแลบัญชี)</option>
                     <option value="Admin-สวัสดิการ">Admin-สวัสดิการ (พิจารณาคำขอ)</option>
                     <option value="Admin-Master">Admin-Master (สิทธิ์สูงสุด)</option>
@@ -260,6 +176,7 @@ window.openAddAdminModal = function() {
                 
                 <label class="small fw-bold text-muted mb-1">รหัส PIN 6 หลักเริ่มต้น *</label>
                 <input type="text" id="newAdminPin" class="form-control-modern w-100 text-center fw-bold fs-5" maxlength="6" value="123456">
+                <small class="text-muted d-block mt-2" style="font-size:0.75rem;"><i class="fa-solid fa-circle-info"></i> ต้องเพิ่มอีเมลนี้ใน Authentication ของ Firebase ด้วยถึงจะใช้งานได้</small>
             </div>
         `,
         showCancelButton: true, confirmButtonText: '<i class="fa-solid fa-save me-1"></i> บันทึกข้อมูล', cancelButtonText: 'ยกเลิก', confirmButtonColor: '#2563EB',
@@ -289,39 +206,6 @@ window.openAddAdminModal = function() {
                 AppHelper.showLoader(false); 
                 Swal.fire('สำเร็จ', 'เพิ่มผู้ดูแลระบบเรียบร้อยแล้ว', 'success'); 
                 window.loadAdminsData();
-            } catch (e) { 
-                AppHelper.showLoader(false); Swal.fire('Error', e.message, 'error'); 
-            }
-        }
-    });
-};
-
-window.toggleAdminStatus = async function(adminEmail, currentStatus) {
-    const nextStatus = currentStatus === 'ใช้งาน' || !currentStatus ? 'ระงับ' : 'ใช้งาน'; 
-    AppHelper.showLoader(true, "กำลังเปลี่ยนสถานะ...");
-    try { 
-        await db.collection("admins").doc(adminEmail).update({ status: nextStatus }); 
-        AppHelper.showLoader(false); 
-        Swal.fire({ icon: 'success', title: 'อัปเดตสถานะสำเร็จ', timer: 1000, showConfirmButton: false }); 
-        window.loadAdminsData(); 
-    } catch (e) { 
-        AppHelper.showLoader(false); Swal.fire('Error', e.message, 'error'); 
-    }
-};
-
-window.deleteAdmin = function(adminEmail, name) {
-    Swal.fire({ 
-        title: 'ยืนยันการลบผู้ดูแล?', 
-        text: `คุณต้องการลบสิทธิ์ของ "${name}" ออกจากระบบถาวรหรือไม่?`, 
-        icon: 'warning', showCancelButton: true, confirmButtonColor: '#EF4444', confirmButtonText: 'ใช่, ลบออก', cancelButtonText: 'ยกเลิก' 
-    }).then(async res => {
-        if (res.isConfirmed) {
-            AppHelper.showLoader(true, "กำลังลบ...");
-            try { 
-                await db.collection("admins").doc(adminEmail).delete(); 
-                AppHelper.showLoader(false); 
-                Swal.fire('สำเร็จ', 'ลบผู้ดูแลเรียบร้อย', 'success'); 
-                window.loadAdminsData(); 
             } catch (e) { 
                 AppHelper.showLoader(false); Swal.fire('Error', e.message, 'error'); 
             }

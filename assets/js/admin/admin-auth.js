@@ -428,6 +428,7 @@ window.createAuditLog = async function(actionTitle, detailDesc) {
         await db.collection("audit_logs").add({
             adminEmail: AdminState.currentAdmin.email,
             adminName: AdminState.currentAdmin.name,
+            
             role: AdminState.currentAdmin.role,
             action: actionTitle,
             details: detailDesc,
