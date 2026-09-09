@@ -1,12 +1,13 @@
 // =========================================================
 // 💸 member-contrib.js: ควบคุมหน้าสมทบเงิน (contribution.html)
 // =========================================================
-const LIFF_ID_CONTRIB = "2011183541-lPBacDBx"; // 🌟 อัปเดตใช้ ID เดียวกันกับหน้าหลัก
+
 let annualFee = 365;
 
 document.addEventListener("DOMContentLoaded", async () => {
   try {
-      await liff.init({ liffId: LIFF_ID }); 
+      // 🌟 เรียกใช้งาน LIFF_ID_CONTRIB จากไฟล์ config ได้เลยโดยไม่ต้องประกาศซ้ำ
+      await liff.init({ liffId: LIFF_ID_CONTRIB }); 
       
       if(liff.isLoggedIn()) {
         const profile = await liff.getProfile(); 
@@ -45,7 +46,6 @@ document.addEventListener("DOMContentLoaded", async () => {
                 document.getElementById('statusBadge').classList.replace('text-success', 'text-warning');
             }
 
-            // 🌟 แก้ไข: ดึงรายชื่อกรรมการจากส่วนกลางแทนการดึงจาก Collection: admins (แก้ติด Permission Denied)
             const select = document.getElementById('committeeSelect');
             select.innerHTML = '<option value="" disabled selected>-- เลือกกรรมการผู้รับเงิน --</option>';
             
@@ -64,9 +64,21 @@ document.addEventListener("DOMContentLoaded", async () => {
         } else {
             Swal.fire('ข้อผิดพลาด', 'ไม่พบข้อมูลสมาชิก กรุณาลงทะเบียนผ่านหน้าแรกก่อน', 'error').then(()=> liff.closeWindow());
         }
-      } else { liff.login(); }
+      } else { 
+          // 🌟 ดักจับโหมด Localhost ป้องกันหน้าจอค้าง 🌟
+          if (window.location.hostname === "127.0.0.1" || window.location.hostname === "localhost" || window.location.hostname === "") {
+              document.getElementById('systemLoading').innerHTML = `
+              <div class="text-center px-4" style="margin-top: 30vh;">
+                  <i class="fa-solid fa-laptop-code text-primary fs-1 mb-3"></i>
+                  <h6 class="fw-bold">โหมดทดสอบ Localhost</h6>
+                  <p class="small text-muted">กรุณาอัปโหลดไฟล์ขึ้น GitHub <br>และกดลิงก์ผ่านแอป LINE ครับ</p>
+              </div>`;
+          } else {
+              liff.login(); 
+          }
+      }
   } catch(e) {
-      document.getElementById('systemLoading').innerHTML = `<div class="p-3 text-center"><h6 class="text-danger">Error Load:</h6><p class="small text-muted">${e.message}</p></div>`;
+      document.getElementById('systemLoading').innerHTML = `<div class="p-4 text-center mt-5"><h6 class="text-danger">พบข้อผิดพลาด:</h6><p class="small text-muted fw-bold">${e.message}</p><button class="btn btn-outline-primary mt-3" onclick="location.reload()">โหลดใหม่</button></div>`;
   }
 });
 
