@@ -1,5 +1,5 @@
 // =========================================================
-// 🔐 admin/admin-auth.js: ระบบยืนยันตัวตนแอดมิน
+// 🔐 admin/admin-auth.js: ระบบยืนยันตัวตนแอดมิน (อัปเดตระบบจัดการสิทธิ์)
 // =========================================================
 
 document.addEventListener("DOMContentLoaded", async () => { 
@@ -27,7 +27,7 @@ document.addEventListener("DOMContentLoaded", async () => {
                         } else {
                             await auth.signOut();
                             showLoginForm();
-                            Swal.fire('ระงับการใช้งาน', 'บัญชีของคุณถูกระงับการเข้าถึงชั่วคราว', 'error');
+                            Swal.fire('ระงับการใช้งาน', 'บัญชีของคุณถูกระงับการเข้าถึงชั่วคราว หรือยังไม่ได้รับการอนุมัติ', 'error');
                         }
                     } catch (error) {
                         console.error("Error fetching admin role:", error);
@@ -71,6 +71,40 @@ async function handleAdminLogin() {
         let msg = "อีเมล หรือ รหัสผ่านไม่ถูกต้อง";
         if(e.code === 'auth/too-many-requests') msg = "ล็อกอินล้มเหลวหลายครั้ง กรุณารอสักครู่";
         Swal.fire('ปฏิเสธการเข้าถึง', msg, 'error'); 
+    }
+}
+
+// ==========================================
+// 🚀 ฟังก์ชัน: ลืมรหัสผ่าน (ส่งลิงก์รีเซ็ตเข้าอีเมล)
+// ==========================================
+async function requestPasswordReset() {
+    const { value: email } = await Swal.fire({
+        title: 'ลืมรหัสผ่าน?',
+        text: 'กรุณากรอกอีเมลแอดมินที่ลงทะเบียนไว้ ระบบจะส่งลิงก์ตั้งรหัสผ่านใหม่ไปให้ครับ',
+        input: 'email',
+        inputPlaceholder: 'admin@example.com',
+        showCancelButton: true,
+        confirmButtonText: 'ส่งลิงก์รีเซ็ต',
+        cancelButtonText: 'ยกเลิก',
+        confirmButtonColor: '#2563EB'
+    });
+
+    if (email) {
+        AppHelper.showLoader(true, "กำลังส่งข้อมูล...");
+        try {
+            const adminDoc = await db.collection("admins").doc(email.trim()).get();
+            if (adminDoc.exists && adminDoc.data().status === 'ใช้งาน') {
+                await auth.sendPasswordResetEmail(email.trim());
+                AppHelper.showLoader(false);
+                Swal.fire('สำเร็จ', 'ส่งลิงก์ตั้งรหัสผ่านใหม่ไปยังอีเมลของคุณแล้ว (โปรดเช็กกล่องจดหมาย หรือ Junk mail)', 'success');
+            } else {
+                AppHelper.showLoader(false);
+                Swal.fire('ปฏิเสธ', 'ไม่พบอีเมลนี้ในระบบ หรือบัญชียังไม่ได้รับการอนุมัติ', 'error');
+            }
+        } catch (error) {
+            AppHelper.showLoader(false);
+            Swal.fire('ข้อผิดพลาด', 'ไม่สามารถส่งอีเมลได้: ' + error.message, 'error');
+        }
     }
 }
 
@@ -122,7 +156,7 @@ async function verifyPinLogin() {
             Swal.fire({ icon: 'success', title: 'ปลดล็อกสำเร็จ', showConfirmButton: false, timer: 1500 });
             setTimeout(() => { grantAccess(adminDoc.data(), adminDoc.id); }, 1000);
         } else { 
-            Swal.fire('ปฏิเสธการเข้าถึง', 'รหัส PIN 6 หลักไม่ถูกต้อง', 'error'); 
+            Swal.fire('ปฏิเสธการเข้าถึง', 'รหัส PIN 6 หลักไม่ถูกต้อง หรือบัญชีถูกระงับ', 'error'); 
             clearPin(); 
         }
     } catch(e) { 
@@ -130,6 +164,125 @@ async function verifyPinLogin() {
         clearPin(); 
     }
 }
+
+// ==========================================
+// 🚀 ฟังก์ชัน: เปลี่ยนรหัส PIN ของตนเอง
+// ==========================================
+async function changeAdminPin() {
+    if (!AdminState.currentAdmin) return;
+
+    const { value: oldPin } = await Swal.fire({
+        title: 'ยืนยันรหัส PIN เดิม',
+        text: 'กรุณากรอกรหัส PIN 6 หลัก ปัจจุบันของคุณ',
+        input: 'password',
+        inputAttributes: { maxlength: 6, inputmode: 'numeric' },
+        showCancelButton: true,
+        confirmButtonText: 'ถัดไป',
+        cancelButtonText: 'ยกเลิก'
+    });
+
+    if (!oldPin) return;
+    if (oldPin !== AdminState.currentAdmin.pin) {
+        return Swal.fire('ผิดพลาด', 'รหัส PIN เดิมไม่ถูกต้อง', 'error');
+    }
+
+    const { value: newPin } = await Swal.fire({
+        title: 'ตั้งรหัส PIN ใหม่',
+        text: 'กรุณากรอกรหัส PIN ใหม่ 6 หลัก',
+        input: 'password',
+        inputAttributes: { maxlength: 6, inputmode: 'numeric' },
+        showCancelButton: true,
+        confirmButtonText: 'บันทึก',
+        confirmButtonColor: '#10B981'
+    });
+
+    if (newPin && newPin.length === 6) {
+        AppHelper.showLoader(true, "กำลังบันทึก PIN...");
+        try {
+            await db.collection("admins").doc(AdminState.currentAdmin.id).update({ pin: newPin });
+            AdminState.currentAdmin.pin = newPin; 
+            await createAuditLog("เปลี่ยนรหัส PIN", "เปลี่ยนรหัส PIN เพื่อเข้าใช้งานระบบสำเร็จ");
+            AppHelper.showLoader(false);
+            Swal.fire('สำเร็จ', 'อัปเดตข้อรหัส PIN เรียบร้อยแล้ว', 'success');
+        } catch (e) {
+            AppHelper.showLoader(false);
+            Swal.fire('ข้อผิดพลาด', 'ไม่สามารถเปลี่ยน PIN ได้', 'error');
+        }
+    } else if (newPin) {
+        Swal.fire('ผิดพลาด', 'รหัส PIN ต้องมี 6 หลักถ้วน', 'warning');
+    }
+}
+
+// ==========================================
+// 🚀 ฟังก์ชัน: การจัดการแอดมิน (เฉพาะ Admin-Master)
+// ==========================================
+window.masterManageAdmin = async function(targetAdminEmail) {
+    if (!AdminState.currentAdmin || AdminState.currentAdmin.role !== 'Admin-Master') {
+        return Swal.fire('ไม่มีสิทธิ์', 'เฉพาะ Admin-Master เท่านั้นที่สามารถจัดการผู้ดูแลระบบท่านอื่นได้', 'error');
+    }
+
+    const { value: action } = await Swal.fire({
+        title: `จัดการบัญชี ${targetAdminEmail}`,
+        input: 'select',
+        inputOptions: {
+            'reset_pin': 'รีเซ็ตรหัส PIN เป็น 000000',
+            'change_role': 'เปลี่ยนตำแหน่ง (Role)',
+            'suspend': 'ระงับบัญชี (ไม่ให้เข้าระบบ)',
+            'activate': 'เปิดใช้งานบัญชี'
+        },
+        inputPlaceholder: 'เลือกการจัดการ',
+        showCancelButton: true,
+        confirmButtonText: 'ดำเนินการ'
+    });
+
+    if (!action) return;
+
+    AppHelper.showLoader(true, "กำลังดำเนินการ...");
+    try {
+        const adminRef = db.collection("admins").doc(targetAdminEmail);
+        
+        if (action === 'reset_pin') {
+            await adminRef.update({ pin: "000000" });
+            await createAuditLog("รีเซ็ต PIN แอดมิน", `รีเซ็ต PIN ของ ${targetAdminEmail} เป็นค่าเริ่มต้น`);
+            Swal.fire('สำเร็จ', 'รีเซ็ต PIN เป็น 000000 เรียบร้อยแล้ว', 'success');
+            
+        } else if (action === 'change_role') {
+            AppHelper.showLoader(false);
+            const { value: newRole } = await Swal.fire({
+                title: 'เลือกตำแหน่งใหม่',
+                input: 'select',
+                inputOptions: {
+                    'Admin-การเงิน': 'การเงิน',
+                    'Admin-ศูนย์ประสานงาน': 'ศูนย์ประสานงาน',
+                    'Admin-สวัสดิการ': 'สวัสดิการ',
+                    'Admin-ผู้ดูแล': 'ผู้ดูแลระดับหมู่บ้าน'
+                },
+                showCancelButton: true
+            });
+            if (newRole) {
+                AppHelper.showLoader(true, "กำลังบันทึก...");
+                await adminRef.update({ role: newRole });
+                await createAuditLog("เปลี่ยน Role แอดมิน", `ปรับตำแหน่งของ ${targetAdminEmail} เป็น ${newRole}`);
+                Swal.fire('สำเร็จ', 'เปลี่ยนตำแหน่งเรียบร้อยแล้ว', 'success');
+            }
+            
+        } else if (action === 'suspend') {
+            await adminRef.update({ status: "ระงับการใช้งาน" });
+            await createAuditLog("ระงับบัญชีแอดมิน", `ระงับบัญชีของ ${targetAdminEmail}`);
+            Swal.fire('สำเร็จ', 'ระงับบัญชีเรียบร้อยแล้ว', 'success');
+            
+        } else if (action === 'activate') {
+            await adminRef.update({ status: "ใช้งาน" });
+            await createAuditLog("เปิดใช้บัญชีแอดมิน", `เปิดใช้งานบัญชีของ ${targetAdminEmail} อีกครั้ง`);
+            Swal.fire('สำเร็จ', 'บัญชีพร้อมใช้งานแล้ว', 'success');
+        }
+        
+        AppHelper.showLoader(false);
+    } catch (e) {
+        AppHelper.showLoader(false);
+        Swal.fire('ข้อผิดพลาด', 'ไม่สามารถดำเนินการได้: ' + e.message, 'error');
+    }
+};
 
 async function forceLiffLogin() { 
     try {
