@@ -74,7 +74,7 @@
       <input type="email" id="adminEmail" class="form-control bg-white bg-opacity-10 border-0 text-white rounded-4 py-3 mb-2 text-center" placeholder="อีเมลผู้ดูแลระบบ">
       <input type="password" id="adminPass" class="form-control bg-white bg-opacity-10 border-0 text-white rounded-4 py-3 mb-1 text-center" placeholder="รหัสผ่าน">
       <div class="text-end mb-3 px-2">
-          <a href="#" onclick="forgotAdminPassword()" class="small text-white-50 text-decoration-none"><i class="fa-solid fa-key me-1"></i>ลืมรหัสผ่าน/PIN?</a>
+          <a href="#" onclick="requestPasswordReset()" class="small text-white-50 text-decoration-none"><i class="fa-solid fa-key me-1"></i>ลืมรหัสผ่าน/PIN?</a>
       </div>
       <button onclick="handleAdminLogin()" class="btn btn-primary w-100 rounded-pill fw-bold py-3 mb-4 shadow">เข้าสู่ระบบ</button>
       <div class="position-relative mb-4"><hr class="border-secondary"><span class="position-absolute top-50 start-50 translate-middle px-3 small text-white-50" style="background: #111a2f;">หรือเข้าใช้งานด้วย</span></div>
@@ -1074,7 +1074,10 @@
             <input class="form-check-input fs-5" type="checkbox" id="maskSensitiveData" checked>
             <label class="form-check-label fw-bold text-dark ms-2 mt-1" for="maskSensitiveData">ซ่อนข้อมูลอ่อนไหว (เช่น เลข ปชช.) เป็นค่าเริ่มต้น</label>
           </div>
-          
+          <!-- 🌟 ปุ่มเปลี่ยนรหัส PIN ของตัวเอง 🌟 -->
+          <button class="btn btn-outline-primary w-100 rounded-pill fw-bold shadow-sm mb-3" onclick="changeAdminPin()">
+              <i class="fa-solid fa-unlock-keyhole me-1"></i> เปลี่ยนรหัส PIN ของฉัน (6 หลัก)
+          </button>
           <button class="btn btn-danger w-100 rounded-pill fw-bold shadow-sm" onclick="savePrivacySettings()"><i class="fa-solid fa-save me-1"></i> บันทึกการตั้งค่าความปลอดภัย</button>
       </div>
     </div>
@@ -1269,7 +1272,7 @@
 <script src="./assets/js/admin/admin-config.js?v=5"></script>
 
 <!-- 2. โหลดระบบ Auth และ UI ของแอดมิน -->
-<script src="./assets/js/admin/admin-auth.js?v=5"></script>
+<script src="./assets/js/admin/admin-auth.js?v=12"></script>
 <script src="./assets/js/admin/admin-ui.js?v=5"></script>
 
 <!-- 3. โหลด Modules การทำงานต่างๆ -->
@@ -1283,7 +1286,7 @@
 <!-- 🌟 โหลด Modules ที่แยกเป็น 3 ไฟล์ -->
 <script src="./assets/js/admin/settings-global.js?v=11"></script>
 <script src="./assets/js/admin/settings-rules.js?v=11"></script>
-<script src="./assets/js/admin/settings-system.js?v=11"></script>
+<script src="./assets/js/admin/settings-system.js?v=12"></script>
 
 <script src="./assets/js/admin/admin-main.js?v=11"></script>
 
