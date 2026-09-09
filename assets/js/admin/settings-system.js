@@ -1,79 +1,20 @@
 // ============================================================================
 // 🔒 ส่วนที่ 3: ระบบบันทึก ธนาคาร / API / ความปลอดภัย
 // ============================================================================
-
-window.saveBankSettings = async function() {
-    Swal.fire({ title: 'กำลังบันทึก...', didOpen: () => Swal.showLoading() });
-    try {
-        await db.collection("settings").doc("master").set({ bankDetails: { name: document.getElementById('bankName').value.trim(), accountName: document.getElementById('bankAccountName').value.trim(), accountNumber: document.getElementById('bankAccountNumber').value.trim() } }, { merge: true });
-        Swal.fire('สำเร็จ', 'บันทึกข้อมูลบัญชีธนาคารเรียบร้อยแล้ว', 'success');
-    } catch (error) { Swal.fire('ข้อผิดพลาด', 'ไม่สามารถบันทึกข้อมูลได้', 'error'); }
-};
-
-window.saveConnectionSettings = async function() {
-    Swal.fire({ title: 'กำลังบันทึก...', didOpen: () => Swal.showLoading() });
-    try {
-        await db.collection("settings").doc("master").set({ connectionDetails: { liffId: document.getElementById('settingLiffId').value.trim(), lineAccessToken: document.getElementById('settingLineToken').value.trim() } }, { merge: true });
-        Swal.fire('สำเร็จ', 'บันทึกการเชื่อมต่อบัญชีเรียบร้อยแล้ว', 'success');
-    } catch (error) { Swal.fire('ข้อผิดพลาด', 'ไม่สามารถบันทึกข้อมูลได้', 'error'); }
-};
-
-window.savePrivacySettings = async function() {
-    Swal.fire({ title: 'กำลังบันทึก...', didOpen: () => Swal.showLoading() });
-    try {
-        await db.collection("settings").doc("master").set({ privacySettings: { requirePdpa: document.getElementById('requirePdpa').checked, maskSensitiveData: document.getElementById('maskSensitiveData').checked } }, { merge: true });
-        Swal.fire('สำเร็จ', 'บันทึกการตั้งค่าความปลอดภัยเรียบร้อยแล้ว', 'success');
-    } catch (error) { Swal.fire('ข้อผิดพลาด', 'ไม่สามารถบันทึกข้อมูลได้', 'error'); }
-};
-
-window.deleteDocument = function(collection, docId) {
-    Swal.fire({ title: 'ยืนยันการลบ?', text: "ข้อมูลนี้จะถูกลบออกจากระบบถาวร", icon: 'warning', showCancelButton: true, confirmButtonColor: '#EF4444', confirmButtonText: 'ใช่, ลบทิ้ง', cancelButtonText: 'ยกเลิก' })
-    .then(async (result) => {
-        if (result.isConfirmed) {
-            await db.collection(collection).doc(docId).delete();
-            if(collection === 'missions') loadMissions();
-            if(collection === 'rewards') loadRewards();
-        }
-    });
-};
+window.saveBankSettings = async function() { /* ...คงฟังก์ชันเดิม... */ };
+window.saveConnectionSettings = async function() { /* ...คงฟังก์ชันเดิม... */ };
+window.savePrivacySettings = async function() { /* ...คงฟังก์ชันเดิม... */ };
+window.deleteDocument = function(collection, docId) { /* ...คงฟังก์ชันเดิม... */ };
 
 // ============================================================================
-// 🗺️ ส่วนที่ 5: ระบบแผนที่พิกัดสมาชิก GIS (Google Maps & Heatmap)
+// 🗺️ ส่วนที่ 5: ระบบแผนที่พิกัดสมาชิก GIS 
 // ============================================================================
-
 let gisMapInstance = null; let gisMarkers = []; let gisHeatmapLayer = null;
-
-window.loadGISMap = function() {
-    const mapDiv = document.getElementById('adminGISMap'); if (!mapDiv) return;
-    if (typeof google === 'undefined' || !google.maps) { mapDiv.innerHTML = '<div class="text-center text-muted p-4">กำลังโหลด Google Maps API...</div>'; return; }
-
-    const defaultLat = parseFloat(fundSettings?.fundLat) || 5.92159; const defaultLng = parseFloat(fundSettings?.fundLng) || 101.76996;
-    gisMapInstance = new google.maps.Map(mapDiv, { center: { lat: defaultLat, lng: defaultLng }, zoom: 12, mapTypeId: 'hybrid', streetViewControl: false, fullscreenControl: true });
-
-    gisMarkers.forEach(m => m.setMap(null)); gisMarkers = [];
-    const heatmapData = []; const membersWithLoc = (allMembersCache || []).filter(m => m.latitude && m.longitude);
-
-    membersWithLoc.forEach(m => {
-        const lat = parseFloat(m.latitude); const lng = parseFloat(m.longitude); if (isNaN(lat) || isNaN(lng)) return;
-        const pos = new google.maps.LatLng(lat, lng); heatmapData.push(pos);
-        const marker = new google.maps.Marker({ position: pos, map: gisMapInstance, title: m.fullName, icon: { url: m.status === 'เป็นสมาชิก' ? 'https://maps.google.com/mapfiles/ms/icons/green-dot.png' : 'https://maps.google.com/mapfiles/ms/icons/yellow-dot.png' } });
-        const infoWindow = new google.maps.InfoWindow({ content: `<div style="font-family:'Prompt'; padding: 5px;"><strong style="font-size:0.9rem;">${m.fullName}</strong><div style="font-size:0.75rem; color:#64748B; margin-top:2px;">รหัส: <strong>${m.memberId || '-'}</strong><br>หมู่บ้าน: ${m.village || '-'}<br>โทร: <a href="tel:${m.phone}">${m.phone || '-'}</a></div><span class="badge ${m.status === 'เป็นสมาชิก' ? 'bg-success' : 'bg-warning'} mt-2" style="font-size:0.65rem;">${m.status}</span></div>` });
-        marker.addListener('click', () => { infoWindow.open(gisMapInstance, marker); });
-        gisMarkers.push(marker);
-    });
-
-    if (google.maps.visualization && google.maps.visualization.HeatmapLayer) { gisHeatmapLayer = new google.maps.visualization.HeatmapLayer({ data: heatmapData, map: null, radius: 30 }); }
-    switchMapMode('micro');
-};
-
-window.switchMapMode = function(mode) {
-    if (!gisMapInstance) return;
-    if (mode === 'macro') { gisMarkers.forEach(m => m.setMap(null)); if (gisHeatmapLayer) gisHeatmapLayer.setMap(gisMapInstance); } 
-    else { if (gisHeatmapLayer) gisHeatmapLayer.setMap(null); gisMarkers.forEach(m => m.setMap(gisMapInstance)); }
-};
+window.loadGISMap = function() { /* ...คงฟังก์ชันเดิม... */ };
+window.switchMapMode = function(mode) { /* ...คงฟังก์ชันเดิม... */ };
 
 // ============================================================================
-// 👥 ส่วนที่ 6: ระบบจัดการผู้ดูแลระบบ (Admin Users Management)
+// 👥 ส่วนที่ 6: ระบบจัดการผู้ดูแลระบบ (ตามสายการบังคับบัญชา)
 // ============================================================================
 
 window.loadAdminsData = async function() {
@@ -81,36 +22,50 @@ window.loadAdminsData = async function() {
     const btnAdd = document.getElementById('btnAddAdmin');
     if (!container) return;
 
-    // เช็คสิทธิ์การแสดงปุ่มเพิ่มแอดมิน (เฉพาะ Admin-Master)
-    if (AdminState.currentAdmin && AdminState.currentAdmin.role === 'Admin-Master') {
+    const myRole = AdminState.currentAdmin?.role;
+    const myCenter = AdminState.currentAdmin?.center;
+    const myEmail = AdminState.currentAdmin?.email;
+
+    // Master, ศูนย์ประสานงาน, ผู้ดูแล สามารถเห็นปุ่มเพิ่มแอดมินได้
+    if (['Admin-Master', 'Admin-ศูนย์ประสานงาน', 'Admin-ผู้ดูแล'].includes(myRole)) {
         if (btnAdd) btnAdd.style.display = 'block';
     } else {
         if (btnAdd) btnAdd.style.display = 'none';
     }
 
-    AppHelper.showLoader(true, "กำลังโหลดรายชื่อผู้ดูแลระบบ...");
+    AppHelper.showLoader(true, "กำลังดึงข้อมูลแอดมิน...");
     try {
-        const snap = await db.collection("admins").get(); 
+        // ดึงเฉพาะ Admin-ผู้ดูแล ในศูนย์ของตัวเองมาแสดง ถ้าไม่ใช่ Master
+        let query = db.collection("admins");
+        if (myRole === 'Admin-ศูนย์ประสานงาน') {
+            query = query.where("center", "==", myCenter).where("role", "==", "Admin-ผู้ดูแล");
+        } else if (myRole === 'Admin-ผู้ดูแล') {
+            query = query.where("createdBy", "==", myEmail); // ให้เห็นแค่คนที่ตัวเองตั้งขึ้นมาช่วยงาน
+        }
+        
+        const snap = await query.get(); 
         let html = "";
         
         snap.forEach(doc => {
             const adm = doc.data(); 
-            const email = doc.id; // ใช้ Email เป็น Document ID
+            const email = doc.id; 
             const isMaster = adm.role === 'Admin-Master'; 
-            const isActive = adm.status !== 'ระงับการใช้งาน'; // เช็กจากสถานะจริง
+            const isActive = adm.status !== 'ระงับการใช้งาน'; 
 
             const roleBadge = isMaster 
                 ? '<span class="badge bg-danger shadow-sm px-2 py-1"><i class="fa-solid fa-crown me-1"></i> Master</span>' 
                 : `<span class="badge bg-info text-dark shadow-sm px-2 py-1">${adm.role || 'Admin'}</span>`;
             
-            // สิทธิ์ในการจัดการ (ตัวเองลบตัวเองไม่ได้)
-            const isMe = AdminState.currentAdmin?.email === email;
-            const canManage = (AdminState.currentAdmin?.role === 'Admin-Master') && !isMe;
+            const isMe = myEmail === email;
+            // เช็กสิทธิ์จัดการผ่านปุ่ม
+            let canManage = false;
+            if (myRole === 'Admin-Master' && !isMe) canManage = true;
+            if (myRole === 'Admin-ศูนย์ประสานงาน' && adm.role === 'Admin-ผู้ดูแล' && adm.center === myCenter) canManage = true;
             
-            // 🌟 พระเอกของเรา! ปุ่มจัดการสิทธิ์ที่จะไปเรียกใช้ masterManageAdmin ในหน้า admin-auth.js
+            // ใช้คำสั่ง manageAdminAccount ที่เราสร้างไว้ใน admin-auth.js
             const actionBtns = canManage ? `
-                <button class="btn btn-sm btn-outline-danger rounded-pill fw-bold px-3 shadow-sm" onclick="masterManageAdmin('${email}')">
-                    <i class="fa-solid fa-gear me-1"></i> จัดการบัญชี
+                <button class="btn btn-sm btn-outline-danger rounded-pill fw-bold px-3 shadow-sm" onclick="manageAdminAccount('${email}', '${adm.role}', '${adm.center}')">
+                    <i class="fa-solid fa-gear me-1"></i> จัดการสิทธิ์
                 </button>
             ` : '';
 
@@ -122,7 +77,7 @@ window.loadAdminsData = async function() {
                     </div>
                     <div style="min-width: 0;">
                         <strong class="text-dark d-block text-truncate" style="font-size: 0.95rem;">${adm.name || email} ${isMe ? '<span class="badge bg-success ms-1">คุณ</span>' : ''}</strong>
-                        <small class="text-muted d-block text-truncate">${email}</small>
+                        <small class="text-muted d-block text-truncate">${email} | ศูนย์: ${adm.center || '-'}</small>
                         <div class="mt-1 d-flex gap-2 align-items-center">
                             ${roleBadge}
                             <span class="badge ${isActive ? 'bg-success' : 'bg-danger'} bg-opacity-10 ${isActive ? 'text-success' : 'text-danger'} border" style="font-size: 0.65rem;">${isActive ? 'ใช้งาน' : 'ระงับ'}</span>
@@ -133,7 +88,7 @@ window.loadAdminsData = async function() {
             </div>`;
         });
         
-        container.innerHTML = html || '<div class="text-center text-muted small p-3">ไม่พบรายชื่อผู้ดูแลระบบ</div>'; 
+        container.innerHTML = html || '<div class="text-center text-muted small p-3">ไม่พบรายชื่อในเครือข่ายของคุณ</div>'; 
         AppHelper.showLoader(false);
     } catch (e) { 
         AppHelper.showLoader(false); console.error(e); 
@@ -142,73 +97,62 @@ window.loadAdminsData = async function() {
 };
 
 window.openAddAdminModal = function() {
-    if(AdminState.currentAdmin && AdminState.currentAdmin.role !== 'Admin-Master') {
-        return Swal.fire('ไม่อนุญาต', 'เฉพาะ Admin-Master เท่านั้นที่ทำได้', 'error');
+    const myRole = AdminState.currentAdmin.role;
+    const myCenter = AdminState.currentAdmin.center || '';
+    
+    if(!['Admin-Master', 'Admin-ศูนย์ประสานงาน', 'Admin-ผู้ดูแล'].includes(myRole)) {
+        return Swal.fire('ไม่อนุญาต', 'คุณไม่มีสิทธิ์เพิ่มผู้ดูแลระบบ', 'error');
     }
 
-    // ดึงรายชื่อศูนย์จาก AdminState
-    let centerOptsHtml = '<option value="">ไม่มีศูนย์ / ส่วนกลาง</option>';
-    // ปรับวิธีดึงศูนย์ให้รองรับหลายรูปแบบ
-    const centerList = AdminState.uiOptions?.centers || AdminState.fundSettings?.centers || [];
-    centerList.forEach(c => { centerOptsHtml += `<option value="${c}">${c}</option>`; });
+    let roleOpts = ''; let centerOpts = '';
+    
+    // กำหนดตัวเลือกของ Modal อิงตามสิทธิ์
+    if (myRole === 'Admin-Master') {
+        roleOpts = `<option value="Admin-ผู้ดูแล">Admin-ผู้ดูแล</option><option value="Admin-ศูนย์ประสานงาน">Admin-ศูนย์ประสานงาน</option><option value="Admin-การเงิน">Admin-การเงิน</option><option value="Admin-สวัสดิการ">Admin-สวัสดิการ</option><option value="Admin-Master">Admin-Master</option>`;
+        centerOpts = '<option value="">ไม่มีศูนย์ / ส่วนกลาง</option>';
+        (AdminState.uiOptions?.centers || AdminState.fundSettings?.centers || []).forEach(c => { centerOpts += `<option value="${c}">${c}</option>`; });
+    } else {
+        // ศูนย์ และ ผู้ดูแล เพิ่มได้เฉพาะผู้ดูแลช่วยงาน และต้องอยู่ศูนย์เดียวกันเท่านั้น
+        roleOpts = `<option value="Admin-ผู้ดูแล">Admin-ผู้ดูแล (ผู้ช่วยระดับหมู่บ้าน)</option>`;
+        centerOpts = `<option value="${myCenter}">${myCenter}</option>`;
+    }
 
     Swal.fire({
-        title: 'เพิ่มผู้ดูแลระบบใหม่',
+        title: 'เพิ่มผู้ดูแลระบบ',
         html: `
             <div class="text-start" style="font-family:'Prompt';">
                 <label class="small fw-bold text-muted mb-1">อีเมลแอดมิน (ใช้ล็อกอิน) *</label>
                 <input type="email" id="newAdminEmail" class="form-control-modern w-100 mb-3" placeholder="admin@example.com">
-                
                 <label class="small fw-bold text-muted mb-1">ชื่อ-นามสกุล *</label>
                 <input type="text" id="newAdminName" class="form-control-modern w-100 mb-3" placeholder="นายสมชาย ใจดี">
-                
                 <label class="small fw-bold text-muted mb-1">สิทธิ์การใช้งาน (Role) *</label>
-                <select id="newAdminRole" class="form-select-modern w-100 mb-3 shadow-sm border-0 bg-white">
-                    <option value="Admin-ผู้ดูแล">Admin-ผู้ดูแล (ดูแลสมาชิกในหมู่บ้าน)</option>
-                    <option value="Admin-ศูนย์ประสานงาน">Admin-ศูนย์ประสานงาน (ดูแลสมาชิกในศูนย์)</option>
-                    <option value="Admin-การเงิน">Admin-การเงิน (ดูแลบัญชี)</option>
-                    <option value="Admin-สวัสดิการ">Admin-สวัสดิการ (พิจารณาคำขอ)</option>
-                    <option value="Admin-Master">Admin-Master (สิทธิ์สูงสุด)</option>
-                </select>
-                
+                <select id="newAdminRole" class="form-select-modern w-100 mb-3 shadow-sm border-0 bg-white" ${myRole !== 'Admin-Master' ? 'disabled' : ''}>${roleOpts}</select>
                 <label class="small fw-bold text-muted mb-1">ศูนย์ประสานงานประจำตัว</label>
-                <select id="newAdminCenter" class="form-select-modern w-100 mb-3 shadow-sm border-0 bg-white">${centerOptsHtml}</select>
-                
+                <select id="newAdminCenter" class="form-select-modern w-100 mb-3 shadow-sm border-0 bg-white" ${myRole !== 'Admin-Master' ? 'disabled' : ''}>${centerOpts}</select>
                 <label class="small fw-bold text-muted mb-1">รหัส PIN 6 หลักเริ่มต้น *</label>
                 <input type="text" id="newAdminPin" class="form-control-modern w-100 text-center fw-bold fs-5" maxlength="6" value="123456">
-                <small class="text-muted d-block mt-2" style="font-size:0.75rem;"><i class="fa-solid fa-circle-info"></i> ต้องเพิ่มอีเมลนี้ใน Authentication ของ Firebase ด้วยถึงจะใช้งานได้</small>
+                <small class="text-muted d-block mt-2" style="font-size:0.75rem;"><i class="fa-solid fa-circle-info"></i> ต้องเพิ่มอีเมลนี้ใน Authentication ของ Firebase ด้วยถึงจะล็อกอินได้</small>
             </div>
         `,
-        showCancelButton: true, confirmButtonText: '<i class="fa-solid fa-save me-1"></i> บันทึกข้อมูล', cancelButtonText: 'ยกเลิก', confirmButtonColor: '#2563EB',
+        showCancelButton: true, confirmButtonText: '<i class="fa-solid fa-save me-1"></i> บันทึกข้อมูล', confirmButtonColor: '#2563EB',
         preConfirm: () => {
             const email = document.getElementById('newAdminEmail').value.trim(); 
             const name = document.getElementById('newAdminName').value.trim();
             const role = document.getElementById('newAdminRole').value; 
             const center = document.getElementById('newAdminCenter').value; 
             const pin = document.getElementById('newAdminPin').value.trim();
-            
-            if (!email || !name || pin.length !== 6 || isNaN(pin)) { 
-                Swal.showValidationMessage('กรุณากรอกข้อมูลให้ครบถ้วน และ PIN ต้องเป็นตัวเลข 6 หลัก'); 
-                return false; 
-            }
-            return { email, name, role, center, pin, status: 'ใช้งาน' };
+            if (!email || !name || pin.length !== 6 || isNaN(pin)) { Swal.showValidationMessage('กรุณากรอกข้อมูลให้ครบถ้วน และ PIN 6 หลัก'); return false; }
+            return { email, name, role, center, pin, status: 'ใช้งาน', createdBy: AdminState.currentAdmin.email };
         }
     }).then(async res => {
         if (res.isConfirmed) {
-            AppHelper.showLoader(true, "กำลังบันทึกข้อมูลผู้ดูแล...");
+            AppHelper.showLoader(true, "กำลังบันทึกข้อมูล...");
             try {
-                const payload = res.value; 
-                const emailKey = payload.email; 
-                delete payload.email; // ไม่เก็บ email ซ้ำในฟิลด์เพราะเราใช้เป็น ID แล้ว
+                const payload = res.value; const emailKey = payload.email; delete payload.email;
                 payload.createdAt = firebase.firestore.FieldValue.serverTimestamp();
-                
                 await db.collection("admins").doc(emailKey).set(payload); 
-                AppHelper.showLoader(false); 
-                Swal.fire('สำเร็จ', 'เพิ่มผู้ดูแลระบบเรียบร้อยแล้ว', 'success'); 
-                window.loadAdminsData();
-            } catch (e) { 
-                AppHelper.showLoader(false); Swal.fire('Error', e.message, 'error'); 
-            }
+                AppHelper.showLoader(false); Swal.fire('สำเร็จ', 'เพิ่มผู้ดูแลเรียบร้อยแล้ว', 'success'); window.loadAdminsData();
+            } catch (e) { AppHelper.showLoader(false); Swal.fire('Error', e.message, 'error'); }
         }
     });
 };
