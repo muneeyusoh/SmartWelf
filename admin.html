@@ -526,64 +526,70 @@
           </form>
       </div>
 
-      <!-- 🌟 ส่วนประวัติและการตรวจสอบ (แยกหมวดหมู่ชัดเจน) -->
+      <!-- 🌟 ส่วนประวัติและการตรวจสอบ (Weekly Calendar View) -->
       <div id="finance-only-history">
-          
-          <!-- ประวัติรับเงิน QR ล่าสุด (การ์ดเลื่อนซ้ายขวา) -->
-          <div class="mb-4">
-              <div class="d-flex justify-content-between align-items-center mb-2 px-1">
-                  <h6 class="fw-bold mb-0 text-dark"><i class="fa-solid fa-qrcode text-primary me-2"></i>ประวัติรับเงินจาก QR</h6>
-                  <span id="receiptCountBadge" class="badge bg-success rounded-pill px-3 py-1 shadow-sm">0 รายการ</span>
+
+          <!-- 🔔 1. แถบแจ้งเตือนรายการรอตรวจสอบ (ย่อ/ขยายได้) -->
+          <div class="admin-card border-0 p-3 mb-3 bg-white rounded-4 shadow-sm border border-warning border-opacity-25">
+              <div class="d-flex justify-content-between align-items-center cursor-pointer" onclick="toggleCollapse('collapse-pending-tx', 'arrow-pending-tx')">
+                  <div class="d-flex align-items-center position-relative pe-3">
+                      <i class="fa-solid fa-bell text-warning fs-5 me-2 blink-anim"></i>
+                      <h6 class="fw-bold text-dark mb-0" style="font-size: 0.9rem;">รายการรอตรวจสอบ / ส่งมอบ</h6>
+                      <!-- กระดิ่งตัวเลขแดง -->
+                      <span class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger shadow-sm" id="pendingTxBadge" style="font-size: 0.6rem; display: none;">0</span>
+                  </div>
+                  <div class="text-muted bg-light rounded-circle p-1"><i class="fa-solid fa-chevron-down transition" id="arrow-pending-tx"></i></div>
               </div>
-              <div id="receiptHistoryContainer" class="d-flex flex-nowrap overflow-auto pb-2 gap-3 px-1" style="-webkit-overflow-scrolling: touch;">
-                  <div class="text-center text-muted py-3 w-100 bg-white rounded-4 border">กำลังโหลดข้อมูล...</div>
+              <div class="collapse mt-3 pt-3 border-top" id="collapse-pending-tx">
+                  <div id="list-pending-transactions">กำลังโหลด...</div>
               </div>
           </div>
 
-          <!-- รายการรอตรวจสอบ (Pending) -->
-          <div class="d-flex align-items-center mb-3 mt-4 ps-1">
-              <span class="dot-yellow me-2 blink-anim"></span><h6 class="fw-bold text-dark mb-0">รายการรอตรวจสอบ / รอส่งมอบ</h6>
-          </div>
-          <div id="list-pending-transactions">ไม่มีรายการค้าง</div>
-          
-          <!-- ประวัติธุรกรรมที่สำเร็จแล้ว (Approved History) พร้อมระบบค้นหาและ Export -->
-          <div class="d-flex justify-content-between align-items-center mb-3 mt-4 pt-3 border-top px-1 flex-wrap gap-2">
-              <div class="d-flex align-items-center">
-                  <span class="dot-green me-2"></span>
-                  <h6 class="fw-bold text-dark mb-0">ประวัติธุรกรรมระบบ</h6>
-              </div>
-              
-              <!-- 🌟 กลุ่มปุ่มเครื่องมือ (Tools) -->
-              <div class="d-flex align-items-center gap-2">
-                  <!-- ปุ่มส่งออก Excel -->
-                  <button class="btn btn-sm btn-outline-success rounded-pill px-3 shadow-sm d-flex align-items-center" onclick="exportTransactionsToCSV()" title="ส่งออกเป็น Excel">
+          <!-- 📅 2. แถบปฏิทินรายวัน (Calendar Strip) แถวบนสุด -->
+          <div class="mb-3 px-1">
+              <div class="d-flex justify-content-between align-items-center mb-2">
+                  <h6 class="fw-bold text-dark mb-0"><i class="fa-solid fa-calendar-day text-primary me-2"></i>เลือกวันที่ทำธุรกรรม</h6>
+                  <button class="btn btn-sm btn-outline-success rounded-pill px-3 py-1 shadow-sm d-flex align-items-center" onclick="exportTransactionsToCSV()" title="ส่งออกเป็น Excel">
                       <i class="fa-solid fa-file-excel me-1"></i> <span class="d-none d-sm-inline">ส่งออก</span>
                   </button>
               </div>
+              <div id="calendarStrip" class="d-flex flex-nowrap overflow-auto gap-2 pb-2 mt-2" style="-webkit-overflow-scrolling: touch; scrollbar-width: none;">
+                  <!-- JS จะสร้างปุ่มวันที่ตรงนี้อัตโนมัติ -->
+              </div>
           </div>
 
-          <!-- 🌟 แถบค้นหาและตัวกรอง (Search & Filter Bar) -->
-          <div class="admin-card p-2 m-0 border-0 bg-light rounded-4 mb-3 d-flex flex-wrap gap-2 align-items-center shadow-sm">
-              <!-- ค้นหาด้วยข้อความ -->
-              <div class="input-group input-group-sm flex-grow-1 bg-white rounded-pill overflow-hidden border">
-                  <span class="input-group-text bg-transparent border-0"><i class="fa-solid fa-magnifying-glass text-muted"></i></span>
-                  <input type="text" id="searchTxKeyword" class="form-control border-0 shadow-none" placeholder="ค้นหารหัส TX, ชื่อ, หมวดหมู่..." onkeyup="filterTransactions()">
-              </div>
-              
-              <!-- กรองด้วยวันที่ -->
-              <div class="d-flex align-items-center bg-white rounded-pill px-2 py-1 border shadow-sm" style="min-width: 140px;">
-                  <i class="fa-regular fa-calendar text-primary me-1" style="font-size: 0.8rem;"></i>
-                  <input type="date" id="searchTxDate" class="form-control border-0 bg-transparent py-0 px-1 small text-primary fw-bold shadow-none" style="font-size: 0.75rem;" onchange="filterTransactions()">
+          <!-- 📋 3. พื้นที่แสดงผลรายการของวันที่เลือก พร้อมปุ่ม +รับ / -จ่าย -->
+              <div class="d-flex justify-content-between align-items-center mb-3 border-bottom pb-2">
+                      <h6 class="fw-bold text-primary mb-0" id="selectedDateDisplay">ประวัติธุรกรรม</h6>
+                      <div class="d-flex gap-2">
+                          <button class="btn btn-sm btn-success rounded-pill fw-bold shadow-sm px-3 flex-fill" onclick="openDailyLedgerForm('income')"><i class="fa-solid fa-plus me-1"></i> รับ</button>
+                          <button class="btn btn-sm btn-danger rounded-pill fw-bold shadow-sm px-3 flex-fill" onclick="openDailyLedgerForm('expense')"><i class="fa-solid fa-minus me-1"></i> จ่าย</button>
+                          <button class="btn btn-sm btn-warning text-dark rounded-pill fw-bold shadow-sm px-3 flex-fill" onclick="openTransferForm()"><i class="fa-solid fa-arrow-right-arrow-left me-1"></i> โอนย้าย</button>
+                      </div>
+                  </div>
+                  
+                  <!-- 🌟 กล่องสรุปยอดที่อัปเดตใหม่ (มียอดสุทธิด้านบน) 🌟 -->
+                  <div class="mb-3 px-2 bg-light p-3 rounded-4 border">
+                      <div class="text-center mb-2 pb-2 border-bottom border-secondary border-opacity-25">
+                          <small class="text-muted fw-bold" style="font-size: 0.75rem;">ยอดเงินสุทธิประจำวัน</small>
+                          <h4 class="fw-bold mb-0 mt-1" id="dailyNetTotal">฿0.00</h4>
+                      </div>
+                      <div class="d-flex justify-content-between align-items-center">
+                          <div class="text-center w-50 border-end border-secondary border-opacity-25">
+                              <small class="text-muted fw-bold" style="font-size: 0.65rem;">รายรับรวม</small>
+                              <h6 class="text-success fw-bold mb-0 mt-1" id="dailyTotalIn">฿0.00</h6>
+                          </div>
+                          <div class="text-center w-50">
+                              <small class="text-muted fw-bold" style="font-size: 0.65rem;">รายจ่ายรวม</small>
+                              <h6 class="text-danger fw-bold mb-0 mt-1" id="dailyTotalOut">฿0.00</h6>
+                          </div>
+                      </div>
+                  </div>
+                  
+                  <div id="list-daily-transactions"></div>
               </div>
 
-              <!-- ปุ่มล้างตัวกรอง -->
-              <button class="btn btn-sm btn-light rounded-circle text-danger border shadow-sm d-flex justify-content-center align-items-center flex-shrink-0" style="width: 32px; height: 32px;" onclick="clearTxFilter()" title="ล้างการค้นหา">
-                  <i class="fa-solid fa-rotate-left"></i>
-              </button>
-          </div>
-
-          <!-- พื้นที่แสดงผลรายการธุรกรรม -->
-          <div id="list-approved-transactions"></div>
+      </div>
           
           <!-- ระบบแบ่งหน้า (Pagination) -->
           <div id="tx-pagination" class="d-flex justify-content-center flex-wrap gap-2 mt-4 mb-3"></div>
@@ -1272,13 +1278,13 @@
 <script src="./assets/js/admin/admin-config.js?v=5"></script>
 
 <!-- 2. โหลดระบบ Auth และ UI ของแอดมิน -->
-<script src="./assets/js/admin/admin-auth.js?v=14"></script>
+<script src="./assets/js/admin/admin-auth.js?v=15"></script>
 <script src="./assets/js/admin/admin-ui.js?v=5"></script>
 
 <!-- 3. โหลด Modules การทำงานต่างๆ -->
 <script src="./assets/js/admin/dashboard.js?v=10"></script>
 <script src="./assets/js/admin/members.js?v=10"></script>
-<script src="./assets/js/admin/ledger.js?v=10"></script>
+<script src="./assets/js/admin/ledger.js?v=17"></script>
 <script src="./assets/js/admin/claims.js?v=10"></script>
 <script src="./assets/js/admin/shops-news.js?v=10"></script>
 <script src="./assets/js/admin/shops.js?v=10"></script>
