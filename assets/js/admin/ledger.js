@@ -137,6 +137,9 @@ window.confirmAmount = async function(memberId, currentStatus) {
     }
 };
 
+/**
+ * 🌟 รับเงินสมทบแบบกลุ่ม Bulk (Batch Write / QR)
+ */
 window.bulkCollectContribution = async function() {
     const checkedBoxes = document.querySelectorAll('.member-check:checked');
     const collectionData = [];
@@ -196,7 +199,39 @@ window.bulkCollectContribution = async function() {
             
             const finalNote = formValues.note ? `เก็บเงินกลุ่ม ${formValues.membersData.length} คน (${formValues.note})` : `เก็บเงินกลุ่ม ${formValues.membersData.length} คน`;
 
-            if (!formValues.isQR) {
+            // 🌟 สร้างระบบ QR Code ตรงนี้
+            if (formValues.isQR) {
+                const qrPayload = JSON.stringify({
+                    action: "bulk_pay_to_fund",
+                    amount: totalAmt,
+                    ref: bulkTxId,
+                    adminName: adminName,
+                    note: finalNote
+                });
+
+                Swal.fire({
+                    title: 'QR Code เก็บเงินกลุ่ม',
+                    html: `
+                        <div class="text-center" style="font-family:'Prompt';">
+                            <p class="text-muted small mb-1">ยอดรวม (${formValues.membersData.length} คน)</p>
+                            <h2 class="text-primary fw-bold mb-3">฿${totalAmt.toLocaleString('en-US', {minimumFractionDigits: 2})}</h2>
+                            <div id="bulkQrBox" class="d-flex justify-content-center p-3 bg-white rounded-4 shadow-sm mx-auto mb-3 border" style="width: 220px; height: 220px;"></div>
+                            <p class="small text-muted"><i class="fa-solid fa-mobile-screen me-1"></i> ให้ตัวแทนกลุ่มสแกนจ่าย</p>
+                        </div>
+                    `,
+                    didOpen: () => {
+                        new QRCode(document.getElementById("bulkQrBox"), { 
+                            text: qrPayload, 
+                            width: 180, 
+                            height: 180,
+                            colorDark : "#0F172A",
+                            colorLight : "#ffffff"
+                        });
+                    },
+                    confirmButtonText: 'ปิดหน้าต่าง'
+                });
+            } else {
+                // บันทึกเงินสด
                 AppHelper.showLoader(true, "กำลังบันทึกรายการกลุ่ม...");
                 const routeData = getNextFinancialStatusAndHolder(AdminState.currentAdmin.role, adminEmail);
                 const batch = db.batch();
@@ -770,4 +805,66 @@ window.generateEReceipt = function(txId, type, amount, date, note, name) {
 
     const imgData = canvas.toDataURL('image/jpeg', 1.0); AppHelper.showLoader(false);
     Swal.fire({ title: 'ใบเสร็จรับเงิน (E-Slip)', imageUrl: imgData, imageWidth: '100%', imageAlt: 'Receipt Image', showCancelButton: true, confirmButtonText: '<i class="fa-solid fa-download"></i> บันทึกรูปลงเครื่อง', cancelButtonText: 'ปิด', confirmButtonColor: '#2563EB', customClass: { image: 'rounded-4 shadow-sm border' } }).then((res) => { if(res.isConfirmed) { const link = document.createElement('a'); link.download = `SmartWelf_Slip_${txId}.jpg`; link.href = imgData; link.click(); Swal.fire({icon: 'success', title: 'บันทึกรูปภาพสำเร็จ!', showConfirmButton: false, timer: 1500}); } });
+};
+// =========================================================
+// 📱 ระบบสร้าง QR Code สำหรับเรียกเก็บเงินจากสมาชิก
+// =========================================================
+window.generatePaymentQR = function() {
+    Swal.fire({
+        title: '<div style="color:#2563EB"><i class="fa-solid fa-qrcode"></i> สร้าง QR เรียกเก็บเงิน</div>',
+        html: `
+            <div class="text-start" style="font-family:'Prompt';">
+                <label class="small fw-bold text-muted mb-1">ระบุจำนวนเงินที่ต้องการเรียกเก็บ (บาท)</label>
+                <input type="number" id="qrAmountInput" class="form-control-modern w-100 mb-3 text-center fw-bold fs-3 border-0 shadow-sm" style="color:#2563EB; background-color:#EFF6FF;" placeholder="0.00" step="0.01">
+            </div>
+        `,
+        showCancelButton: true,
+        confirmButtonText: '<i class="fa-solid fa-qrcode me-1"></i> สร้าง QR',
+        cancelButtonText: 'ยกเลิก',
+        confirmButtonColor: '#2563EB',
+        preConfirm: () => {
+            const amount = parseFloat(document.getElementById('qrAmountInput').value);
+            if (!amount || amount <= 0) {
+                Swal.showValidationMessage('กรุณาระบุจำนวนเงินให้ถูกต้อง');
+                return false;
+            }
+            return amount;
+        }
+    }).then((res) => {
+        if (res.isConfirmed) {
+            const amount = res.value;
+            const refId = "REQ-" + Date.now().toString().slice(-8);
+            
+            // ข้อมูลที่จะฝังใน QR Code
+            const qrPayload = JSON.stringify({
+                action: "pay_to_fund",
+                amount: amount,
+                ref: refId,
+                adminName: AdminState.currentAdmin?.name || "Admin"
+            });
+
+            Swal.fire({
+                title: 'สแกนเพื่อชำระเงิน',
+                html: `
+                    <div class="text-center" style="font-family:'Prompt';">
+                        <p class="text-muted small mb-1">จำนวนเงินที่ต้องชำระ:</p>
+                        <h2 class="text-primary fw-bold mb-3">฿${amount.toLocaleString('en-US', {minimumFractionDigits: 2})}</h2>
+                        <div id="paymentQrBox" class="d-flex justify-content-center p-3 bg-white rounded-4 shadow-sm mx-auto mb-3 border" style="width: 220px; height: 220px;"></div>
+                        <p class="small text-muted mb-0"><i class="fa-solid fa-mobile-screen me-1"></i> ให้สมาชิกใช้ LINE สแกน</p>
+                    </div>
+                `,
+                didOpen: () => {
+                    // วาดรูป QR Code
+                    new QRCode(document.getElementById("paymentQrBox"), { 
+                        text: qrPayload, 
+                        width: 180, 
+                        height: 180,
+                        colorDark : "#0F172A",
+                        colorLight : "#ffffff",
+                    });
+                },
+                confirmButtonText: 'ปิดหน้าต่าง'
+            });
+        }
+    });
 };
