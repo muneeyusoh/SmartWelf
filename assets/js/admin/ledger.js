@@ -137,140 +137,6 @@ window.confirmAmount = async function(memberId, currentStatus) {
     }
 };
 
-/**
- * 🌟 รับเงินสมทบแบบกลุ่ม Bulk (Batch Write / QR)
- */
-window.bulkCollectContribution = async function() {
-    const checkedBoxes = document.querySelectorAll('.member-check:checked');
-    const collectionData = [];
-    
-    checkedBoxes.forEach(box => {
-        const memberId = box.value; 
-        const memberName = box.getAttribute('data-name'); 
-        const input = document.getElementById(`input-${memberId}`); 
-        const amount = parseFloat(input.value);
-        if (amount > 0) { collectionData.push({ id: memberId, name: memberName, amount: amount }); }
-    });
-
-    if (collectionData.length === 0) { 
-        Swal.fire({ icon: 'warning', title: 'ยังไม่ได้ระบุยอดเงิน', text: 'กรุณาเลือกสมาชิกและระบุยอดเงินสมทบก่อนกดทำรายการ' }); 
-        return; 
-    }
-    
-    const totalAmount = collectionData.reduce((sum, item) => sum + item.amount, 0);
-    const today = new Date().toISOString().split('T')[0];
-    
-    const { value: formValues } = await Swal.fire({
-        title: `เก็บเงินสมทบกลุ่ม (${collectionData.length} คน)`,
-        html: `<div class="text-start" style="font-family: 'Prompt', sans-serif;">
-                <div class="d-flex justify-content-between align-items-center mb-4 px-2 py-2 bg-success bg-opacity-10 rounded-3 border border-success border-opacity-25">
-                    <strong class="text-success small"><i class="fa-solid fa-calculator me-1"></i> ยอดรวมทั้งหมด:</strong>
-                    <strong class="text-success fs-4 mb-0" style="line-height:1;">฿${totalAmount.toLocaleString('en-US', {minimumFractionDigits: 2})}</strong>
-                </div>
-                <label class="small text-muted fw-bold mb-1">วันที่รับเงิน</label>
-                <input type="date" id="bulkDate" class="form-control-modern w-100 mb-3" value="${today}" required>
-                <label class="small text-muted fw-bold mb-1">หมายเหตุ (ถ้ามี)</label>
-                <input type="text" id="bulkNote" class="form-control-modern w-100" placeholder="เช่น ประจำเดือน ส.ค.">
-            </div>`,
-        showDenyButton: true, showCancelButton: true, confirmButtonText: 'บันทึกรับเงินสด', 
-        denyButtonText: '<i class="fa-solid fa-qrcode"></i> ให้สมาชิกสแกน QR', cancelButtonText: 'ยกเลิก', 
-        confirmButtonColor: '#10B981', denyButtonColor: '#2563EB',
-        preConfirm: () => { 
-            return { membersData: collectionData, totalAmount: totalAmount, date: document.getElementById('bulkDate').value, note: document.getElementById('bulkNote').value, isQR: false }; 
-        }
-    }).then(result => {
-        if (result.isDenied) return { isConfirmed: true, value: { membersData: collectionData, totalAmount: totalAmount, date: document.getElementById('bulkDate').value, note: document.getElementById('bulkNote').value, isQR: true } }; 
-        return result;
-    });
-
-    if (formValues) {
-        try {
-            const adminName = AdminState.currentAdmin.name; 
-            const adminEmail = AdminState.currentAdmin.email; 
-            const totalAmt = formValues.totalAmount;
-            
-            let bulkTxId = "BLK" + Date.now().toString().slice(-8) + Math.floor(Math.random() * 100).toString().padStart(2,'0'); 
-            let bulkDataArr = [];
-            
-            for (let member of formValues.membersData) {
-                let individualTxId = "TX" + Date.now().toString().slice(-8) + Math.floor(Math.random() * 100).toString().padStart(2,'0'); 
-                bulkDataArr.push({ uid: member.id, name: member.name, amt: member.amount, txId: individualTxId });
-            }
-            
-            const finalNote = formValues.note ? `เก็บเงินกลุ่ม ${formValues.membersData.length} คน (${formValues.note})` : `เก็บเงินกลุ่ม ${formValues.membersData.length} คน`;
-
-            // 🌟 แก้ไขระบบสร้าง QR Code ตรงนี้
-            if (formValues.isQR) {
-                const qrPayload = JSON.stringify({
-                    action: "bulk_pay_to_fund",
-                    amount: totalAmt,
-                    ref: bulkTxId,
-                    adminName: adminName,
-                    note: finalNote
-                });
-
-                Swal.fire({
-                    title: 'QR Code เก็บเงินกลุ่ม',
-                    html: `
-                        <div class="text-center" style="font-family:'Prompt';">
-                            <p class="text-muted small mb-1">ยอดรวม (${formValues.membersData.length} คน)</p>
-                            <h2 class="text-primary fw-bold mb-3">฿${totalAmt.toLocaleString('en-US', {minimumFractionDigits: 2})}</h2>
-                            <div id="bulkQrBox" class="d-flex justify-content-center align-items-center p-3 bg-white rounded-4 shadow-sm mx-auto mb-3 border" style="width: 220px; height: 220px;">
-                                <!-- QR จะแสดงที่นี่ -->
-                            </div>
-                            <p class="small text-muted"><i class="fa-solid fa-mobile-screen me-1"></i> ให้ตัวแทนกลุ่มสแกนจ่าย</p>
-                        </div>
-                    `,
-                    didOpen: () => {
-                        // 🌟 ใช้ setTimeout รอให้ Popup กางเสร็จก่อนวาด QR (แก้ภาพไม่สมบูรณ์)
-                        setTimeout(() => {
-                            const qrBox = document.getElementById("bulkQrBox");
-                            if(qrBox) {
-                                qrBox.innerHTML = ""; // ล้างค่าเผื่อโหลดซ้ำ
-                                new QRCode(qrBox, { 
-                                    text: qrPayload, 
-                                    width: 180, 
-                                    height: 180,
-                                    colorDark : "#0F172A",
-                                    colorLight : "#ffffff",
-                                    correctLevel : QRCode.CorrectLevel.L // ลดความหนาแน่นให้สแกนง่ายขึ้น
-                                });
-                            }
-                        }, 150);
-                    },
-                    confirmButtonText: 'ปิดหน้าต่าง'
-                });
-            } else {
-                // บันทึกเงินสด
-                AppHelper.showLoader(true, "กำลังบันทึกรายการกลุ่ม...");
-                const routeData = getNextFinancialStatusAndHolder(AdminState.currentAdmin.role, adminEmail);
-                const batch = db.batch();
-                const txRef = db.collection("transactions").doc();
-                batch.set(txRef, { 
-                    txId: bulkTxId, type: 'สมทบเงินกองทุน', amount: totalAmt, paymentMethod: 'เงินสด', 
-                    transactionDate: formValues.date, fullName: 'แอดมิน: ' + adminName, status: routeData.status, 
-                    currentHolder: routeData.holder, note: finalNote, uid: "BULK", bulkMembers: bulkDataArr, 
-                    timestamp: firebase.firestore.FieldValue.serverTimestamp() 
-                });
-
-                if(routeData.status === 'เข้าคลังแล้ว') {
-                    for (let member of formValues.membersData) {
-                        const memRef = db.collection("members").doc(member.id);
-                        batch.update(memRef, { 
-                            totalContribution: firebase.firestore.FieldValue.increment(member.amount), 
-                            outstandingBalance: firebase.firestore.FieldValue.increment(-member.amount),
-                            lastContributionDate: new Date().toISOString()
-                        });
-                    }
-                }
-                await batch.commit();
-                Swal.fire('สำเร็จ', routeData.status === 'เข้าคลังแล้ว' ? 'ส่งยอดเข้าส่วนกลางเรียบร้อย' : 'บันทึกเข้ากระเป๋าของคุณ (รอส่งมอบขั้นต่อไป)', 'success');
-                if(typeof window.loadMembersData === 'function') window.loadMembersData();
-            }
-        } catch(e) { AppHelper.showLoader(false); Swal.fire('Error', 'ไม่สามารถจัดเก็บเงินกลุ่มได้', 'error'); }
-    }
-};
-
 // =========================================================
 // 🌟 ส่วนที่ 3: ระบบส่งต่อเงิน / สแกนรับเงิน 
 // =========================================================
@@ -816,8 +682,152 @@ window.generateEReceipt = function(txId, type, amount, date, note, name) {
     const imgData = canvas.toDataURL('image/jpeg', 1.0); AppHelper.showLoader(false);
     Swal.fire({ title: 'ใบเสร็จรับเงิน (E-Slip)', imageUrl: imgData, imageWidth: '100%', imageAlt: 'Receipt Image', showCancelButton: true, confirmButtonText: '<i class="fa-solid fa-download"></i> บันทึกรูปลงเครื่อง', cancelButtonText: 'ปิด', confirmButtonColor: '#2563EB', customClass: { image: 'rounded-4 shadow-sm border' } }).then((res) => { if(res.isConfirmed) { const link = document.createElement('a'); link.download = `SmartWelf_Slip_${txId}.jpg`; link.href = imgData; link.click(); Swal.fire({icon: 'success', title: 'บันทึกรูปภาพสำเร็จ!', showConfirmButton: false, timer: 1500}); } });
 };
+/**
+ * 🌟 รับเงินสมทบแบบกลุ่ม Bulk (พร้อมเชื่อมโยง Database ก่อนสร้าง QR)
+ */
+window.bulkCollectContribution = async function() {
+    const checkedBoxes = document.querySelectorAll('.member-check:checked');
+    const collectionData = [];
+    
+    checkedBoxes.forEach(box => {
+        const memberId = box.value; 
+        const memberName = box.getAttribute('data-name'); 
+        const input = document.getElementById(`input-${memberId}`); 
+        const amount = parseFloat(input.value);
+        if (amount > 0) { collectionData.push({ id: memberId, name: memberName, amount: amount }); }
+    });
+
+    if (collectionData.length === 0) { 
+        Swal.fire({ icon: 'warning', title: 'ยังไม่ได้ระบุยอดเงิน', text: 'กรุณาเลือกสมาชิกและระบุยอดเงินสมทบก่อนกดทำรายการ' }); 
+        return; 
+    }
+    
+    const totalAmount = collectionData.reduce((sum, item) => sum + item.amount, 0);
+    const today = new Date().toISOString().split('T')[0];
+    
+    const { value: formValues } = await Swal.fire({
+        title: `เก็บเงินสมทบกลุ่ม (${collectionData.length} คน)`,
+        html: `<div class="text-start" style="font-family: 'Prompt', sans-serif;">
+                <div class="d-flex justify-content-between align-items-center mb-4 px-2 py-2 bg-success bg-opacity-10 rounded-3 border border-success border-opacity-25">
+                    <strong class="text-success small"><i class="fa-solid fa-calculator me-1"></i> ยอดรวมทั้งหมด:</strong>
+                    <strong class="text-success fs-4 mb-0" style="line-height:1;">฿${totalAmount.toLocaleString('en-US', {minimumFractionDigits: 2})}</strong>
+                </div>
+                <label class="small text-muted fw-bold mb-1">วันที่รับเงิน</label>
+                <input type="date" id="bulkDate" class="form-control-modern w-100 mb-3" value="${today}" required>
+                <label class="small text-muted fw-bold mb-1">หมายเหตุ (ถ้ามี)</label>
+                <input type="text" id="bulkNote" class="form-control-modern w-100" placeholder="เช่น ประจำเดือน ส.ค.">
+            </div>`,
+        showDenyButton: true, showCancelButton: true, confirmButtonText: 'บันทึกรับเงินสด', 
+        denyButtonText: '<i class="fa-solid fa-qrcode"></i> ให้สมาชิกสแกน QR', cancelButtonText: 'ยกเลิก', 
+        confirmButtonColor: '#10B981', denyButtonColor: '#2563EB',
+        preConfirm: () => { 
+            return { membersData: collectionData, totalAmount: totalAmount, date: document.getElementById('bulkDate').value, note: document.getElementById('bulkNote').value, isQR: false }; 
+        }
+    }).then(result => {
+        if (result.isDenied) return { isConfirmed: true, value: { membersData: collectionData, totalAmount: totalAmount, date: document.getElementById('bulkDate').value, note: document.getElementById('bulkNote').value, isQR: true } }; 
+        return result;
+    });
+
+    if (formValues) {
+        try {
+            const adminName = AdminState.currentAdmin.name; 
+            const adminEmail = AdminState.currentAdmin.email; 
+            const totalAmt = formValues.totalAmount;
+            
+            let bulkTxId = "BLK" + Date.now().toString().slice(-8) + Math.floor(Math.random() * 100).toString().padStart(2,'0'); 
+            let bulkDataArr = [];
+            
+            for (let member of formValues.membersData) {
+                let individualTxId = "TX" + Date.now().toString().slice(-8) + Math.floor(Math.random() * 100).toString().padStart(2,'0'); 
+                bulkDataArr.push({ uid: member.id, name: member.name, amt: member.amount, txId: individualTxId });
+            }
+            
+            const finalNote = formValues.note ? `เก็บเงินกลุ่ม ${formValues.membersData.length} คน (${formValues.note})` : `เก็บเงินกลุ่ม ${formValues.membersData.length} คน`;
+
+            if (formValues.isQR) {
+                AppHelper.showLoader(true, "กำลังเตรียมข้อมูลสแกนจ่าย...");
+                
+                // 🌟 1. สร้างบิลรอดำเนินการในฐานข้อมูลก่อน เพื่อให้ระบบสแกนหากันเจอ
+                await db.collection("pending_payments").doc(bulkTxId).set({
+                    txId: bulkTxId,
+                    amount: totalAmt,
+                    date: formValues.date,
+                    adminName: adminName,
+                    adminEmail: adminEmail,
+                    note: finalNote,
+                    bulkMembers: bulkDataArr,
+                    status: "waiting_member_scan",
+                    createdAt: firebase.firestore.FieldValue.serverTimestamp()
+                });
+
+                AppHelper.showLoader(false);
+
+                // 🌟 2. ฝังแค่ "รหัสบิลสั้นๆ" ใน QR โค้ด (เพื่อป้องกันรูปขาวโล่งเพราะข้อมูลล้น)
+                const qrPayload = JSON.stringify({
+                    action: "member_pay_bulk",
+                    ref: bulkTxId
+                });
+
+                Swal.fire({
+                    title: 'QR Code เก็บเงินกลุ่ม',
+                    html: `
+                        <div class="text-center" style="font-family:'Prompt';">
+                            <p class="text-muted small mb-1">ยอดรวม (${formValues.membersData.length} คน)</p>
+                            <h2 class="text-primary fw-bold mb-3">฿${totalAmt.toLocaleString('en-US', {minimumFractionDigits: 2})}</h2>
+                            <div id="bulkQrBox" class="d-flex justify-content-center align-items-center p-3 bg-white rounded-4 shadow-sm mx-auto mb-3 border" style="width: 220px; height: 220px;"></div>
+                            <p class="small text-muted"><i class="fa-solid fa-mobile-screen me-1"></i> ให้ตัวแทนกลุ่มสแกนจ่าย</p>
+                        </div>
+                    `,
+                    didOpen: () => {
+                        setTimeout(() => {
+                            const qrBox = document.getElementById("bulkQrBox");
+                            if(qrBox) {
+                                qrBox.innerHTML = ""; 
+                                new QRCode(qrBox, { 
+                                    text: qrPayload, 
+                                    width: 180, 
+                                    height: 180,
+                                    colorDark : "#0F172A",
+                                    colorLight : "#ffffff"
+                                });
+                            }
+                        }, 300);
+                    },
+                    confirmButtonText: 'ปิดหน้าต่าง'
+                });
+            } else {
+                // บันทึกเงินสด
+                AppHelper.showLoader(true, "กำลังบันทึกรายการกลุ่ม...");
+                const routeData = getNextFinancialStatusAndHolder(AdminState.currentAdmin.role, adminEmail);
+                const batch = db.batch();
+                const txRef = db.collection("transactions").doc();
+                batch.set(txRef, { 
+                    txId: bulkTxId, type: 'สมทบเงินกองทุน', amount: totalAmt, paymentMethod: 'เงินสด', 
+                    transactionDate: formValues.date, fullName: 'แอดมิน: ' + adminName, status: routeData.status, 
+                    currentHolder: routeData.holder, note: finalNote, uid: "BULK", bulkMembers: bulkDataArr, 
+                    timestamp: firebase.firestore.FieldValue.serverTimestamp() 
+                });
+
+                if(routeData.status === 'เข้าคลังแล้ว') {
+                    for (let member of formValues.membersData) {
+                        const memRef = db.collection("members").doc(member.id);
+                        batch.update(memRef, { 
+                            totalContribution: firebase.firestore.FieldValue.increment(member.amount), 
+                            outstandingBalance: firebase.firestore.FieldValue.increment(-member.amount),
+                            lastContributionDate: new Date().toISOString()
+                        });
+                    }
+                }
+                await batch.commit();
+                Swal.fire('สำเร็จ', routeData.status === 'เข้าคลังแล้ว' ? 'ส่งยอดเข้าส่วนกลางเรียบร้อย' : 'บันทึกเข้ากระเป๋าของคุณ (รอส่งมอบขั้นต่อไป)', 'success');
+                if(typeof window.loadMembersData === 'function') window.loadMembersData();
+            }
+        } catch(e) { AppHelper.showLoader(false); Swal.fire('Error', 'ไม่สามารถจัดเก็บเงินกลุ่มได้', 'error'); }
+    }
+};
+
 // =========================================================
-// 📱 ระบบสร้าง QR Code สำหรับเรียกเก็บเงินจากสมาชิก
+// 📱 ระบบสร้าง QR Code สำหรับเรียกเก็บเงินจากสมาชิก (รับเดี่ยว)
 // =========================================================
 window.generatePaymentQR = function() {
     Swal.fire({
@@ -840,48 +850,68 @@ window.generatePaymentQR = function() {
             }
             return amount;
         }
-    }).then((res) => {
+    }).then(async (res) => {
         if (res.isConfirmed) {
             const amount = res.value;
             const refId = "REQ-" + Date.now().toString().slice(-8);
-            
-            // ข้อมูลที่จะฝังใน QR Code
-            const qrPayload = JSON.stringify({
-                action: "pay_to_fund",
-                amount: amount,
-                ref: refId,
-                adminName: AdminState.currentAdmin?.name || "Admin"
-            });
+            const adminName = AdminState.currentAdmin?.name || "Admin";
+            const adminEmail = AdminState.currentAdmin?.email || "";
 
-            Swal.fire({
-                title: 'สแกนเพื่อชำระเงิน',
-                html: `
-                    <div class="text-center" style="font-family:'Prompt';">
-                        <p class="text-muted small mb-1">จำนวนเงินที่ต้องชำระ:</p>
-                        <h2 class="text-primary fw-bold mb-3">฿${amount.toLocaleString('en-US', {minimumFractionDigits: 2})}</h2>
-                        <div id="paymentQrBox" class="d-flex justify-content-center align-items-center p-3 bg-white rounded-4 shadow-sm mx-auto mb-3 border" style="width: 220px; height: 220px;"></div>
-                        <p class="small text-muted mb-0"><i class="fa-solid fa-mobile-screen me-1"></i> ให้สมาชิกใช้ LINE สแกน</p>
-                    </div>
-                `,
-                didOpen: () => {
-                    // 🌟 ใช้ setTimeout แบบเดียวกับด้านบนเพื่อป้องกัน QR แหว่ง
-                    setTimeout(() => {
-                        const qrBox = document.getElementById("paymentQrBox");
-                        if(qrBox) {
-                            qrBox.innerHTML = ""; 
-                            new QRCode(qrBox, { 
-                                text: qrPayload, 
-                                width: 180, 
-                                height: 180,
-                                colorDark : "#0F172A",
-                                colorLight : "#ffffff",
-                                correctLevel : QRCode.CorrectLevel.L
-                            });
-                        }
-                    }, 150);
-                },
-                confirmButtonText: 'ปิดหน้าต่าง'
-            });
+            AppHelper.showLoader(true, "กำลังเตรียมข้อมูลสแกนจ่าย...");
+
+            try {
+                // 🌟 1. สร้างบิลรอดำเนินการในฐานข้อมูลก่อน
+                await db.collection("pending_payments").doc(refId).set({
+                    txId: refId,
+                    uid: "SCANNER", // ใช้อ้างอิงว่าเดี๋ยวจะแทนที่ด้วยคนสแกน
+                    amount: amount,
+                    date: new Date().toISOString().split('T')[0],
+                    adminName: adminName,
+                    adminEmail: adminEmail,
+                    note: "ชำระเงินสดให้แอดมินผ่านการสแกน QR Code",
+                    status: "waiting_member_scan",
+                    createdAt: firebase.firestore.FieldValue.serverTimestamp()
+                });
+
+                AppHelper.showLoader(false);
+
+                // 🌟 2. ฝังแค่ "รหัสบิลสั้นๆ" ใน QR โค้ด
+                const qrPayload = JSON.stringify({
+                    action: "member_pay",
+                    ref: refId
+                });
+
+                Swal.fire({
+                    title: 'สแกนเพื่อชำระเงิน',
+                    html: `
+                        <div class="text-center" style="font-family:'Prompt';">
+                            <p class="text-muted small mb-1">จำนวนเงินที่ต้องชำระ:</p>
+                            <h2 class="text-primary fw-bold mb-3">฿${amount.toLocaleString('en-US', {minimumFractionDigits: 2})}</h2>
+                            <div id="paymentQrBox" class="d-flex justify-content-center align-items-center p-3 bg-white rounded-4 shadow-sm mx-auto mb-3 border" style="width: 220px; height: 220px;"></div>
+                            <p class="small text-muted mb-0"><i class="fa-solid fa-mobile-screen me-1"></i> ให้สมาชิกใช้ LINE สแกน</p>
+                        </div>
+                    `,
+                    didOpen: () => {
+                        setTimeout(() => {
+                            const qrBox = document.getElementById("paymentQrBox");
+                            if(qrBox) {
+                                qrBox.innerHTML = ""; 
+                                new QRCode(qrBox, { 
+                                    text: qrPayload, 
+                                    width: 180, 
+                                    height: 180,
+                                    colorDark : "#0F172A",
+                                    colorLight : "#ffffff"
+                                });
+                            }
+                        }, 300);
+                    },
+                    confirmButtonText: 'ปิดหน้าต่าง'
+                });
+            } catch (e) {
+                AppHelper.showLoader(false);
+                Swal.fire('Error', 'ไม่สามารถเชื่อมต่อฐานข้อมูลได้', 'error');
+            }
         }
     });
 };
