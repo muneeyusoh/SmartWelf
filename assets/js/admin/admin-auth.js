@@ -11,19 +11,23 @@ window.AdminState = window.AdminState || {
 
 document.addEventListener("DOMContentLoaded", async () => { 
     try {
-        // 🌟 แก้บั๊กโหลดค้าง: ดึงข้อมูล Setting แบบไม่บล็อกหน้าจอ
+        // 1. ดึงข้อมูล Setting แบบไม่บล็อกหน้าจอ
         db.collection("settings").doc("master").get().then(sysSnap => {
             if(sysSnap.exists) { AdminState.fundSettings = sysSnap.data(); }
-        }).catch(err => console.warn("Settings Load Warning (Not logged in yet):", err));
+        }).catch(err => console.warn("Settings Load Warning:", err));
         
         updatePinDisplay();
 
-        // โหลด LIFF แบบไม่บล็อกหน้าจอ
+        // 🌟 2. แก้ไขจุดกระพริบ: บังคับรอให้ LIFF โหลดเสร็จสมบูรณ์ก่อน ค่อยไปต่อ
         if (typeof liff !== 'undefined') {
-            liff.init({ liffId: ADMIN_LIFF_ID }).catch(err => console.warn("LIFF Init Error:", err));
+            try {
+                await liff.init({ liffId: ADMIN_LIFF_ID });
+            } catch(err) {
+                console.warn("LIFF Init Error:", err);
+            }
         }
 
-        // ดักจับสถานะการล็อกอิน Firebase
+        // 🌟 3. ดักจับสถานะ Firebase (จะทำงานได้อย่างปลอดภัยเพราะ LIFF พร้อมแล้ว)
         if (typeof auth !== 'undefined') {
             auth.onAuthStateChanged(async (user) => {
                 if (user) {
@@ -31,10 +35,10 @@ document.addEventListener("DOMContentLoaded", async () => {
                         const adminDoc = await db.collection("admins").doc(user.email).get();
                         if (adminDoc.exists && adminDoc.data().status === 'ใช้งาน') {
                             
-                            // 🌟 1. บันทึกอีเมลลงเครื่องเพื่อใช้กับระบบ PIN ในอนาคต
+                            // จดจำอุปกรณ์สำหรับเข้าระบบด้วย PIN
                             localStorage.setItem('sw_admin_email', user.email);
 
-                            // 🌟 2. ตรวจสอบว่าเปิดผ่าน LINE ไหม ถ้าใช่ให้จับผูก UID ทันที
+                            // ผูกบัญชี LINE ทันทีถ้าเปิดผ่านมือถือ
                             if (typeof liff !== 'undefined' && liff.isLoggedIn()) {
                                 const profile = await liff.getProfile();
                                 if (adminDoc.data().lineUid !== profile.userId) {
@@ -42,7 +46,6 @@ document.addEventListener("DOMContentLoaded", async () => {
                                 }
                             }
 
-                            // 🌟 3. เข้าระบบทันที ไม่บังคับใส่ PIN แล้ว
                             grantAccess(adminDoc.data(), adminDoc.id);
                         } else {
                             await auth.signOut();

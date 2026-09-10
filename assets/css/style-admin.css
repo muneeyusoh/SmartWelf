@@ -48,3 +48,34 @@
 
 #receiptHistoryContainer::-webkit-scrollbar { display: none; }
 #receiptHistoryContainer { -ms-overflow-style: none; scrollbar-width: none; }
+
+/* =========================================================
+   📅 สไตล์สำหรับแถบปฏิทินรายวัน (Daily Ledger Calendar)
+   ========================================================= */
+.calendar-date-item {
+    min-width: 55px;
+    height: 65px;
+    border-radius: 16px;
+    background: white;
+    border: 1px solid var(--card-border);
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    flex-shrink: 0;
+}
+.calendar-date-item .day-name { font-size: 0.65rem; color: var(--text-muted); font-weight: 600; margin-bottom: 2px; }
+.calendar-date-item .date-num { font-size: 1.1rem; color: var(--primary-dark); font-weight: 700; line-height: 1; }
+
+.calendar-date-item:active { transform: scale(0.95); }
+
+.calendar-date-item.active-date {
+    background: var(--primary-main);
+    border-color: var(--primary-main);
+    box-shadow: 0 6px 15px rgba(37, 99, 235, 0.25);
+    transform: translateY(-2px);
+}
+.calendar-date-item.active-date .day-name,
+.calendar-date-item.active-date .date-num { color: white; }

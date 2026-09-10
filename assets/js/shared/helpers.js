@@ -102,3 +102,4 @@ window.executeMinimalShare = function(platform, text, url) {
         });
     }
 };
+

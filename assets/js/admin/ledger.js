@@ -127,9 +127,7 @@ window.confirmAmount = async function(memberId, currentStatus) {
 
         setTimeout(() => { 
             if(typeof window.loadMembersData === 'function') window.loadMembersData(); 
-            if(document.getElementById('admin-view-overview') && document.getElementById('admin-view-overview').classList.contains('d-block')) {
-                if(typeof window.loadDashboardOverview === 'function') window.loadDashboardOverview(); 
-            }
+            if(typeof window.loadDashboardOverview === 'function') window.loadDashboardOverview(); 
         }, 1500); 
 
     } catch (error) { 
@@ -312,6 +310,7 @@ window.handleScannedAdminQR = async function(codeValue) {
 window.loadLedgerData = function() {
     if (typeof window.loadTransactions === 'function') window.loadTransactions(); 
     if (typeof window.checkFinanceButtons === 'function') window.checkFinanceButtons(); 
+    if (typeof window.loadDashboardOverview === 'function') window.loadDashboardOverview();
 };
 
 window.checkFinanceButtons = async function() {
@@ -353,7 +352,6 @@ window.approveFundsToCentralBank = async function() {
 // ============================================================================
 let ledgerTxCache = [];
 
-// 🌟 ฟังก์ชันจัดการวันที่ให้เป็น Timezone โลคอล (ไทย) อย่างปลอดภัย
 function getLocalDateString(dateObj) {
     return `${dateObj.getFullYear()}-${String(dateObj.getMonth() + 1).padStart(2, '0')}-${String(dateObj.getDate()).padStart(2, '0')}`;
 }
@@ -369,6 +367,24 @@ window.loadTransactions = async function() {
         window.generateCalendarStrip();
         window.updatePendingTransactionsList();
     } catch (e) { console.error("Load Transactions Error:", e); }
+};
+
+// 🌟 ตัวช่วย: ฟังก์ชันดึงยอดเงินสด/ธนาคาร ณ ปัจจุบันจากฐานข้อมูลตรงๆ (Real-time Balance Check)
+window.getRealtimeBalances = async function() {
+    const snap = await db.collection("transactions").where("status", "==", "อนุมัติแล้ว").get();
+    let bankBal = 0; let cashBal = 0;
+    snap.forEach(doc => {
+        const d = doc.data(); const amt = parseFloat(d.amount) || 0;
+        if(d.type.includes('รับ') || d.type === 'สมทบเงินกองทุน') {
+            if(d.paymentMethod && d.paymentMethod.includes('ธนาคาร')) bankBal += amt; else cashBal += amt;
+        } else if(d.type.includes('จ่าย') || d.type === 'จ่ายสวัสดิการ') {
+            if(d.paymentMethod && d.paymentMethod.includes('ธนาคาร')) bankBal -= amt; else cashBal -= amt;
+        } else if(d.type === 'โอนย้ายสภาพคล่อง') {
+            if(d.note && d.note.includes('โอนจาก bank ไป cash')) { bankBal -= amt; cashBal += amt; }
+            if(d.note && d.note.includes('โอนจาก cash ไป bank')) { cashBal -= amt; bankBal += amt; }
+        }
+    });
+    return { bankBal, cashBal };
 };
 
 window.generateCalendarStrip = function() {
@@ -410,30 +426,60 @@ window.filterTransactionsByDate = function() {
     const displayDate = document.getElementById('selectedDateDisplay');
     if (!container) return;
     
-    let html = ""; let totalIn = 0; let totalOut = 0;
+    let html = ""; 
+    let totalIn = 0; 
+    let totalOut = 0;
+
     const dailyData = ledgerTxCache.filter(d => d.transactionDate === selectedLedgerDate && d.status === 'อนุมัติแล้ว');
 
     dailyData.forEach(d => {
-        const amt = parseFloat(d.amount || 0); const amtStr = amt.toLocaleString('en-US', { minimumFractionDigits: 2 });
-        const isIncome = d.type.includes('รับ') || d.type === 'สมทบเงินกองทุน';
-        if(isIncome) totalIn += amt; else totalOut += amt;
-
-        const colorClass = isIncome ? 'text-success' : 'text-danger'; const sign = isIncome ? '+' : '-';
-        const icon = isIncome ? '<i class="fa-solid fa-arrow-turn-down me-1"></i>' : '<i class="fa-solid fa-arrow-turn-up me-1"></i>';
+        const amt = parseFloat(d.amount || 0); 
+        const amtStr = amt.toLocaleString('en-US', { minimumFractionDigits: 2 });
         
-        html += `
-            <div class="p-3 mb-2 bg-light rounded-4 border border-secondary border-opacity-10 shadow-sm">
-                <div class="d-flex justify-content-between align-items-center">
-                    <div style="min-width: 0;">
-                        <strong class="text-dark d-block text-truncate" style="font-size: 0.9rem;">${icon} ${d.type}</strong>
-                        <small class="text-muted d-block text-truncate mt-1" style="font-size: 0.75rem;">${d.note || d.fullName}</small>
+        const isTransfer = d.type === 'โอนย้ายสภาพคล่อง';
+        const isIncome = d.type.includes('รับ') || d.type === 'สมทบเงินกองทุน';
+
+        if (isTransfer) {
+            // 🌟 แก้ไข: เขียนทิศทางให้ชัดเจน ว่าโอนจากไหนไปไหน
+            let dirText = "ภายในระบบ";
+            if (d.note && d.note.includes('โอนจาก cash ไป bank')) dirText = "เงินสด ➔ ธนาคาร";
+            if (d.note && d.note.includes('โอนจาก bank ไป cash')) dirText = "ธนาคาร ➔ เงินสด";
+
+            html += `
+                <div class="p-3 mb-2 bg-warning bg-opacity-10 rounded-4 border border-warning border-opacity-50 shadow-sm">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div style="min-width: 0;">
+                            <strong class="text-dark d-block text-truncate" style="font-size: 0.9rem;">
+                                <i class="fa-solid fa-arrow-right-arrow-left text-warning me-1"></i> ${d.type}
+                            </strong>
+                            <small class="text-dark d-block text-truncate mt-1" style="font-size: 0.75rem;">${d.note || d.fullName}</small>
+                        </div>
+                        <div class="text-end flex-shrink-0 ms-2">
+                            <strong class="text-warning text-dark fs-6 d-block">฿${amtStr}</strong>
+                            <span class="badge bg-white text-warning border border-warning mt-1" style="font-size: 0.65rem;">${dirText}</span>
+                        </div>
                     </div>
-                    <div class="text-end flex-shrink-0 ms-2">
-                        <strong class="${colorClass} fs-6 d-block">${sign}฿${amtStr}</strong>
-                        <span class="badge bg-white text-muted border mt-1" style="font-size: 0.65rem;">${d.paymentMethod || '-'}</span>
+                </div>`;
+        } else {
+            if(isIncome) totalIn += amt; else totalOut += amt;
+            const colorClass = isIncome ? 'text-success' : 'text-danger'; 
+            const sign = isIncome ? '+' : '-';
+            const icon = isIncome ? '<i class="fa-solid fa-arrow-turn-down me-1"></i>' : '<i class="fa-solid fa-arrow-turn-up me-1"></i>';
+            
+            html += `
+                <div class="p-3 mb-2 bg-light rounded-4 border border-secondary border-opacity-10 shadow-sm">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div style="min-width: 0;">
+                            <strong class="text-dark d-block text-truncate" style="font-size: 0.9rem;">${icon} ${d.type}</strong>
+                            <small class="text-muted d-block text-truncate mt-1" style="font-size: 0.75rem;">${d.note || d.fullName}</small>
+                        </div>
+                        <div class="text-end flex-shrink-0 ms-2">
+                            <strong class="${colorClass} fs-6 d-block">${sign}฿${amtStr}</strong>
+                            <span class="badge bg-white text-muted border mt-1" style="font-size: 0.65rem;">${d.paymentMethod || '-'}</span>
+                        </div>
                     </div>
-                </div>
-            </div>`;
+                </div>`;
+        }
     });
 
     if (displayDate) {
@@ -456,6 +502,7 @@ window.filterTransactionsByDate = function() {
 
     document.getElementById('dailyTotalIn').innerText = `฿${totalIn.toLocaleString('en-US', { minimumFractionDigits: 2 })}`;
     document.getElementById('dailyTotalOut').innerText = `฿${totalOut.toLocaleString('en-US', { minimumFractionDigits: 2 })}`;
+    
     container.innerHTML = html || '<div class="text-center text-muted small py-4 bg-light rounded-4 border border-dashed"><i class="fa-solid fa-file-invoice mb-2 fs-3 text-secondary opacity-50 d-block"></i>ไม่มีรายการธุรกรรมในวันที่เลือก</div>';
 };
 
@@ -480,8 +527,7 @@ window.updatePendingTransactionsList = function() {
     if (badge) { if (pendingData.length > 0) { badge.innerText = pendingData.length; badge.style.display = 'block'; } else { badge.style.display = 'none'; } }
 };
 
-// 🟢 ป๊อปอัป + รับเงิน / - จ่ายเงิน (Smart Popup)
-// 🌟 เปลี่ยน ID ของ HTML ด้านในให้เป็นเอกลักษณ์ (Unique) เพื่อไม่ให้ชนกับฟอร์มเก่าที่ซ่อนอยู่
+// 🟢 ป๊อปอัป + รับเงิน / - จ่ายเงิน (Smart Popup พร้อมเช็คยอดเงิน 100%)
 window.openDailyLedgerForm = async function(type) {
     const isIncome = type === 'income';
     const title = isIncome ? 'บันทึกรายรับ (+)' : 'บันทึกรายจ่าย (-)';
@@ -528,14 +574,27 @@ window.openDailyLedgerForm = async function(type) {
                 else { customInput.classList.add('d-none'); }
             });
         },
-        preConfirm: () => {
+        preConfirm: async () => {
             let cat = document.getElementById('popupCategory').value;
             if(cat === 'other') cat = document.getElementById('popupCustomNote').value.trim();
             const amount = parseFloat(document.getElementById('popupAmount').value);
             const method = document.getElementById('popupMethod').value;
             const date = document.getElementById('popupDate').value;
+            
             if(!cat) { Swal.showValidationMessage('กรุณาเลือกหรือระบุรายการ'); return false; }
             if(isNaN(amount) || amount <= 0) { Swal.showValidationMessage('กรุณาระบุจำนวนเงินให้มากกว่า 0'); return false; }
+            
+            // 🛡️ ตรวจสอบยอดเงินแบบ Real-time ก่อนบันทึกรายจ่าย
+            if (!isIncome && !method.includes('เครดิต')) {
+                const bals = await window.getRealtimeBalances();
+                let availableBal = method.includes('ธนาคาร') ? bals.bankBal : bals.cashBal;
+                let sourceName = method.includes('ธนาคาร') ? "ธนาคาร" : "เงินสด";
+                
+                if (amount > availableBal) {
+                    Swal.showValidationMessage(`ยอดเงินไม่เพียงพอ! (ยอด${sourceName}คงเหลือ: ฿${availableBal.toLocaleString('en-US', {minimumFractionDigits: 2})})`);
+                    return false;
+                }
+            }
             return { category: cat, amount, method, date };
         }
     });
@@ -561,10 +620,10 @@ window.openDailyLedgerForm = async function(type) {
 
             await db.collection("transactions").doc(txId).set(txData);
             
-            // แทรกข้อมูลเข้า Cache ทันทีและสั่งวาดหน้าจอใหม่
             ledgerTxCache.unshift({ id: txId, ...txData });
             window.filterTransactionsByDate();
-            
+            if(typeof window.loadDashboardOverview === 'function') window.loadDashboardOverview(); // อัปเดตยอดภาพรวม
+
             AppHelper.showLoader(false);
             Swal.fire({ icon: 'success', title: 'บันทึกสำเร็จ', showConfirmButton: false, timer: 1500 });
         } catch (error) {
@@ -573,19 +632,20 @@ window.openDailyLedgerForm = async function(type) {
     }
 };
 
-// 🔄 ปุ่มลัดสำหรับโอนย้ายเงิน (นำเงินสดเข้าแบงก์ / ถอนเงินสด)
+// 🔄 ปุ่มลัดสำหรับโอนย้ายเงิน (แก้ไขปัญหา ID ซ้ำและเช็คยอดเงิน 100%)
 window.openTransferForm = async function() {
     const { value: formValues } = await Swal.fire({
         title: `<div style="color:#F59E0B"><i class="fa-solid fa-arrow-right-arrow-left"></i> โอนย้ายเงิน</div>`,
         html: `
             <div class="text-start" style="font-family:'Prompt';">
                 <label class="small fw-bold text-muted mb-1">วันที่ทำรายการ</label>
-                <input type="date" id="tfDate" class="form-control-modern w-100 mb-3" value="${selectedLedgerDate}" readonly style="background-color:#F8FAFC;">
+                <input type="date" id="popupTfDate" class="form-control-modern w-100 mb-3" value="${selectedLedgerDate}" readonly style="background-color:#F8FAFC;">
                 
                 <div class="row g-2 mb-3">
                     <div class="col-5">
                         <label class="small fw-bold text-muted mb-1">ต้นทาง (จาก)</label>
-                        <select id="tfFrom" class="form-select-modern w-100 border-0 shadow-sm bg-white text-center fw-bold text-primary">
+                        <!-- 🌟 เปลี่ยน ID เป็น popupTfFrom -->
+                        <select id="popupTfFrom" class="form-select-modern w-100 border-0 shadow-sm bg-white text-center fw-bold text-primary">
                             <option value="cash" selected>เงินสด</option>
                             <option value="bank">ธนาคาร</option>
                         </select>
@@ -595,7 +655,8 @@ window.openTransferForm = async function() {
                     </div>
                     <div class="col-5">
                         <label class="small fw-bold text-muted mb-1">ปลายทาง (ไป)</label>
-                        <select id="tfTo" class="form-select-modern w-100 border-0 shadow-sm bg-white text-center fw-bold text-success">
+                        <!-- 🌟 เปลี่ยน ID เป็น popupTfTo -->
+                        <select id="popupTfTo" class="form-select-modern w-100 border-0 shadow-sm bg-white text-center fw-bold text-success">
                             <option value="bank" selected>ธนาคาร</option>
                             <option value="cash">เงินสด</option>
                         </select>
@@ -603,73 +664,59 @@ window.openTransferForm = async function() {
                 </div>
                 
                 <label class="small fw-bold text-muted mb-1">จำนวนเงิน (บาท) *</label>
-                <input type="number" id="tfAmount" class="form-control-modern w-100 mb-3 text-center fw-bold fs-3 border-0 shadow-sm" style="color:#D97706; background-color:#FEF3C7;" placeholder="0.00" step="0.01">
+                <!-- 🌟 เปลี่ยน ID เป็น popupTfAmount -->
+                <input type="number" id="popupTfAmount" class="form-control-modern w-100 mb-3 text-center fw-bold fs-3 border-0 shadow-sm" style="color:#D97706; background-color:#FEF3C7;" placeholder="0.00" step="0.01">
             </div>
         `,
-        showCancelButton: true,
-        confirmButtonText: '<i class="fa-solid fa-save me-1"></i> บันทึกโอนย้าย',
-        cancelButtonText: 'ยกเลิก',
-        confirmButtonColor: '#F59E0B',
+        showCancelButton: true, confirmButtonText: '<i class="fa-solid fa-save me-1"></i> บันทึกโอนย้าย', cancelButtonText: 'ยกเลิก', confirmButtonColor: '#F59E0B',
         didOpen: () => {
-            // ระบบสลับต้นทาง-ปลายทางอัตโนมัติ (ไม่ให้เลือกซ้ำกัน)
-            const fromEl = document.getElementById('tfFrom');
-            const toEl = document.getElementById('tfTo');
-            fromEl.addEventListener('change', (e) => {
-                toEl.value = e.target.value === 'cash' ? 'bank' : 'cash';
-            });
-            toEl.addEventListener('change', (e) => {
-                fromEl.value = e.target.value === 'cash' ? 'bank' : 'cash';
-            });
+            const fromEl = document.getElementById('popupTfFrom'); 
+            const toEl = document.getElementById('popupTfTo');
+            fromEl.addEventListener('change', (e) => { toEl.value = e.target.value === 'cash' ? 'bank' : 'cash'; });
+            toEl.addEventListener('change', (e) => { fromEl.value = e.target.value === 'cash' ? 'bank' : 'cash'; });
         },
-        preConfirm: () => {
-            const amount = parseFloat(document.getElementById('tfAmount').value);
-            const from = document.getElementById('tfFrom').value;
-            const to = document.getElementById('tfTo').value;
-            const date = document.getElementById('tfDate').value;
+        preConfirm: async () => {
+            const amount = parseFloat(document.getElementById('popupTfAmount').value);
+            const from = document.getElementById('popupTfFrom').value;
+            const to = document.getElementById('popupTfTo').value;
+            const date = document.getElementById('popupTfDate').value;
             
             if(from === to) { Swal.showValidationMessage('ต้นทางและปลายทางต้องไม่ซ้ำกัน'); return false; }
             if(isNaN(amount) || amount <= 0) { Swal.showValidationMessage('กรุณาระบุจำนวนเงินให้มากกว่า 0'); return false; }
+            
+            // 🛡️ ตรวจสอบยอดเงินแบบ Real-time ก่อนโอนย้าย
+            const bals = await window.getRealtimeBalances();
+            let availableBal = from === 'bank' ? bals.bankBal : bals.cashBal;
+            let sourceName = from === 'bank' ? "ธนาคาร" : "เงินสด";
+            
+            if (amount > availableBal) {
+                Swal.showValidationMessage(`ยอดเงินไม่เพียงพอ! (ยอด${sourceName}คงเหลือ: ฿${availableBal.toLocaleString('en-US', {minimumFractionDigits: 2})})`);
+                return false;
+            }
             
             return { amount, from, to, date };
         }
     });
 
-    // บันทึกลง Firebase
     if (formValues) {
         AppHelper.showLoader(true, "กำลังบันทึกรายการ...");
         try {
             const txId = "TX" + Date.now().toString().slice(-8) + Math.floor(Math.random() * 100).toString().padStart(2,'0');
             const adminName = AdminState.currentAdmin?.name || "Admin";
-            
-            // สร้างคำอธิบายให้ระบบเข้าใจ
-            let noteMsg = formValues.from === 'cash' 
-                ? 'นำเงินสดฝากเข้าธนาคาร (โอนจาก cash ไป bank)' 
-                : 'ถอนเงินสดจากธนาคาร (โอนจาก bank ไป cash)';
+            let noteMsg = formValues.from === 'cash' ? 'นำเงินสดฝากเข้าธนาคาร (โอนจาก cash ไป bank)' : 'ถอนเงินสดจากธนาคาร (โอนจาก bank ไป cash)';
 
             const txData = {
-                txId: txId, 
-                type: 'โอนย้ายสภาพคล่อง', 
-                note: noteMsg, 
-                amount: formValues.amount, 
-                paymentMethod: 'ภายในระบบ', 
-                transactionDate: formValues.date, 
-                fullName: 'แอดมิน: ' + adminName, 
-                status: 'อนุมัติแล้ว', 
-                currentHolder: 'CENTRAL_BANK', 
-                timestamp: new Date()
+                txId: txId, type: 'โอนย้ายสภาพคล่อง', note: noteMsg, amount: formValues.amount, paymentMethod: 'ภายในระบบ', transactionDate: formValues.date, fullName: 'แอดมิน: ' + adminName, status: 'อนุมัติแล้ว', currentHolder: 'CENTRAL_BANK', timestamp: new Date()
             };
 
             await db.collection("transactions").doc(txId).set(txData);
-            
-            // โชว์ในปฏิทินของวันนี้ทันที
             ledgerTxCache.unshift({ id: txId, ...txData });
             window.filterTransactionsByDate();
-            
+            if(typeof window.loadDashboardOverview === 'function') window.loadDashboardOverview(); // อัปเดตยอดภาพรวม
+
             AppHelper.showLoader(false);
             Swal.fire({ icon: 'success', title: 'โอนย้ายสำเร็จ', showConfirmButton: false, timer: 1500 });
-        } catch (error) {
-            AppHelper.showLoader(false); Swal.fire('ข้อผิดพลาด', 'ไม่สามารถบันทึกรายการได้: ' + error.message, 'error');
-        }
+        } catch (error) { AppHelper.showLoader(false); Swal.fire('ข้อผิดพลาด', 'ไม่สามารถบันทึกรายการได้: ' + error.message, 'error'); }
     }
 };
 
