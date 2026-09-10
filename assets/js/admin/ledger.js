@@ -199,7 +199,7 @@ window.bulkCollectContribution = async function() {
             
             const finalNote = formValues.note ? `เก็บเงินกลุ่ม ${formValues.membersData.length} คน (${formValues.note})` : `เก็บเงินกลุ่ม ${formValues.membersData.length} คน`;
 
-            // 🌟 สร้างระบบ QR Code ตรงนี้
+            // 🌟 แก้ไขระบบสร้าง QR Code ตรงนี้
             if (formValues.isQR) {
                 const qrPayload = JSON.stringify({
                     action: "bulk_pay_to_fund",
@@ -215,18 +215,28 @@ window.bulkCollectContribution = async function() {
                         <div class="text-center" style="font-family:'Prompt';">
                             <p class="text-muted small mb-1">ยอดรวม (${formValues.membersData.length} คน)</p>
                             <h2 class="text-primary fw-bold mb-3">฿${totalAmt.toLocaleString('en-US', {minimumFractionDigits: 2})}</h2>
-                            <div id="bulkQrBox" class="d-flex justify-content-center p-3 bg-white rounded-4 shadow-sm mx-auto mb-3 border" style="width: 220px; height: 220px;"></div>
+                            <div id="bulkQrBox" class="d-flex justify-content-center align-items-center p-3 bg-white rounded-4 shadow-sm mx-auto mb-3 border" style="width: 220px; height: 220px;">
+                                <!-- QR จะแสดงที่นี่ -->
+                            </div>
                             <p class="small text-muted"><i class="fa-solid fa-mobile-screen me-1"></i> ให้ตัวแทนกลุ่มสแกนจ่าย</p>
                         </div>
                     `,
                     didOpen: () => {
-                        new QRCode(document.getElementById("bulkQrBox"), { 
-                            text: qrPayload, 
-                            width: 180, 
-                            height: 180,
-                            colorDark : "#0F172A",
-                            colorLight : "#ffffff"
-                        });
+                        // 🌟 ใช้ setTimeout รอให้ Popup กางเสร็จก่อนวาด QR (แก้ภาพไม่สมบูรณ์)
+                        setTimeout(() => {
+                            const qrBox = document.getElementById("bulkQrBox");
+                            if(qrBox) {
+                                qrBox.innerHTML = ""; // ล้างค่าเผื่อโหลดซ้ำ
+                                new QRCode(qrBox, { 
+                                    text: qrPayload, 
+                                    width: 180, 
+                                    height: 180,
+                                    colorDark : "#0F172A",
+                                    colorLight : "#ffffff",
+                                    correctLevel : QRCode.CorrectLevel.L // ลดความหนาแน่นให้สแกนง่ายขึ้น
+                                });
+                            }
+                        }, 150);
                     },
                     confirmButtonText: 'ปิดหน้าต่าง'
                 });
@@ -849,19 +859,26 @@ window.generatePaymentQR = function() {
                     <div class="text-center" style="font-family:'Prompt';">
                         <p class="text-muted small mb-1">จำนวนเงินที่ต้องชำระ:</p>
                         <h2 class="text-primary fw-bold mb-3">฿${amount.toLocaleString('en-US', {minimumFractionDigits: 2})}</h2>
-                        <div id="paymentQrBox" class="d-flex justify-content-center p-3 bg-white rounded-4 shadow-sm mx-auto mb-3 border" style="width: 220px; height: 220px;"></div>
+                        <div id="paymentQrBox" class="d-flex justify-content-center align-items-center p-3 bg-white rounded-4 shadow-sm mx-auto mb-3 border" style="width: 220px; height: 220px;"></div>
                         <p class="small text-muted mb-0"><i class="fa-solid fa-mobile-screen me-1"></i> ให้สมาชิกใช้ LINE สแกน</p>
                     </div>
                 `,
                 didOpen: () => {
-                    // วาดรูป QR Code
-                    new QRCode(document.getElementById("paymentQrBox"), { 
-                        text: qrPayload, 
-                        width: 180, 
-                        height: 180,
-                        colorDark : "#0F172A",
-                        colorLight : "#ffffff",
-                    });
+                    // 🌟 ใช้ setTimeout แบบเดียวกับด้านบนเพื่อป้องกัน QR แหว่ง
+                    setTimeout(() => {
+                        const qrBox = document.getElementById("paymentQrBox");
+                        if(qrBox) {
+                            qrBox.innerHTML = ""; 
+                            new QRCode(qrBox, { 
+                                text: qrPayload, 
+                                width: 180, 
+                                height: 180,
+                                colorDark : "#0F172A",
+                                colorLight : "#ffffff",
+                                correctLevel : QRCode.CorrectLevel.L
+                            });
+                        }
+                    }, 150);
                 },
                 confirmButtonText: 'ปิดหน้าต่าง'
             });
