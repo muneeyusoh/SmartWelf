@@ -75,6 +75,12 @@ window.confirmAmount = async function(memberId, currentStatus) {
     if (isNaN(amount) || amount <= 0) return Swal.fire('แจ้งเตือน', 'กรุณาระบุจำนวนเงินที่ถูกต้อง', 'warning');
 
     AppHelper.showLoader(true, "กำลังบันทึกยอดเงิน...");
+    
+    // 🌟 ดึงข้อมูลไว้เตรียมสร้าง E-Slip
+    let savedTxId = "";
+    let savedMemberName = "";
+    let savedDate = new Date().toISOString().split('T')[0];
+
     try {
         const memberRef = db.collection('members').doc(memberId);
         const txRef = db.collection('transactions').doc(); 
@@ -83,7 +89,7 @@ window.confirmAmount = async function(memberId, currentStatus) {
             const doc = await transaction.get(memberRef);
             if (!doc.exists) throw "ไม่พบข้อมูลสมาชิก";
 
-            let memberName = doc.data().fullName; 
+            savedMemberName = doc.data().fullName; 
             let currentTotal = parseFloat(doc.data().totalContribution || 0);
             let currentOutstanding = parseFloat(doc.data().outstandingBalance || 0);
             
@@ -103,14 +109,14 @@ window.confirmAmount = async function(memberId, currentStatus) {
             
             transaction.update(memberRef, updatePayload);
 
-            const txId = "TX" + Date.now().toString().slice(-8) + Math.floor(Math.random() * 100).toString().padStart(2,'0');
+            savedTxId = "TX" + Date.now().toString().slice(-8) + Math.floor(Math.random() * 100).toString().padStart(2,'0');
             const myRole = AdminState.currentAdmin.role;
             const routeData = getNextFinancialStatusAndHolder(myRole, AdminState.currentAdmin.email);
 
             transaction.set(txRef, { 
-                txId: txId, type: 'สมทบเงินกองทุน', amount: amount, paymentMethod: 'เงินสด', 
-                transactionDate: new Date().toISOString().split('T')[0], fullName: 'แอดมิน: ' + AdminState.currentAdmin.name, 
-                status: routeData.status, currentHolder: routeData.holder, note: `รับเงินสมทบจาก: ${memberName}`, uid: memberId, 
+                txId: savedTxId, type: 'สมทบเงินกองทุน', amount: amount, paymentMethod: 'เงินสด', 
+                transactionDate: savedDate, fullName: 'แอดมิน: ' + AdminState.currentAdmin.name, 
+                status: routeData.status, currentHolder: routeData.holder, note: `รับเงินสมทบจาก: ${savedMemberName}`, uid: memberId, 
                 timestamp: firebase.firestore.FieldValue.serverTimestamp() 
             });
         });
@@ -122,8 +128,13 @@ window.confirmAmount = async function(memberId, currentStatus) {
             badgeWrapper.style.display = 'block'; 
         }
 
-        AppHelper.showLoader(false);
-        Swal.fire({ title: 'บันทึกสำเร็จ!', text: `รับสมทบ ${amount} บาท และเก็บไว้ที่คุณ (รอส่งมอบต่อไป)`, icon: 'success', timer: 1500, showConfirmButton: false });
+        // 🌟 เด้งใบเสร็จ E-Slip ให้แอดมินทันที
+        if (typeof window.generateEReceipt === 'function') {
+            window.generateEReceipt(savedTxId, 'สมทบเงินกองทุน', amount, savedDate, `รับเงินจาก: ${savedMemberName}`, savedMemberName);
+        } else {
+            AppHelper.showLoader(false);
+            Swal.fire({ title: 'บันทึกสำเร็จ!', text: `รับสมทบ ${amount} บาท และเก็บไว้ที่คุณ (รอส่งมอบต่อไป)`, icon: 'success', timer: 1500, showConfirmButton: false });
+        }
 
         setTimeout(() => { 
             if(typeof window.loadMembersData === 'function') window.loadMembersData(); 
@@ -897,7 +908,15 @@ window.bulkCollectContribution = async function() {
                     }
                 }
                 await batch.commit();
-                Swal.fire('สำเร็จ', routeData.status === 'เข้าคลังแล้ว' ? 'ส่งยอดเข้าส่วนกลางเรียบร้อย' : 'บันทึกเข้ากระเป๋าของคุณ (รอส่งมอบขั้นต่อไป)', 'success');
+                
+                // 🌟 เด้งใบเสร็จ E-Slip (กลุ่ม) ให้แอดมินทันที
+                if (typeof window.generateEReceipt === 'function') {
+                    window.generateEReceipt(bulkTxId, 'สมทบเงินกองทุน (กลุ่ม)', totalAmt, formValues.date, finalNote, `ตัวแทนกลุ่ม (${formValues.membersData.length} ท่าน)`);
+                } else {
+                    AppHelper.showLoader(false);
+                    Swal.fire('สำเร็จ', routeData.status === 'เข้าคลังแล้ว' ? 'ส่งยอดเข้าส่วนกลางเรียบร้อย' : 'บันทึกเข้ากระเป๋าของคุณ (รอส่งมอบขั้นต่อไป)', 'success');
+                }
+                
                 if(typeof window.loadMembersData === 'function') window.loadMembersData();
             }
         } catch(e) { AppHelper.showLoader(false); Swal.fire('Error', 'ไม่สามารถจัดเก็บเงินกลุ่มได้', 'error'); }

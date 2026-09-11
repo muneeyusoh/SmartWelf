@@ -213,63 +213,52 @@
         </div>
       </div>
 
-      <!-- 🌟 การ์ดกระแสเงินสด (อัปเดตแก้ปัญหาตัวเลขซ้อนทับบนมือถือ) 🌟 -->
+      <!-- 🌟 การ์ดกระแสเงินสด (ดีไซน์ใหม่ 2x2 ทันสมัย ลดความซ้ำซ้อน) 🌟 -->
       <div class="admin-card border-0 p-4 mb-4 shadow-sm rounded-4 bg-white">
           <!-- Header -->
           <div class="d-flex justify-content-between mb-3 align-items-center">
               <h6 class="fw-bold text-dark mb-0">
-                  <i class="fa-solid fa-wallet text-primary me-2 fs-5"></i>กระแสเงินสด รับ-จ่าย และหนี้สิน
+                  <i class="fa-solid fa-chart-pie text-primary me-2 fs-5"></i>สัดส่วนการเงินและสภาพคล่อง
               </h6>
           </div>
 
-          <!-- ส่วนที่ 1: สรุปข้อมูลรับ-จ่ายเชิงลึก -->
-          <div class="row g-2 mb-3">
+          <!-- 🌟 แบ่งเป็น Grid 2x2: บน=รับ/จ่าย, ล่าง=ที่เก็บเงิน (ธนาคาร/เงินสด) -->
+          <div class="row g-3 mb-4">
+              <!-- กล่อง 1: รายรับ (พื้นสีเขียวอ่อน) -->
               <div class="col-6">
-                  <div class="border border-opacity-50 rounded-3 p-3 bg-light bg-opacity-50 h-100 overflow-hidden">
-                      <div class="d-flex align-items-center mb-2">
-                          <div class="d-flex justify-content-center align-items-center bg-success bg-opacity-10 text-success rounded-circle me-2 flex-shrink-0" style="width: 24px; height: 24px;">
-                              <i class="fa-solid fa-arrow-turn-down" style="font-size: 0.6rem;"></i>
-                          </div>
-                          <small class="text-muted fw-bold text-nowrap" style="font-size: 0.75rem;">รายรับรวม</small>
-                      </div>
-                      <!-- ใช้ clamp() ย่อตัวอักษรอัตโนมัติ และ text-nowrap ห้ามตัดบรรทัด -->
-                      <div class="fw-bold text-dark mb-0 text-nowrap" id="stat-total-in" style="font-size: clamp(0.85rem, 4vw, 1.15rem);">฿0.00</div>
+                  <div class="p-3 bg-success bg-opacity-10 rounded-4 h-100 border border-success border-opacity-25 overflow-hidden">
+                      <small class="text-success fw-bold d-block mb-1"><i class="fa-solid fa-arrow-turn-down me-1"></i> รายรับรวม</small>
+                      <div class="fw-bold text-success text-nowrap" id="stat-total-in" style="font-size: clamp(1rem, 4vw, 1.25rem);">฿0.00</div>
                   </div>
-              </div>
-              <div class="col-6">
-                  <div class="border border-opacity-50 rounded-3 p-3 bg-light bg-opacity-50 h-100 overflow-hidden">
-                      <div class="d-flex align-items-center mb-2">
-                          <div class="d-flex justify-content-center align-items-center bg-danger bg-opacity-10 text-danger rounded-circle me-2 flex-shrink-0" style="width: 24px; height: 24px;">
-                              <i class="fa-solid fa-arrow-turn-up" style="font-size: 0.6rem;"></i>
-                          </div>
-                          <small class="text-muted fw-bold text-nowrap" style="font-size: 0.75rem;">จ่ายสวัสดิการ</small>
-                      </div>
-                      <div class="fw-bold text-dark mb-0 text-nowrap" id="stat-total-out" style="font-size: clamp(0.85rem, 4vw, 1.15rem);">฿0.00</div>
-                  </div>
-              </div>
-          </div>
-
-          <!-- ส่วนที่ 2: ยอดคงเหลือสภาพคล่อง (แบ่ง 1 แถวบน 2 แถวล่าง) -->
-          <div class="row g-3 mt-2 pt-3" style="border-top: 1px dashed #E2E8F0;">
-              <!-- คงเหลือทั้งหมด (เต็มความกว้าง) -->
-              <div class="col-12 text-center mb-2 overflow-hidden">
-                  <small class="text-muted fw-bold d-block mb-1" style="font-size: 0.75rem;">คงเหลือทั้งหมด</small>
-                  <div class="text-dark fw-bold text-nowrap" id="chart-sum-total" style="font-size: clamp(1.4rem, 6vw, 2rem);">฿0.00</div>
               </div>
               
-              <!-- ธนาคาร และ เงินสด -->
-              <div class="col-6 text-center border-end border-light overflow-hidden">
-                  <small class="text-muted fw-bold d-block mb-1" style="font-size: 0.7rem;">ธนาคาร</small>
-                  <div class="text-primary fw-bold text-nowrap" id="liq-bank" style="font-size: clamp(0.9rem, 4.5vw, 1.25rem);">฿0.00</div>
+              <!-- กล่อง 2: รายจ่าย (พื้นสีแดงอ่อน) -->
+              <div class="col-6">
+                  <div class="p-3 bg-danger bg-opacity-10 rounded-4 h-100 border border-danger border-opacity-25 overflow-hidden">
+                      <small class="text-danger fw-bold d-block mb-1"><i class="fa-solid fa-arrow-turn-up me-1"></i> จ่ายสวัสดิการ</small>
+                      <div class="fw-bold text-danger text-nowrap" id="stat-total-out" style="font-size: clamp(1rem, 4vw, 1.25rem);">฿0.00</div>
+                  </div>
               </div>
-              <div class="col-6 text-center overflow-hidden">
-                  <small class="text-muted fw-bold d-block mb-1" style="font-size: 0.7rem;">เงินสด</small>
-                  <div class="text-success fw-bold text-nowrap" id="liq-cash" style="font-size: clamp(0.9rem, 4.5vw, 1.25rem);">฿0.00</div>
+
+              <!-- กล่อง 3: ธนาคาร (ขอบเรียบหรู) -->
+              <div class="col-6">
+                  <div class="p-3 bg-light rounded-4 h-100 border border-secondary border-opacity-25 overflow-hidden">
+                      <small class="text-muted fw-bold d-block mb-1"><i class="fa-solid fa-building-columns text-primary me-1"></i> ยอดในธนาคาร</small>
+                      <div class="fw-bold text-dark text-nowrap" id="liq-bank" style="font-size: clamp(1rem, 4vw, 1.25rem);">฿0.00</div>
+                  </div>
+              </div>
+
+              <!-- กล่อง 4: เงินสด (ขอบเรียบหรู) -->
+              <div class="col-6">
+                  <div class="p-3 bg-light rounded-4 h-100 border border-secondary border-opacity-25 overflow-hidden">
+                      <small class="text-muted fw-bold d-block mb-1"><i class="fa-solid fa-money-bill-wave text-success me-1"></i> เงินสดในมือ</small>
+                      <div class="fw-bold text-dark text-nowrap" id="liq-cash" style="font-size: clamp(1rem, 4vw, 1.25rem);">฿0.00</div>
+                  </div>
               </div>
           </div>
 
-          <!-- ส่วนที่ 3: ยอดลูกหนี้ค้างชำระ -->
-          <div class="row mt-4">
+          <!-- ส่วนยอดลูกหนี้ค้างชำระ (ดีไซน์เดิม) -->
+          <div class="row">
               <div class="col-12">
                   <div class="border-0 bg-danger bg-opacity-10 border border-danger border-opacity-25 rounded-3 p-3 d-flex justify-content-between align-items-center overflow-hidden">
                       <div class="d-flex align-items-center" style="min-width: 0;">
@@ -286,7 +275,6 @@
               </div>
           </div>
       </div>
-      <!-- 🌟 สิ้นสุดการ์ดกระแสเงินสด 🌟 -->
 
       <div class="d-flex justify-content-between align-items-center mb-3 mt-4 ps-1">
     <div class="d-flex align-items-center">
@@ -1324,9 +1312,9 @@
 <script src="./assets/js/admin/admin-ui.js?v=5"></script>
 
 <!-- 3. โหลด Modules การทำงานต่างๆ -->
-<script src="./assets/js/admin/dashboard.js?v=10"></script>
+<script src="./assets/js/admin/dashboard.js?v=11"></script>
 <script src="./assets/js/admin/members.js?v=10"></script>
-<script src="./assets/js/admin/ledger.js?v=27"></script>
+<script src="./assets/js/admin/ledger.js?v=28"></script>
 <script src="./assets/js/admin/claims.js?v=10"></script>
 <script src="./assets/js/admin/shops-news.js?v=10"></script>
 <script src="./assets/js/admin/shops.js?v=10"></script>

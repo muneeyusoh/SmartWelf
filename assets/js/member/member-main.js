@@ -498,8 +498,14 @@ async function scanToPayAdmin() {
                             batch.set(newTxRef, txPayload);
                             batch.update(payRef, { status: "completed", scannedByUid: scannerUid, completedAt: firebase.firestore.FieldValue.serverTimestamp() });
                             await batch.commit();
-                            
-                            Swal.fire({ icon: 'success', title: 'ชำระเงินสำเร็จ!', text: 'ระบบบันทึกการมอบเงินให้กรรมการเรียบร้อยแล้ว', confirmButtonColor: '#10B981' }).then(() => { checkMemberOnCloud(scannerUid); });
+
+                            // 🌟 เด้งสลิปให้สมาชิกทันทีหลังจากสแกนจ่ายเงิน
+                            if (typeof window.generateMemberEReceipt === 'function') {
+                                window.generateMemberEReceipt(payData.txId, 'สมทบเงินกองทุน', payData.amount, payData.date, `มอบเงินสดให้: ${payData.adminName}`, cachedUserData?.fullName || "สมาชิก");
+                                checkMemberOnCloud(scannerUid);
+                            } else {
+                                Swal.fire({ icon: 'success', title: 'ชำระเงินสำเร็จ!', text: 'ระบบบันทึกการมอบเงินให้กรรมการเรียบร้อยแล้ว', confirmButtonColor: '#10B981' }).then(() => { checkMemberOnCloud(scannerUid); });
+                            }
                         } catch(err) { Swal.fire('Error', 'เกิดข้อผิดพลาดในการบันทึก', 'error'); }
                     }
                 });
@@ -844,4 +850,40 @@ window.handleProfileUpdate = async function(e) {
         btn.disabled = false;
         btn.innerHTML = '<i class="fa-solid fa-save me-1"></i> บันทึกข้อมูล';
     }
+};
+// ============================================================================
+// 🧾 สร้าง E-Receipt บนมือถือสมาชิก
+// ============================================================================
+window.generateMemberEReceipt = function(txId, type, amount, date, note, name) {
+    AppHelper.showLoader(true, "กำลังสร้างสลิปใบเสร็จ...");
+    const canvas = document.createElement('canvas'); canvas.width = 600; canvas.height = 850; const ctx = canvas.getContext('2d');
+    ctx.fillStyle = '#ffffff'; ctx.fillRect(0, 0, canvas.width, canvas.height);
+    const themeColor = '#10B981'; 
+    ctx.fillStyle = themeColor; ctx.fillRect(0, 0, canvas.width, 140);
+    ctx.fillStyle = '#ffffff'; ctx.font = 'bold 42px Prompt, sans-serif'; ctx.textAlign = 'center'; ctx.fillText('ใบเสร็จรับเงิน', canvas.width / 2, 85);
+    ctx.textAlign = 'left'; ctx.fillStyle = '#475569'; ctx.font = '22px Prompt, sans-serif';
+    const fundName = fundSettings?.fundName || "กองทุนสวัสดิการชุมชน";
+    
+    CanvasRenderingContext2D.prototype.roundRect = function (x, y, w, h, r) {
+        if (w < 2 * r) r = w / 2; if (h < 2 * r) r = h / 2; this.beginPath(); this.moveTo(x + r, y); this.arcTo(x + w, y, x + w, y + h, r); this.arcTo(x + w, y + h, x, y + h, r); this.arcTo(x, y + h, x, y, r); this.arcTo(x, y, x + w, y, r); this.closePath(); return this;
+    }
+    
+    ctx.fillStyle = '#F8FAFC'; ctx.roundRect(40, 180, 520, 360, 20); ctx.fill(); ctx.strokeStyle = '#E2E8F0'; ctx.lineWidth = 2; ctx.stroke();
+    ctx.fillStyle = '#334155'; ctx.font = 'bold 24px Prompt'; ctx.fillText('ข้อมูลการทำรายการ', 70, 230);
+    ctx.font = '22px Prompt'; ctx.fillStyle = '#64748B'; ctx.beginPath(); ctx.moveTo(70, 250); ctx.lineTo(530, 250); ctx.stroke();
+    
+    ctx.fillText('รหัสอ้างอิง (Ref):', 70, 300); ctx.fillStyle = '#0F172A'; ctx.textAlign = 'right'; ctx.fillText(txId, 530, 300);
+    ctx.fillStyle = '#64748B'; ctx.textAlign = 'left'; ctx.fillText('วันที่ทำรายการ:', 70, 350); ctx.fillStyle = '#0F172A'; ctx.textAlign = 'right'; ctx.fillText(date, 530, 350);
+    ctx.fillStyle = '#64748B'; ctx.textAlign = 'left'; ctx.fillText('ประเภท:', 70, 400); ctx.fillStyle = themeColor; ctx.textAlign = 'right'; ctx.fillText(type, 530, 400);
+    ctx.fillStyle = '#64748B'; ctx.textAlign = 'left'; ctx.fillText('ชื่อสมาชิก:', 70, 450); ctx.fillStyle = '#0F172A'; ctx.textAlign = 'right'; ctx.fillText(name.replace('แอดมิน: ', ''), 530, 450);
+    ctx.fillStyle = '#64748B'; ctx.textAlign = 'left'; ctx.fillText('รายละเอียด:', 70, 500); ctx.fillStyle = '#0F172A'; ctx.textAlign = 'right';
+    
+    let shortNote = note; if(shortNote.length > 25) shortNote = shortNote.substring(0, 25) + '...';
+    ctx.fillText(shortNote, 530, 500);
+    ctx.textAlign = 'center'; ctx.fillStyle = '#94A3B8'; ctx.font = '20px Prompt'; ctx.fillText('จำนวนเงิน (Amount)', canvas.width / 2, 600);
+    ctx.fillStyle = themeColor; ctx.font = 'bold 64px Prompt'; ctx.fillText('฿ ' + amount.toLocaleString('en-US', {minimumFractionDigits: 2}), canvas.width / 2, 670);
+    ctx.fillStyle = '#CBD5E1'; ctx.font = '18px Prompt'; ctx.fillText('ออกโดย: ' + fundName, canvas.width / 2, 770); ctx.fillText('เอกสารนี้ออกโดยระบบอัตโนมัติ SmartWelf 5.0', canvas.width / 2, 800);
+
+    const imgData = canvas.toDataURL('image/jpeg', 1.0); AppHelper.showLoader(false);
+    Swal.fire({ title: 'ใบเสร็จรับเงิน (E-Slip)', imageUrl: imgData, imageWidth: '100%', imageAlt: 'Receipt Image', showCancelButton: true, confirmButtonText: '<i class="fa-solid fa-download"></i> บันทึกรูปลงเครื่อง', cancelButtonText: 'ปิด', confirmButtonColor: '#2563EB', customClass: { image: 'rounded-4 shadow-sm border' } }).then((res) => { if(res.isConfirmed) { const link = document.createElement('a'); link.download = `SmartWelf_Slip_${txId}.jpg`; link.href = imgData; link.click(); Swal.fire({icon: 'success', title: 'บันทึกรูปภาพสำเร็จ!', showConfirmButton: false, timer: 1500}); } });
 };

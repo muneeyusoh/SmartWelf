@@ -141,10 +141,15 @@ function updateDashboardChart(chartData) {
     }
 }
 
+// =========================================================
+// 📈 ฟังก์ชันสร้าง Mixed Chart สมัยใหม่ (Bar + Line)
+// =========================================================
 async function renderTrendChart() {
-    const filterSelect = document.getElementById('trendFilter'); if(!filterSelect) return;
+    const filterSelect = document.getElementById('trendFilter'); 
+    if(!filterSelect) return;
     const filter = filterSelect.value;
-    const ctx = document.getElementById('trendChart'); if (!ctx) return;
+    const ctx = document.getElementById('trendChart'); 
+    if (!ctx) return;
     
     try {
         const snap = await db.collection("transactions").where("status", "==", "อนุมัติแล้ว").get();
@@ -198,16 +203,85 @@ async function renderTrendChart() {
         if (!window.charts) window.charts = {}; 
         if (charts.trendChartObj) charts.trendChartObj.destroy();
         
-        charts.trendChartObj = new Chart(ctx.getContext('2d'), {
-            type: 'line',
+        // 🌟 สร้าง Gradient (แรเงา) ใต้กราฟเส้นให้ดูหรูหรา
+        const ctx2d = ctx.getContext('2d');
+        let gradientFill = ctx2d.createLinearGradient(0, 0, 0, 250);
+        gradientFill.addColorStop(0, 'rgba(37, 99, 235, 0.2)'); // สีน้ำเงินใสๆ ด้านบน
+        gradientFill.addColorStop(1, 'rgba(37, 99, 235, 0)');   // จางหายไปด้านล่าง
+
+        // 🌟 ตั้งค่ากราฟผสม (Mixed Chart)
+        charts.trendChartObj = new Chart(ctx2d, {
+            type: 'bar', // Base Type
             data: {
                 labels: labels,
                 datasets: [
-                    { label: 'รับจากสมาชิก', data: dMember, borderColor: '#2563EB', backgroundColor: '#2563EB', tension: 0.3, fill: false, pointRadius: 4 },
-                    { label: 'รายจ่ายรวม', data: dExpense, borderColor: '#EF4444', backgroundColor: '#EF4444', borderDash: [5, 5], tension: 0.3, fill: false, pointRadius: 4 }
+                    { 
+                        type: 'line', // 📈 กราฟเส้น (รายจ่าย)
+                        label: 'รายจ่ายรวม', 
+                        data: dExpense, 
+                        borderColor: '#2563EB', // สีน้ำเงินสว่าง
+                        backgroundColor: gradientFill, 
+                        borderWidth: 3, 
+                        tension: 0.4, // ทำให้เส้นโค้งสมูท
+                        fill: true, // เปิดการเติมสีใต้กราฟ
+                        pointBackgroundColor: '#ffffff',
+                        pointBorderColor: '#2563EB',
+                        pointBorderWidth: 2,
+                        pointRadius: 4,
+                        pointHoverRadius: 6,
+                        order: 1 // ลอยอยู่ด้านบนสุด
+                    },
+                    { 
+                        type: 'bar', // 📊 กราฟแท่ง (รายรับ)
+                        label: 'รับจากสมาชิก', 
+                        data: dMember, 
+                        backgroundColor: '#10B981', // สีเขียวสไตล์ Fintech
+                        hoverBackgroundColor: '#059669',
+                        borderRadius: 8, // 🌟 ทำขอบแท่งให้โค้งมน
+                        barPercentage: 0.45, // ปรับความเพรียวของแท่งให้เหมาะกับมือถือ
+                        categoryPercentage: 0.8,
+                        order: 2 // อยู่ด้านหลังเส้น
+                    }
                 ]
             },
-            options: { responsive: true, maintainAspectRatio: false, interaction: { mode: 'index', intersect: false }, plugins: { legend: { position: 'top', labels: { boxWidth: 10, font: { family: "'Prompt'" } } } }, scales: { y: { beginAtZero: true, ticks: { font: { family: "'Prompt'" } } }, x: { ticks: { font: { family: "'Prompt'" } } } } }
+            options: { 
+                responsive: true, 
+                maintainAspectRatio: false, 
+                interaction: { 
+                    mode: 'index', 
+                    intersect: false 
+                }, 
+                // 🌟 แอนิเมชันวิ่งแบบสมูท (EaseOutQuart)
+                animation: {
+                    duration: 1500, // วิ่ง 1.5 วินาที
+                    easing: 'easeOutQuart'
+                },
+                plugins: { 
+                    legend: { 
+                        position: 'top', 
+                        labels: { usePointStyle: true, boxWidth: 8, font: { family: "'Prompt'" } } 
+                    },
+                    tooltip: { // ป๊อปอัปเวลากดที่กราฟ
+                        backgroundColor: 'rgba(15, 23, 42, 0.9)', // สีพื้นหลังเข้ม
+                        titleFont: { family: "'Prompt'", size: 13 },
+                        bodyFont: { family: "'Prompt'", size: 12 },
+                        padding: 12,
+                        cornerRadius: 12,
+                        displayColors: true
+                    }
+                }, 
+                scales: { 
+                    y: { 
+                        beginAtZero: true, 
+                        grid: { borderDash: [4, 4], color: '#E2E8F0', drawBorder: false }, // เส้นกริดแนวนอนแบบประ
+                        ticks: { font: { family: "'Prompt'", size: 10 }, color: '#64748B', maxTicksLimit: 6 } // จำกัดจำนวนเลขแกน Y สำหรับจอเล็ก
+                    }, 
+                    x: { 
+                        grid: { display: false, drawBorder: false }, // ซ่อนกริดแนวตั้งเพื่อให้ดูสะอาดตา
+                        ticks: { font: { family: "'Prompt'", size: 11 }, color: '#64748B' } 
+                    } 
+                } 
+            }
         });
     } catch (e) { console.error("Trend Chart Error:", e); }
 }
