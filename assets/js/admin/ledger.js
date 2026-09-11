@@ -649,13 +649,69 @@ window.exportTransactionsToCSV = function() {
     AppHelper.showLoader(false);
 };
 
-window.generateEReceipt = function(txId, type, amount, date, note, name) {
+window.generateEReceipt = async function(txId, type, amount, date, note, name) {
     AppHelper.showLoader(true, "กำลังสร้างสลิปใบเสร็จ...");
     const canvas = document.createElement('canvas'); canvas.width = 600; canvas.height = 850; const ctx = canvas.getContext('2d');
+    
+    // พื้นหลังสีขาว
     ctx.fillStyle = '#ffffff'; ctx.fillRect(0, 0, canvas.width, canvas.height);
-    const isIncome = type.includes('รับ') || type.includes('สมทบ'); const themeColor = isIncome ? '#10B981' : '#EF4444'; 
-    ctx.fillStyle = themeColor; ctx.fillRect(0, 0, canvas.width, 140);
-    ctx.fillStyle = '#ffffff'; ctx.font = 'bold 42px Prompt, sans-serif'; ctx.textAlign = 'center'; ctx.fillText(isIncome ? 'ใบเสร็จรับเงิน' : 'ใบสำคัญจ่าย', canvas.width / 2, 85);
+    
+    const isIncome = type.includes('รับ') || type.includes('สมทบ'); 
+    const themeColor = isIncome ? '#10B981' : '#EF4444'; 
+    
+    // ขยายแถบ Header เป็น 180px ให้พอดีกับขนาดโลโก้
+    ctx.fillStyle = themeColor; ctx.fillRect(0, 0, canvas.width, 180);
+
+    // 🌟 โหลดและวาดโลโก้ 3D SmartWelf ที่ผ่านการบีบอัดโค้ดแล้ว
+    const loadLogo = () => {
+        return new Promise((resolve) => {
+            const img = new Image();
+            img.crossOrigin = "Anonymous";
+            
+            const svgString = `<svg viewBox="380 40 1000 600" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
+              <defs>
+                <path id="swPath" d="M 1346 58 L 1343 58 L 1317 73 L 1276 92 L 1223 108 L 1173 115 L 1056 116 L 1027 119 L 1024 121 L 1000 125 L 968 135 L 942 148 L 939 148 L 919 160 L 888 183 L 878 193 L 876 193 L 843 231 L 801 296 L 794 310 L 788 316 L 787 321 L 724 424 L 708 442 L 691 452 L 678 455 L 667 455 L 654 452 L 641 446 L 628 437 L 614 423 L 604 409 L 584 389 L 566 375 L 537 359 L 512 350 L 489 346 L 488 343 L 511 324 L 532 315 L 549 312 L 581 313 L 608 320 L 636 324 L 663 324 L 679 320 L 690 314 L 705 298 L 711 287 L 714 267 L 697 274 L 680 278 L 653 279 L 619 275 L 585 267 L 557 265 L 530 268 L 498 279 L 488 284 L 464 301 L 442 325 L 433 338 L 423 359 L 416 394 L 422 395 L 456 390 L 488 392 L 511 398 L 544 416 L 564 434 L 580 454 L 615 514 L 641 549 L 672 578 L 686 587 L 707 596 L 727 600 L 761 599 L 781 594 L 807 580 L 820 570 L 842 548 L 866 514 L 867 510 L 890 475 L 893 476 L 901 489 L 903 495 L 905 496 L 941 559 L 949 570 L 967 586 L 984 595 L 1004 600 L 1026 600 L 1050 594 L 1064 586 L 1086 564 L 1180 409 L 1236 321 L 1240 311 L 1233 313 L 1199 331 L 1166 343 L 1162 343 L 1160 345 L 1079 362 L 1063 370 L 1050 382 L 1039 399 L 1035 414 L 1036 418 L 1049 412 L 1126 399 L 1130 399 L 1131 402 L 1049 536 L 1039 547 L 1024 554 L 1013 555 L 1004 553 L 993 548 L 986 542 L 919 430 L 920 424 L 922 423 L 926 414 L 1022 259 L 1019 257 L 994 257 L 976 263 L 967 269 L 952 284 L 945 298 L 925 328 L 923 334 L 919 338 L 823 496 L 801 524 L 782 541 L 768 549 L 752 554 L 730 554 L 718 551 L 706 545 L 691 533 L 666 505 L 665 501 L 686 500 L 711 493 L 730 483 L 748 468 L 764 448 L 804 380 L 813 368 L 816 360 L 882 256 L 898 237 L 921 215 L 926 213 L 948 196 L 972 183 L 1005 171 L 1045 163 L 1081 161 L 1168 161 L 1210 157 L 1253 148 L 1288 136 L 1289 139 L 1284 152 L 1265 182 L 1249 199 L 1241 204 L 1232 213 L 1189 236 L 1156 247 L 1121 254 L 1103 262 L 1090 272 L 1079 284 L 1069 302 L 1068 308 L 1070 309 L 1086 305 L 1139 298 L 1179 288 L 1214 275 L 1250 256 L 1273 239 L 1290 223 L 1302 209 L 1324 176 L 1324 172 L 1337 143 L 1344 113 L 1347 85 Z"/>
+                <linearGradient id="swMark3D" x1="420" y1="550" x2="1320" y2="40" gradientUnits="userSpaceOnUse"><stop offset="0%" stop-color="#075E50"/><stop offset="25%" stop-color="#0B8068"/><stop offset="52%" stop-color="#18A18A"/><stop offset="78%" stop-color="#168DB5"/><stop offset="100%" stop-color="#35B7E8"/></linearGradient>
+                <linearGradient id="swEnergy" x1="0%" y1="0%" x2="100%" y2="0%"><stop offset="0%" stop-color="#FFFFFF" stop-opacity="0"/><stop offset="38%" stop-color="#FFFFFF" stop-opacity="0"/><stop offset="48%" stop-color="#DFFFFF" stop-opacity=".95"/><stop offset="52%" stop-color="#FFFFFF" stop-opacity="1"/><stop offset="56%" stop-color="#B8F8FF" stop-opacity=".95"/><stop offset="70%" stop-color="#FFFFFF" stop-opacity="0"/><stop offset="100%" stop-color="#FFFFFF" stop-opacity="0"/></linearGradient>
+                <filter id="swGlow" x="-60%" y="-60%" width="220%" height="220%"><feGaussianBlur stdDeviation="7" result="blur"/><feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge></filter>
+                <filter id="swDepthShadow" x="-30%" y="-30%" width="160%" height="180%"><feDropShadow dx="0" dy="12" stdDeviation="12" flood-color="#064C45" flood-opacity=".25"/><feDropShadow dx="0" dy="3" stdDeviation="2" flood-color="#083B52" flood-opacity=".25"/></filter>
+                <filter id="swHighlight" x="-30%" y="-30%" width="160%" height="160%"><feGaussianBlur stdDeviation="1.3"/></filter>
+              </defs>
+              <!-- วาดชั้นแสงและเงาให้ครบ 5 ชั้นตามแบบ -->
+              <g filter="url(#swDepthShadow)">
+                <use xlink:href="#swPath" transform="translate(0 10)" fill="rgba(4,72,65,.25)"/>
+                <use xlink:href="#swPath" transform="translate(0 5)" fill="#087361"/>
+              </g>
+              <use xlink:href="#swPath" fill="url(#swMark3D)"/>
+              <use xlink:href="#swPath" fill="url(#swEnergy)" filter="url(#swGlow)"/>
+              <use xlink:href="#swPath" stroke="#FFFFFF" stroke-opacity=".32" stroke-width="2.2" stroke-linecap="round" fill="none" filter="url(#swHighlight)"/>
+            </svg>`;
+
+            img.src = "data:image/svg+xml;charset=utf-8," + encodeURIComponent(svgString);
+            
+            img.onload = () => {
+                // วาดโลโก้ให้กว้าง 90px สูง 54px ตรงกลางใบเสร็จ
+                ctx.drawImage(img, (canvas.width / 2) - 45, 15, 90, 54);
+                resolve();
+            };
+            img.onerror = () => { resolve(); };
+        });
+    };
+
+    // รอให้รูปโลโก้ 3D โหลดและวาดเสร็จก่อน
+    await loadLogo();
+
+    // วาดชื่อระบบใต้โลโก้
+    ctx.fillStyle = 'rgba(255, 255, 255, 0.9)'; 
+    ctx.font = '600 16px Prompt, sans-serif'; 
+    ctx.textAlign = 'center'; 
+    ctx.fillText('SmartWelf 5.0', canvas.width / 2, 95);
+
+    // วาดหัวข้อใบเสร็จ
+    ctx.fillStyle = '#ffffff'; ctx.font = 'bold 38px Prompt, sans-serif'; ctx.textAlign = 'center'; 
+    ctx.fillText(isIncome ? 'ใบเสร็จรับเงิน' : 'ใบสำคัญจ่าย', canvas.width / 2, 145);
+    
+    // วาดข้อมูลกล่องรายละเอียด
     ctx.textAlign = 'left'; ctx.fillStyle = '#475569'; ctx.font = '22px Prompt, sans-serif';
     const fundName = AdminState.fundSettings?.fundName || "กองทุนสวัสดิการชุมชน";
     
@@ -663,24 +719,46 @@ window.generateEReceipt = function(txId, type, amount, date, note, name) {
         if (w < 2 * r) r = w / 2; if (h < 2 * r) r = h / 2; this.beginPath(); this.moveTo(x + r, y); this.arcTo(x + w, y, x + w, y + h, r); this.arcTo(x + w, y + h, x, y + h, r); this.arcTo(x, y + h, x, y, r); this.arcTo(x, y, x + w, y, r); this.closePath(); return this;
     }
     
-    ctx.fillStyle = '#F8FAFC'; ctx.roundRect(40, 180, 520, 360, 20); ctx.fill(); ctx.strokeStyle = '#E2E8F0'; ctx.lineWidth = 2; ctx.stroke();
-    ctx.fillStyle = '#334155'; ctx.font = 'bold 24px Prompt'; ctx.fillText('ข้อมูลการทำรายการ', 70, 230);
-    ctx.font = '22px Prompt'; ctx.fillStyle = '#64748B'; ctx.beginPath(); ctx.moveTo(70, 250); ctx.lineTo(530, 250); ctx.stroke();
+    // เลื่อนกรอบรายละเอียดลงมาที่แกน Y: 210
+    ctx.fillStyle = '#F8FAFC'; ctx.roundRect(40, 210, 520, 360, 20); ctx.fill(); ctx.strokeStyle = '#E2E8F0'; ctx.lineWidth = 2; ctx.stroke();
+    ctx.fillStyle = '#334155'; ctx.font = 'bold 24px Prompt'; ctx.fillText('ข้อมูลการทำรายการ', 70, 260);
+    ctx.font = '22px Prompt'; ctx.fillStyle = '#64748B'; ctx.beginPath(); ctx.moveTo(70, 280); ctx.lineTo(530, 280); ctx.stroke();
     
-    ctx.fillText('รหัสอ้างอิง (Ref):', 70, 300); ctx.fillStyle = '#0F172A'; ctx.textAlign = 'right'; ctx.fillText(txId, 530, 300);
-    ctx.fillStyle = '#64748B'; ctx.textAlign = 'left'; ctx.fillText('วันที่ทำรายการ:', 70, 350); ctx.fillStyle = '#0F172A'; ctx.textAlign = 'right'; ctx.fillText(date, 530, 350);
-    ctx.fillStyle = '#64748B'; ctx.textAlign = 'left'; ctx.fillText('ประเภท:', 70, 400); ctx.fillStyle = themeColor; ctx.textAlign = 'right'; ctx.fillText(type, 530, 400);
-    ctx.fillStyle = '#64748B'; ctx.textAlign = 'left'; ctx.fillText('ชื่อสมาชิก:', 70, 450); ctx.fillStyle = '#0F172A'; ctx.textAlign = 'right'; ctx.fillText(name.replace('แอดมิน: ', ''), 530, 450);
-    ctx.fillStyle = '#64748B'; ctx.textAlign = 'left'; ctx.fillText('รายละเอียด:', 70, 500); ctx.fillStyle = '#0F172A'; ctx.textAlign = 'right';
+    ctx.fillText('รหัสอ้างอิง (Ref):', 70, 330); ctx.fillStyle = '#0F172A'; ctx.textAlign = 'right'; ctx.fillText(txId, 530, 330);
+    ctx.fillStyle = '#64748B'; ctx.textAlign = 'left'; ctx.fillText('วันที่ทำรายการ:', 70, 380); ctx.fillStyle = '#0F172A'; ctx.textAlign = 'right'; ctx.fillText(date, 530, 380);
+    ctx.fillStyle = '#64748B'; ctx.textAlign = 'left'; ctx.fillText('ประเภท:', 70, 430); ctx.fillStyle = themeColor; ctx.textAlign = 'right'; ctx.fillText(type, 530, 430);
+    ctx.fillStyle = '#64748B'; ctx.textAlign = 'left'; ctx.fillText('ชื่อสมาชิก:', 70, 480); ctx.fillStyle = '#0F172A'; ctx.textAlign = 'right'; ctx.fillText(name.replace('แอดมิน: ', ''), 530, 480);
+    ctx.fillStyle = '#64748B'; ctx.textAlign = 'left'; ctx.fillText('รายละเอียด:', 70, 530); ctx.fillStyle = '#0F172A'; ctx.textAlign = 'right';
     
     let shortNote = note; if(shortNote.length > 25) shortNote = shortNote.substring(0, 25) + '...';
-    ctx.fillText(shortNote, 530, 500);
-    ctx.textAlign = 'center'; ctx.fillStyle = '#94A3B8'; ctx.font = '20px Prompt'; ctx.fillText('จำนวนเงิน (Amount)', canvas.width / 2, 600);
-    ctx.fillStyle = themeColor; ctx.font = 'bold 64px Prompt'; ctx.fillText('฿ ' + amount.toLocaleString('en-US', {minimumFractionDigits: 2}), canvas.width / 2, 670);
-    ctx.fillStyle = '#CBD5E1'; ctx.font = '18px Prompt'; ctx.fillText('ออกโดย: ' + fundName, canvas.width / 2, 770); ctx.fillText('เอกสารนี้ออกโดยระบบอัตโนมัติ SmartWelf 5.0', canvas.width / 2, 800);
+    ctx.fillText(shortNote, 530, 530);
+    
+    // วาดจำนวนเงินและ Footer
+    ctx.textAlign = 'center'; ctx.fillStyle = '#94A3B8'; ctx.font = '20px Prompt'; ctx.fillText('จำนวนเงิน (Amount)', canvas.width / 2, 620);
+    ctx.fillStyle = themeColor; ctx.font = 'bold 64px Prompt'; ctx.fillText('฿ ' + amount.toLocaleString('en-US', {minimumFractionDigits: 2}), canvas.width / 2, 690);
+    ctx.fillStyle = '#CBD5E1'; ctx.font = '18px Prompt'; ctx.fillText('ออกโดย: ' + fundName, canvas.width / 2, 780); ctx.fillText('เอกสารนี้ออกโดยระบบอัตโนมัติ SmartWelf 5.0', canvas.width / 2, 810);
 
     const imgData = canvas.toDataURL('image/jpeg', 1.0); AppHelper.showLoader(false);
-    Swal.fire({ title: 'ใบเสร็จรับเงิน (E-Slip)', imageUrl: imgData, imageWidth: '100%', imageAlt: 'Receipt Image', showCancelButton: true, confirmButtonText: '<i class="fa-solid fa-download"></i> บันทึกรูปลงเครื่อง', cancelButtonText: 'ปิด', confirmButtonColor: '#2563EB', customClass: { image: 'rounded-4 shadow-sm border' } }).then((res) => { if(res.isConfirmed) { const link = document.createElement('a'); link.download = `SmartWelf_Slip_${txId}.jpg`; link.href = imgData; link.click(); Swal.fire({icon: 'success', title: 'บันทึกรูปภาพสำเร็จ!', showConfirmButton: false, timer: 1500}); } });
+    
+    Swal.fire({ 
+        title: 'ใบเสร็จรับเงิน (E-Slip)', 
+        imageUrl: imgData, 
+        imageWidth: '100%', 
+        imageAlt: 'Receipt Image', 
+        showCancelButton: true, 
+        confirmButtonText: '<i class="fa-solid fa-download"></i> บันทึกรูปลงเครื่อง', 
+        cancelButtonText: 'ปิด', 
+        confirmButtonColor: '#2563EB', 
+        customClass: { image: 'rounded-4 shadow-sm border' } 
+    }).then((res) => { 
+        if(res.isConfirmed) { 
+            const link = document.createElement('a'); 
+            link.download = `SmartWelf_Slip_${txId}.jpg`; 
+            link.href = imgData; 
+            link.click(); 
+            Swal.fire({icon: 'success', title: 'บันทึกรูปภาพสำเร็จ!', showConfirmButton: false, timer: 1500}); 
+        } 
+    });
 };
 /**
  * 🌟 รับเงินสมทบแบบกลุ่ม Bulk (พร้อมเชื่อมโยง Database ก่อนสร้าง QR)
@@ -747,7 +825,7 @@ window.bulkCollectContribution = async function() {
             if (formValues.isQR) {
                 AppHelper.showLoader(true, "กำลังเตรียมข้อมูลสแกนจ่าย...");
                 
-                // 🌟 1. สร้างบิลรอดำเนินการในฐานข้อมูลก่อน เพื่อให้ระบบสแกนหากันเจอ
+                // 🌟 1. สร้างบิลรอดำเนินการในฐานข้อมูลก่อน
                 await db.collection("pending_payments").doc(bulkTxId).set({
                     txId: bulkTxId,
                     amount: totalAmt,
@@ -762,7 +840,7 @@ window.bulkCollectContribution = async function() {
 
                 AppHelper.showLoader(false);
 
-                // 🌟 2. ฝังแค่ "รหัสบิลสั้นๆ" ใน QR โค้ด (เพื่อป้องกันรูปขาวโล่งเพราะข้อมูลล้น)
+                // 🌟 2. ฝังแค่ "รหัสบิลสั้นๆ" ใน QR โค้ด
                 const qrPayload = JSON.stringify({
                     action: "member_pay_bulk",
                     ref: bulkTxId

@@ -462,12 +462,13 @@ async function scanToPayAdmin() {
             Swal.fire({ title: 'กำลังดึงข้อมูลบิล...', didOpen: () => Swal.showLoading() });
             let qrData; try { qrData = JSON.parse(result.value); } catch (e) { Swal.close(); return Swal.fire('ผิดพลาด', 'QR Code ไม่ถูกต้อง', 'error'); }
 
+            // 🌟 ตรวจสอบว่า Action ตรงกันและมีรหัส Ref
             if ((qrData.action === "member_pay" || qrData.action === "member_pay_bulk") && qrData.ref) {
                 const payRef = db.collection("pending_payments").doc(qrData.ref);
                 const paySnap = await payRef.get();
                 Swal.close();
 
-                if (!paySnap.exists || paySnap.data().status !== "waiting_member_scan") return Swal.fire('หมดอายุ', 'รายการนี้ถูกยืนยันไปแล้ว', 'error');
+                if (!paySnap.exists || paySnap.data().status !== "waiting_member_scan") return Swal.fire('หมดอายุ', 'รายการนี้ถูกยืนยันไปแล้ว หรือไม่มีอยู่ในระบบ', 'error');
                 const payData = paySnap.data();
 
                 Swal.fire({
@@ -478,23 +479,31 @@ async function scanToPayAdmin() {
                     if (res.isConfirmed) {
                         Swal.fire({ title: 'กำลังบันทึก...', didOpen: () => Swal.showLoading() });
                         try {
+                            const scannerUid = document.getElementById('uid').value; // ดึง UID ของคนที่กำลังสแกน
                             const batch = db.batch();
                             const newTxRef = db.collection("transactions").doc();
+                            
                             let txPayload = {
                                 txId: payData.txId, type: 'สมทบเงินกองทุน', amount: payData.amount, paymentMethod: 'เงินสด', transactionDate: payData.date, fullName: 'แอดมิน: ' + payData.adminName, status: 'รอส่งมอบ', currentHolder: payData.adminEmail, note: payData.note, timestamp: firebase.firestore.FieldValue.serverTimestamp()
                             };
-                            if (qrData.action === "member_pay_bulk") { txPayload.uid = "BULK"; txPayload.bulkMembers = payData.bulkMembers; } 
-                            else { txPayload.uid = payData.uid; }
+                            
+                            if (qrData.action === "member_pay_bulk") { 
+                                txPayload.uid = "BULK"; 
+                                txPayload.bulkMembers = payData.bulkMembers; 
+                            } else { 
+                                // 🌟 แทนที่ UID ลงในประวัติ เป็นของคนที่สแกนจ่ายทันที
+                                txPayload.uid = payData.uid === "SCANNER" ? scannerUid : payData.uid; 
+                            }
                             
                             batch.set(newTxRef, txPayload);
-                            batch.update(payRef, { status: "completed", scannedByUid: document.getElementById('uid').value, completedAt: firebase.firestore.FieldValue.serverTimestamp() });
+                            batch.update(payRef, { status: "completed", scannedByUid: scannerUid, completedAt: firebase.firestore.FieldValue.serverTimestamp() });
                             await batch.commit();
                             
-                            Swal.fire({ icon: 'success', title: 'ชำระเงินสำเร็จ!', text: 'ระบบบันทึกการมอบเงินให้กรรมการเรียบร้อยแล้ว', confirmButtonColor: '#10B981' }).then(() => { checkMemberOnCloud(document.getElementById('uid').value); });
+                            Swal.fire({ icon: 'success', title: 'ชำระเงินสำเร็จ!', text: 'ระบบบันทึกการมอบเงินให้กรรมการเรียบร้อยแล้ว', confirmButtonColor: '#10B981' }).then(() => { checkMemberOnCloud(scannerUid); });
                         } catch(err) { Swal.fire('Error', 'เกิดข้อผิดพลาดในการบันทึก', 'error'); }
                     }
                 });
-            } else { Swal.close(); Swal.fire('Error', 'QR Code ไม่ใช่บิลเรียกเก็บเงิน', 'error'); }
+            } else { Swal.close(); Swal.fire('Error', 'QR Code นี้ไม่ใช่บิลเรียกเก็บเงินของกองทุน', 'error'); }
         }
     } catch (err) {}
 }
