@@ -1,0 +1,1342 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <meta name="theme-color" content="#0F172A">
+  <title>SmartWelf 5.0 | ศูนย์จัดการกองทุนส่วนกลาง (แอดมิน)</title>
+  
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Prompt:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  
+  <!-- 🌟 โหลดสไตล์ CSS ที่แยกไฟล์ไว้ 🌟 -->
+  <link rel="stylesheet" href="./assets/css/style-shared.css?v=8">
+  <link rel="stylesheet" href="./assets/css/style-admin.css?v=8">
+
+  <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+  <script src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+  <script src="https://maps.googleapis.com/maps/api/js?key=AIzaSyD3QY1t2cY8gB_w_ZtSGqidVi65JBEVZIUs&libraries=visualization"></script>
+
+  <!-- โหลด Firebase -->
+  <script src="https://www.gstatic.com/firebasejs/10.8.1/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.8.1/firebase-auth-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.8.1/firebase-firestore-compat.js"></script>
+</head>
+<body>
+ 
+<!-- ==========================================
+     SYSTEM LOADER (3D Logo)
+=========================================== -->
+<div id="systemLoading">
+  <div class="loading-container">
+    <svg class="sw-logo-svg" viewBox="380 40 1000 600" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="SmartWelf loading">
+      <defs>
+        <linearGradient id="swMark3D" x1="420" y1="550" x2="1320" y2="40" gradientUnits="userSpaceOnUse"><stop offset="0%" stop-color="#075E50"/><stop offset="25%" stop-color="#0B8068"/><stop offset="52%" stop-color="#18A18A"/><stop offset="78%" stop-color="#168DB5"/><stop offset="100%" stop-color="#35B7E8"/></linearGradient>
+        <linearGradient id="swEnergy" x1="0%" y1="0%" x2="100%" y2="0%"><stop offset="0%" stop-color="#FFFFFF" stop-opacity="0"/><stop offset="38%" stop-color="#FFFFFF" stop-opacity="0"/><stop offset="48%" stop-color="#DFFFFF" stop-opacity=".95"/><stop offset="52%" stop-color="#FFFFFF" stop-opacity="1"/><stop offset="56%" stop-color="#B8F8FF" stop-opacity=".95"/><stop offset="70%" stop-color="#FFFFFF" stop-opacity="0"/><stop offset="100%" stop-color="#FFFFFF" stop-opacity="0"/></linearGradient>
+        <filter id="swGlow" x="-60%" y="-60%" width="220%" height="220%"><feGaussianBlur stdDeviation="7" result="blur"/><feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge></filter>
+        <filter id="swDepthShadow" x="-30%" y="-30%" width="160%" height="180%"><feDropShadow dx="0" dy="12" stdDeviation="12" flood-color="#064C45" flood-opacity=".25"/><feDropShadow dx="0" dy="3" stdDeviation="2" flood-color="#083B52" flood-opacity=".25"/></filter>
+        <filter id="swHighlight" x="-30%" y="-30%" width="160%" height="160%"><feGaussianBlur stdDeviation="1.3"/></filter>
+      </defs>
+      <g class="sw-depth" filter="url(#swDepthShadow)">
+        <g transform="translate(0 10)"><path class="sw-base" d="M 1346 58 L 1343 58 L 1317 73 L 1276 92 L 1223 108 L 1173 115 L 1056 116 L 1027 119 L 1024 121 L 1000 125 L 968 135 L 942 148 L 939 148 L 919 160 L 888 183 L 878 193 L 876 193 L 843 231 L 801 296 L 794 310 L 788 316 L 787 321 L 724 424 L 708 442 L 691 452 L 678 455 L 667 455 L 654 452 L 641 446 L 628 437 L 614 423 L 604 409 L 584 389 L 566 375 L 537 359 L 512 350 L 489 346 L 488 343 L 511 324 L 532 315 L 549 312 L 581 313 L 608 320 L 636 324 L 663 324 L 679 320 L 690 314 L 705 298 L 711 287 L 714 267 L 697 274 L 680 278 L 653 279 L 619 275 L 585 267 L 557 265 L 530 268 L 498 279 L 488 284 L 464 301 L 442 325 L 433 338 L 423 359 L 416 394 L 422 395 L 456 390 L 488 392 L 511 398 L 544 416 L 564 434 L 580 454 L 615 514 L 641 549 L 672 578 L 686 587 L 707 596 L 727 600 L 761 599 L 781 594 L 807 580 L 820 570 L 842 548 L 866 514 L 867 510 L 890 475 L 893 476 L 901 489 L 903 495 L 905 496 L 941 559 L 949 570 L 967 586 L 984 595 L 1004 600 L 1026 600 L 1050 594 L 1064 586 L 1086 564 L 1180 409 L 1236 321 L 1240 311 L 1233 313 L 1199 331 L 1166 343 L 1162 343 L 1160 345 L 1079 362 L 1063 370 L 1050 382 L 1039 399 L 1035 414 L 1036 418 L 1049 412 L 1126 399 L 1130 399 L 1131 402 L 1049 536 L 1039 547 L 1024 554 L 1013 555 L 1004 553 L 993 548 L 986 542 L 919 430 L 920 424 L 922 423 L 926 414 L 1022 259 L 1019 257 L 994 257 L 976 263 L 967 269 L 952 284 L 945 298 L 925 328 L 923 334 L 919 338 L 823 496 L 801 524 L 782 541 L 768 549 L 752 554 L 730 554 L 718 551 L 706 545 L 691 533 L 666 505 L 665 501 L 686 500 L 711 493 L 730 483 L 748 468 L 764 448 L 804 380 L 813 368 L 816 360 L 882 256 L 898 237 L 921 215 L 926 213 L 948 196 L 972 183 L 1005 171 L 1045 163 L 1081 161 L 1168 161 L 1210 157 L 1253 148 L 1288 136 L 1289 139 L 1284 152 L 1265 182 L 1249 199 L 1241 204 L 1232 213 L 1189 236 L 1156 247 L 1121 254 L 1103 262 L 1090 272 L 1079 284 L 1069 302 L 1068 308 L 1070 309 L 1086 305 L 1139 298 L 1179 288 L 1214 275 L 1250 256 L 1273 239 L 1290 223 L 1302 209 L 1324 176 L 1324 172 L 1337 143 L 1344 113 L 1347 85 Z" fill="rgba(4,72,65,.25)"/></g>
+        <g transform="translate(0 5)"><path class="sw-base" d="M 1346 58 L 1343 58 L 1317 73 L 1276 92 L 1223 108 L 1173 115 L 1056 116 L 1027 119 L 1024 121 L 1000 125 L 968 135 L 942 148 L 939 148 L 919 160 L 888 183 L 878 193 L 876 193 L 843 231 L 801 296 L 794 310 L 788 316 L 787 321 L 724 424 L 708 442 L 691 452 L 678 455 L 667 455 L 654 452 L 641 446 L 628 437 L 614 423 L 604 409 L 584 389 L 566 375 L 537 359 L 512 350 L 489 346 L 488 343 L 511 324 L 532 315 L 549 312 L 581 313 L 608 320 L 636 324 L 663 324 L 679 320 L 690 314 L 705 298 L 711 287 L 714 267 L 697 274 L 680 278 L 653 279 L 619 275 L 585 267 L 557 265 L 530 268 L 498 279 L 488 284 L 464 301 L 442 325 L 433 338 L 423 359 L 416 394 L 422 395 L 456 390 L 488 392 L 511 398 L 544 416 L 564 434 L 580 454 L 615 514 L 641 549 L 672 578 L 686 587 L 707 596 L 727 600 L 761 599 L 781 594 L 807 580 L 820 570 L 842 548 L 866 514 L 867 510 L 890 475 L 893 476 L 901 489 L 903 495 L 905 496 L 941 559 L 949 570 L 967 586 L 984 595 L 1004 600 L 1026 600 L 1050 594 L 1064 586 L 1086 564 L 1180 409 L 1236 321 L 1240 311 L 1233 313 L 1199 331 L 1166 343 L 1162 343 L 1160 345 L 1079 362 L 1063 370 L 1050 382 L 1039 399 L 1035 414 L 1036 418 L 1049 412 L 1126 399 L 1130 399 L 1131 402 L 1049 536 L 1039 547 L 1024 554 L 1013 555 L 1004 553 L 993 548 L 986 542 L 919 430 L 920 424 L 922 423 L 926 414 L 1022 259 L 1019 257 L 994 257 L 976 263 L 967 269 L 952 284 L 945 298 L 925 328 L 923 334 L 919 338 L 823 496 L 801 524 L 782 541 L 768 549 L 752 554 L 730 554 L 718 551 L 706 545 L 691 533 L 666 505 L 665 501 L 686 500 L 711 493 L 730 483 L 748 468 L 764 448 L 804 380 L 813 368 L 816 360 L 882 256 L 898 237 L 921 215 L 926 213 L 948 196 L 972 183 L 1005 171 L 1045 163 L 1081 161 L 1168 161 L 1210 157 L 1253 148 L 1288 136 L 1289 139 L 1284 152 L 1265 182 L 1249 199 L 1241 204 L 1232 213 L 1189 236 L 1156 247 L 1121 254 L 1103 262 L 1090 272 L 1079 284 L 1069 302 L 1068 308 L 1070 309 L 1086 305 L 1139 298 L 1179 288 L 1214 275 L 1250 256 L 1273 239 L 1290 223 L 1302 209 L 1324 176 L 1324 172 L 1337 143 L 1344 113 L 1347 85 Z" fill="#087361"/></g>
+      </g>
+      <g class="sw-face"><path class="sw-main" d="M 1346 58 L 1343 58 L 1317 73 L 1276 92 L 1223 108 L 1173 115 L 1056 116 L 1027 119 L 1024 121 L 1000 125 L 968 135 L 942 148 L 939 148 L 919 160 L 888 183 L 878 193 L 876 193 L 843 231 L 801 296 L 794 310 L 788 316 L 787 321 L 724 424 L 708 442 L 691 452 L 678 455 L 667 455 L 654 452 L 641 446 L 628 437 L 614 423 L 604 409 L 584 389 L 566 375 L 537 359 L 512 350 L 489 346 L 488 343 L 511 324 L 532 315 L 549 312 L 581 313 L 608 320 L 636 324 L 663 324 L 679 320 L 690 314 L 705 298 L 711 287 L 714 267 L 697 274 L 680 278 L 653 279 L 619 275 L 585 267 L 557 265 L 530 268 L 498 279 L 488 284 L 464 301 L 442 325 L 433 338 L 423 359 L 416 394 L 422 395 L 456 390 L 488 392 L 511 398 L 544 416 L 564 434 L 580 454 L 615 514 L 641 549 L 672 578 L 686 587 L 707 596 L 727 600 L 761 599 L 781 594 L 807 580 L 820 570 L 842 548 L 866 514 L 867 510 L 890 475 L 893 476 L 901 489 L 903 495 L 905 496 L 941 559 L 949 570 L 967 586 L 984 595 L 1004 600 L 1026 600 L 1050 594 L 1064 586 L 1086 564 L 1180 409 L 1236 321 L 1240 311 L 1233 313 L 1199 331 L 1166 343 L 1162 343 L 1160 345 L 1079 362 L 1063 370 L 1050 382 L 1039 399 L 1035 414 L 1036 418 L 1049 412 L 1126 399 L 1130 399 L 1131 402 L 1049 536 L 1039 547 L 1024 554 L 1013 555 L 1004 553 L 993 548 L 986 542 L 919 430 L 920 424 L 922 423 L 926 414 L 1022 259 L 1019 257 L 994 257 L 976 263 L 967 269 L 952 284 L 945 298 L 925 328 L 923 334 L 919 338 L 823 496 L 801 524 L 782 541 L 768 549 L 752 554 L 730 554 L 718 551 L 706 545 L 691 533 L 666 505 L 665 501 L 686 500 L 711 493 L 730 483 L 748 468 L 764 448 L 804 380 L 813 368 L 816 360 L 882 256 L 898 237 L 921 215 L 926 213 L 948 196 L 972 183 L 1005 171 L 1045 163 L 1081 161 L 1168 161 L 1210 157 L 1253 148 L 1288 136 L 1289 139 L 1284 152 L 1265 182 L 1249 199 L 1241 204 L 1232 213 L 1189 236 L 1156 247 L 1121 254 L 1103 262 L 1090 272 L 1079 284 L 1069 302 L 1068 308 L 1070 309 L 1086 305 L 1139 298 L 1179 288 L 1214 275 L 1250 256 L 1273 239 L 1290 223 L 1302 209 L 1324 176 L 1324 172 L 1337 143 L 1344 113 L 1347 85 Z" fill="url(#swMark3D)"/></g>
+      <g class="sw-energy" filter="url(#swGlow)"><path class="sw-energy-path" d="M 1346 58 L 1343 58 L 1317 73 L 1276 92 L 1223 108 L 1173 115 L 1056 116 L 1027 119 L 1024 121 L 1000 125 L 968 135 L 942 148 L 939 148 L 919 160 L 888 183 L 878 193 L 876 193 L 843 231 L 801 296 L 794 310 L 788 316 L 787 321 L 724 424 L 708 442 L 691 452 L 678 455 L 667 455 L 654 452 L 641 446 L 628 437 L 614 423 L 604 409 L 584 389 L 566 375 L 537 359 L 512 350 L 489 346 L 488 343 L 511 324 L 532 315 L 549 312 L 581 313 L 608 320 L 636 324 L 663 324 L 679 320 L 690 314 L 705 298 L 711 287 L 714 267 L 697 274 L 680 278 L 653 279 L 619 275 L 585 267 L 557 265 L 530 268 L 498 279 L 488 284 L 464 301 L 442 325 L 433 338 L 423 359 L 416 394 L 422 395 L 456 390 L 488 392 L 511 398 L 544 416 L 564 434 L 580 454 L 615 514 L 641 549 L 672 578 L 686 587 L 707 596 L 727 600 L 761 599 L 781 594 L 807 580 L 820 570 L 842 548 L 866 514 L 867 510 L 890 475 L 893 476 L 901 489 L 903 495 L 905 496 L 941 559 L 949 570 L 967 586 L 984 595 L 1004 600 L 1026 600 L 1050 594 L 1064 586 L 1086 564 L 1180 409 L 1236 321 L 1240 311 L 1233 313 L 1199 331 L 1166 343 L 1162 343 L 1160 345 L 1079 362 L 1063 370 L 1050 382 L 1039 399 L 1035 414 L 1036 418 L 1049 412 L 1126 399 L 1130 399 L 1131 402 L 1049 536 L 1039 547 L 1024 554 L 1013 555 L 1004 553 L 993 548 L 986 542 L 919 430 L 920 424 L 922 423 L 926 414 L 1022 259 L 1019 257 L 994 257 L 976 263 L 967 269 L 952 284 L 945 298 L 925 328 L 923 334 L 919 338 L 823 496 L 801 524 L 782 541 L 768 549 L 752 554 L 730 554 L 718 551 L 706 545 L 691 533 L 666 505 L 665 501 L 686 500 L 711 493 L 730 483 L 748 468 L 764 448 L 804 380 L 813 368 L 816 360 L 882 256 L 898 237 L 921 215 L 926 213 L 948 196 L 972 183 L 1005 171 L 1045 163 L 1081 161 L 1168 161 L 1210 157 L 1253 148 L 1288 136 L 1289 139 L 1284 152 L 1265 182 L 1249 199 L 1241 204 L 1232 213 L 1189 236 L 1156 247 L 1121 254 L 1103 262 L 1090 272 L 1079 284 L 1069 302 L 1068 308 L 1070 309 L 1086 305 L 1139 298 L 1179 288 L 1214 275 L 1250 256 L 1273 239 L 1290 223 L 1302 209 L 1324 176 L 1324 172 L 1337 143 L 1344 113 L 1347 85 Z"/></g>
+      <g class="sw-gloss" filter="url(#swHighlight)"><path stroke="#FFFFFF" stroke-opacity=".32" stroke-width="2.2" stroke-linecap="round" fill="none" d="M 1346 58 L 1343 58 L 1317 73 L 1276 92 L 1223 108 L 1173 115 L 1056 116 L 1027 119 L 1024 121 L 1000 125 L 968 135 L 942 148 L 939 148 L 919 160 L 888 183 L 878 193 L 876 193 L 843 231 L 801 296 L 794 310 L 788 316 L 787 321 L 724 424 L 708 442 L 691 452 L 678 455 L 667 455 L 654 452 L 641 446 L 628 437 L 614 423 L 604 409 L 584 389 L 566 375 L 537 359 L 512 350 L 489 346 L 488 343 L 511 324 L 532 315 L 549 312 L 581 313 L 608 320 L 636 324 L 663 324 L 679 320 L 690 314 L 705 298 L 711 287 L 714 267 L 697 274 L 680 278 L 653 279 L 619 275 L 585 267 L 557 265 L 530 268 L 498 279 L 488 284 L 464 301 L 442 325 L 433 338 L 423 359 L 416 394 L 422 395 L 456 390 L 488 392 L 511 398 L 544 416 L 564 434 L 580 454 L 615 514 L 641 549 L 672 578 L 686 587 L 707 596 L 727 600 L 761 599 L 781 594 L 807 580 L 820 570 L 842 548 L 866 514 L 867 510 L 890 475 L 893 476 L 901 489 L 903 495 L 905 496 L 941 559 L 949 570 L 967 586 L 984 595 L 1004 600 L 1026 600 L 1050 594 L 1064 586 L 1086 564 L 1180 409 L 1236 321 L 1240 311 L 1233 313 L 1199 331 L 1166 343 L 1162 343 L 1160 345 L 1079 362 L 1063 370 L 1050 382 L 1039 399 L 1035 414 L 1036 418 L 1049 412 L 1126 399 L 1130 399 L 1131 402 L 1049 536 L 1039 547 L 1024 554 L 1013 555 L 1004 553 L 993 548 L 986 542 L 919 430 L 920 424 L 922 423 L 926 414 L 1022 259 L 1019 257 L 994 257 L 976 263 L 967 269 L 952 284 L 945 298 L 925 328 L 923 334 L 919 338 L 823 496 L 801 524 L 782 541 L 768 549 L 752 554 L 730 554 L 718 551 L 706 545 L 691 533 L 666 505 L 665 501 L 686 500 L 711 493 L 730 483 L 748 468 L 764 448 L 804 380 L 813 368 L 816 360 L 882 256 L 898 237 L 921 215 L 926 213 L 948 196 L 972 183 L 1005 171 L 1045 163 L 1081 161 L 1168 161 L 1210 157 L 1253 148 L 1288 136 L 1289 139 L 1284 152 L 1265 182 L 1249 199 L 1241 204 L 1232 213 L 1189 236 L 1156 247 L 1121 254 L 1103 262 L 1090 272 L 1079 284 L 1069 302 L 1068 308 L 1070 309 L 1086 305 L 1139 298 L 1179 288 L 1214 275 L 1250 256 L 1273 239 L 1290 223 L 1302 209 L 1324 176 L 1324 172 L 1337 143 L 1344 113 L 1347 85 Z"/></g>
+    </svg>
+    <p class="loading-text-glow" id="loadingTitle">SmartWelf 5.0</p>
+    <p id="systemLoadingText">กำลังเชื่อมต่อข้อมูล...</p>
+  </div>
+</div>
+<!-- ส่วนถัดไปของ body ยังคงเดิมเหมือนโค้ดของคุณมุนี -->
+
+<!-- ==========================================
+     [4] ADMIN LOGIN GATE (ระบบล็อกอินเดิม ปลอดภัย 100%)
+=========================================== -->
+<div id="loginGate" style="display: none;">
+  <div class="login-box">
+    <div class="mb-3 mx-auto" style="width: 80px; height: 80px;">
+    <svg viewBox="380 40 1000 600" xmlns="http://www.w3.org/2000/svg" style="width: 100%; height: 100%; filter: drop-shadow(0px 8px 10px rgba(0,0,0,0.3));">
+      <defs>
+        <path id="swPathMini1" d="M 1346 58 L 1343 58 L 1317 73 L 1276 92 L 1223 108 L 1173 115 L 1056 116 L 1027 119 L 1024 121 L 1000 125 L 968 135 L 942 148 L 939 148 L 919 160 L 888 183 L 878 193 L 876 193 L 843 231 L 801 296 L 794 310 L 788 316 L 787 321 L 724 424 L 708 442 L 691 452 L 678 455 L 667 455 L 654 452 L 641 446 L 628 437 L 614 423 L 604 409 L 584 389 L 566 375 L 537 359 L 512 350 L 489 346 L 488 343 L 511 324 L 532 315 L 549 312 L 581 313 L 608 320 L 636 324 L 663 324 L 679 320 L 690 314 L 705 298 L 711 287 L 714 267 L 697 274 L 680 278 L 653 279 L 619 275 L 585 267 L 557 265 L 530 268 L 498 279 L 488 284 L 464 301 L 442 325 L 433 338 L 423 359 L 416 394 L 422 395 L 456 390 L 488 392 L 511 398 L 544 416 L 564 434 L 580 454 L 615 514 L 641 549 L 672 578 L 686 587 L 707 596 L 727 600 L 761 599 L 781 594 L 807 580 L 820 570 L 842 548 L 866 514 L 867 510 L 890 475 L 893 476 L 901 489 L 903 495 L 905 496 L 941 559 L 949 570 L 967 586 L 984 595 L 1004 600 L 1026 600 L 1050 594 L 1064 586 L 1086 564 L 1180 409 L 1236 321 L 1240 311 L 1233 313 L 1199 331 L 1166 343 L 1162 343 L 1160 345 L 1079 362 L 1063 370 L 1050 382 L 1039 399 L 1035 414 L 1036 418 L 1049 412 L 1126 399 L 1130 399 L 1131 402 L 1049 536 L 1039 547 L 1024 554 L 1013 555 L 1004 553 L 993 548 L 986 542 L 919 430 L 920 424 L 922 423 L 926 414 L 1022 259 L 1019 257 L 994 257 L 976 263 L 967 269 L 952 284 L 945 298 L 925 328 L 923 334 L 919 338 L 823 496 L 801 524 L 782 541 L 768 549 L 752 554 L 730 554 L 718 551 L 706 545 L 691 533 L 666 505 L 665 501 L 686 500 L 711 493 L 730 483 L 748 468 L 764 448 L 804 380 L 813 368 L 816 360 L 882 256 L 898 237 L 921 215 L 926 213 L 948 196 L 972 183 L 1005 171 L 1045 163 L 1081 161 L 1168 161 L 1210 157 L 1253 148 L 1288 136 L 1289 139 L 1284 152 L 1265 182 L 1249 199 L 1241 204 L 1232 213 L 1189 236 L 1156 247 L 1121 254 L 1103 262 L 1090 272 L 1079 284 L 1069 302 L 1068 308 L 1070 309 L 1086 305 L 1139 298 L 1179 288 L 1214 275 L 1250 256 L 1273 239 L 1290 223 L 1302 209 L 1324 176 L 1324 172 L 1337 143 L 1344 113 L 1347 85 Z"/>
+        <linearGradient id="swMark3DMini1" x1="420" y1="550" x2="1320" y2="40" gradientUnits="userSpaceOnUse"><stop offset="0%" stop-color="#075E50"/><stop offset="25%" stop-color="#0B8068"/><stop offset="52%" stop-color="#18A18A"/><stop offset="78%" stop-color="#168DB5"/><stop offset="100%" stop-color="#35B7E8"/></linearGradient>
+        <linearGradient id="swEnergyMini1" x1="0%" y1="0%" x2="100%" y2="0%"><stop offset="0%" stop-color="#FFFFFF" stop-opacity="0"/><stop offset="48%" stop-color="#DFFFFF" stop-opacity=".95"/><stop offset="52%" stop-color="#FFFFFF" stop-opacity="1"/><stop offset="56%" stop-color="#B8F8FF" stop-opacity=".95"/><stop offset="100%" stop-color="#FFFFFF" stop-opacity="0"/></linearGradient>
+      </defs>
+      <use href="#swPathMini1" transform="translate(0 10)" fill="rgba(4,72,65,.25)"/>
+      <use href="#swPathMini1" transform="translate(0 5)" fill="#087361"/>
+      <use href="#swPathMini1" fill="url(#swMark3DMini1)"/>
+      <use href="#swPathMini1" fill="url(#swEnergyMini1)"/>
+    </svg>
+</div>
+    <h5 class="fw-bold">SmartWelf 5.0</h5>
+    <p class="text-white-50 small mb-4">เข้าสู่ระบบการจัดการองค์กร</p>
+
+    <div class="login-tabs">
+      <div class="login-tab active" id="tabEmail" onclick="switchLoginMode('email')">อีเมล / รหัสผ่าน</div>
+      <div class="login-tab" id="tabPin" onclick="switchLoginMode('pin')">รหัส PIN 6 หลัก</div>
+    </div>
+    
+    <div id="emailLoginSection">
+      <input type="email" id="adminEmail" class="form-control bg-white bg-opacity-10 border-0 text-white rounded-4 py-3 mb-2 text-center" placeholder="อีเมลผู้ดูแลระบบ">
+      <input type="password" id="adminPass" class="form-control bg-white bg-opacity-10 border-0 text-white rounded-4 py-3 mb-1 text-center" placeholder="รหัสผ่าน">
+      <div class="text-end mb-3 px-2">
+          <a href="#" onclick="requestPasswordReset()" class="small text-white-50 text-decoration-none"><i class="fa-solid fa-key me-1"></i>ลืมรหัสผ่าน/PIN?</a>
+      </div>
+      <button onclick="handleAdminLogin()" class="btn btn-primary w-100 rounded-pill fw-bold py-3 mb-4 shadow">เข้าสู่ระบบ</button>
+      <div class="position-relative mb-4"><hr class="border-secondary"><span class="position-absolute top-50 start-50 translate-middle px-3 small text-white-50" style="background: #111a2f;">หรือเข้าใช้งานด้วย</span></div>
+      <button onclick="forceLiffLogin()" class="btn btn-success w-100 rounded-pill fw-bold py-3" style="background: #00C300; border: none;"><i class="fa-brands fa-line fs-5 me-2"></i> เข้าสู่ระบบด้วย LINE ทันที</button>
+    </div>
+
+    <div id="pinLoginSection" style="display: none;">
+      <p class="small text-white-50 mb-3">กรุณากดรหัส PIN 6 หลักของคุณ</p>
+      <div class="d-flex justify-content-center gap-2 mb-4" id="pinDisplay">
+        <div class="pin-dot"></div><div class="pin-dot"></div><div class="pin-dot"></div>
+        <div class="pin-dot"></div><div class="pin-dot"></div><div class="pin-dot"></div>
+      </div>
+      <div class="numpad">
+        <button class="num-btn" onclick="pressPin(1)">1</button><button class="num-btn" onclick="pressPin(2)">2</button><button class="num-btn" onclick="pressPin(3)">3</button>
+        <button class="num-btn" onclick="pressPin(4)">4</button><button class="num-btn" onclick="pressPin(5)">5</button><button class="num-btn" onclick="pressPin(6)">6</button>
+        <button class="num-btn" onclick="pressPin(7)">7</button><button class="num-btn" onclick="pressPin(8)">8</button><button class="num-btn" onclick="pressPin(9)">9</button>
+        <div></div><button class="num-btn" onclick="pressPin(0)">0</button><button class="num-btn text-danger" onclick="deletePin()"><i class="fa-solid fa-delete-left"></i></button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ==========================================
+     [5] ADMIN APPLICATION WORKSPACE (โครงสร้างระบบแอดมิน)
+=========================================== -->
+<div id="adminApp" style="display: none;">
+  <!-- Header -->
+  <div class="app-header-admin">
+    <div class="d-flex align-items-center gap-2">
+      <div style="width: 38px; height: 38px; flex-shrink: 0;">
+    <svg viewBox="380 40 1000 600" xmlns="http://www.w3.org/2000/svg" style="width: 100%; height: 100%; filter: drop-shadow(0px 2px 4px rgba(0,0,0,0.2));">
+      <defs>
+        <path id="swPathMini2" d="M 1346 58 L 1343 58 L 1317 73 L 1276 92 L 1223 108 L 1173 115 L 1056 116 L 1027 119 L 1024 121 L 1000 125 L 968 135 L 942 148 L 939 148 L 919 160 L 888 183 L 878 193 L 876 193 L 843 231 L 801 296 L 794 310 L 788 316 L 787 321 L 724 424 L 708 442 L 691 452 L 678 455 L 667 455 L 654 452 L 641 446 L 628 437 L 614 423 L 604 409 L 584 389 L 566 375 L 537 359 L 512 350 L 489 346 L 488 343 L 511 324 L 532 315 L 549 312 L 581 313 L 608 320 L 636 324 L 663 324 L 679 320 L 690 314 L 705 298 L 711 287 L 714 267 L 697 274 L 680 278 L 653 279 L 619 275 L 585 267 L 557 265 L 530 268 L 498 279 L 488 284 L 464 301 L 442 325 L 433 338 L 423 359 L 416 394 L 422 395 L 456 390 L 488 392 L 511 398 L 544 416 L 564 434 L 580 454 L 615 514 L 641 549 L 672 578 L 686 587 L 707 596 L 727 600 L 761 599 L 781 594 L 807 580 L 820 570 L 842 548 L 866 514 L 867 510 L 890 475 L 893 476 L 901 489 L 903 495 L 905 496 L 941 559 L 949 570 L 967 586 L 984 595 L 1004 600 L 1026 600 L 1050 594 L 1064 586 L 1086 564 L 1180 409 L 1236 321 L 1240 311 L 1233 313 L 1199 331 L 1166 343 L 1162 343 L 1160 345 L 1079 362 L 1063 370 L 1050 382 L 1039 399 L 1035 414 L 1036 418 L 1049 412 L 1126 399 L 1130 399 L 1131 402 L 1049 536 L 1039 547 L 1024 554 L 1013 555 L 1004 553 L 993 548 L 986 542 L 919 430 L 920 424 L 922 423 L 926 414 L 1022 259 L 1019 257 L 994 257 L 976 263 L 967 269 L 952 284 L 945 298 L 925 328 L 923 334 L 919 338 L 823 496 L 801 524 L 782 541 L 768 549 L 752 554 L 730 554 L 718 551 L 706 545 L 691 533 L 666 505 L 665 501 L 686 500 L 711 493 L 730 483 L 748 468 L 764 448 L 804 380 L 813 368 L 816 360 L 882 256 L 898 237 L 921 215 L 926 213 L 948 196 L 972 183 L 1005 171 L 1045 163 L 1081 161 L 1168 161 L 1210 157 L 1253 148 L 1288 136 L 1289 139 L 1284 152 L 1265 182 L 1249 199 L 1241 204 L 1232 213 L 1189 236 L 1156 247 L 1121 254 L 1103 262 L 1090 272 L 1079 284 L 1069 302 L 1068 308 L 1070 309 L 1086 305 L 1139 298 L 1179 288 L 1214 275 L 1250 256 L 1273 239 L 1290 223 L 1302 209 L 1324 176 L 1324 172 L 1337 143 L 1344 113 L 1347 85 Z"/>
+        <linearGradient id="swMark3DMini2" x1="420" y1="550" x2="1320" y2="40" gradientUnits="userSpaceOnUse"><stop offset="0%" stop-color="#075E50"/><stop offset="25%" stop-color="#0B8068"/><stop offset="52%" stop-color="#18A18A"/><stop offset="78%" stop-color="#168DB5"/><stop offset="100%" stop-color="#35B7E8"/></linearGradient>
+        <linearGradient id="swEnergyMini2" x1="0%" y1="0%" x2="100%" y2="0%"><stop offset="0%" stop-color="#FFFFFF" stop-opacity="0"/><stop offset="48%" stop-color="#DFFFFF" stop-opacity=".95"/><stop offset="52%" stop-color="#FFFFFF" stop-opacity="1"/><stop offset="56%" stop-color="#B8F8FF" stop-opacity=".95"/><stop offset="100%" stop-color="#FFFFFF" stop-opacity="0"/></linearGradient>
+      </defs>
+      <use href="#swPathMini2" transform="translate(0 10)" fill="rgba(4,72,65,.25)"/>
+      <use href="#swPathMini2" transform="translate(0 5)" fill="#087361"/>
+      <use href="#swPathMini2" fill="url(#swMark3DMini2)"/>
+      <use href="#swPathMini2" fill="url(#swEnergyMini2)"/>
+    </svg>
+</div>
+      <div>
+        <h6 class="fw-bold mb-0 text-white" style="font-size: 0.95rem;">SmartWelf <span class="text-warning">5.0</span></h6>
+        <small class="text-white-50 d-block text-truncate" id="adminNameDisplay" style="font-size:0.65rem; max-width: 150px;"></small>
+      </div>
+    </div>
+    <button onclick="logoutApp()" class="btn btn-sm btn-danger rounded-pill px-3 py-1 text-white" style="font-size: 0.7rem;"><i class="fa-solid fa-power-off me-1"></i> ออก</button>
+  </div>
+
+  <!-- Bottom Nav -->
+  <nav class="bottom-nav" id="bottomNav">
+    <button class="nav-item active" id="nav-overview" onclick="switchAdminTab('admin-view-overview', this); loadDashboardOverview();"><i class="fa-solid fa-chart-pie"></i> ภาพรวม</button>
+    <button class="nav-item" id="nav-members" onclick="switchAdminTab('admin-view-members', this); loadMembersData();"><i class="fa-solid fa-users"></i> สมาชิก</button>
+    <button class="nav-item" id="nav-ledger" onclick="switchAdminTab('admin-view-ledger', this); loadLedgerData();">
+      <i class="fa-solid fa-wallet"></i><span class="nav-badge" id="nav-badge-ledger"></span> การเงิน
+    </button>
+    <button class="nav-item" id="nav-claims" onclick="switchAdminTab('admin-view-claims', this); loadClaims();">
+      <i class="fa-solid fa-hand-holding-medical"></i><span class="nav-badge" id="nav-badge-claims"></span> สวัสดิการ
+    </button>
+    <button class="nav-item" id="nav-menu" data-bs-toggle="offcanvas" data-bs-target="#menuOffcanvas"><i class="fa-solid fa-bars"></i> เมนู</button>
+  </nav>
+
+  <!-- Offcanvas Menu -->
+  <div class="offcanvas offcanvas-bottom rounded-top-4" tabindex="-1" id="menuOffcanvas">
+    <div class="offcanvas-header pb-2 border-bottom border-light">
+      <h6 class="fw-bold mb-0">จัดการระบบส่วนกลาง</h6>
+      <button type="button" class="btn-close" data-bs-dismiss="offcanvas"></button>
+    </div>
+    <div class="offcanvas-body px-3 pt-3">
+      <div class="d-flex flex-column gap-2">
+        <button id="btn-menu-settings" class="admin-card admin-card-hover border-0 text-start w-100 d-flex align-items-center mb-0 p-3" onclick="window.closeMenuAndSwitchTab('admin-view-settings'); window.loadGlobalSettings();">
+          <div class="icon-box bg-secondary bg-opacity-10 text-secondary me-3"><i class="fa-solid fa-gear"></i></div> <span class="fw-bold text-dark">ตั้งค่าระบบ (Global)</span>
+        </button>
+        <button id="btn-menu-gis" class="admin-card admin-card-hover border-0 text-start w-100 d-flex align-items-center mb-0 p-3" onclick="window.closeMenuAndSwitchTab('admin-view-gis'); window.loadGISMap();">
+          <div class="icon-box bg-primary bg-opacity-10 text-primary me-3"><i class="fa-solid fa-map-location-dot"></i></div> <span class="fw-bold text-dark">แผนที่พิกัดสมาชิก (GIS)</span>
+        </button>
+        <button id="btn-menu-rules" class="admin-card admin-card-hover border-0 text-start w-100 d-flex align-items-center mb-0 p-3" onclick="window.closeMenuAndSwitchTab('admin-view-rules'); window.loadRulesData();">
+          <div class="icon-box bg-warning bg-opacity-10 text-warning me-3"><i class="fa-solid fa-scale-balanced"></i></div> <span class="fw-bold text-dark">ระเบียบจ่ายสวัสดิการ</span>
+        </button>
+        <!-- เมนูจัดการร้านค้าและข่าวสาร -->
+        <button id="btn-menu-shops" class="admin-card admin-card-hover border-0 text-start w-100 d-flex align-items-center mb-0 p-3" onclick="window.closeMenuAndSwitchTab('admin-view-shops'); window.loadAdminShops();">
+          <div class="icon-box bg-success bg-opacity-10 text-success me-3"><i class="fa-solid fa-store"></i></div> <span class="fw-bold text-dark">จัดการร้านค้าสวัสดิการ</span>
+        </button>
+        <button id="btn-menu-news" class="admin-card admin-card-hover border-0 text-start w-100 d-flex align-items-center mb-0 p-3" onclick="window.closeMenuAndSwitchTab('admin-view-news'); window.loadAdminNews();">
+          <div class="icon-box bg-primary bg-opacity-10 text-primary me-3"><i class="fa-solid fa-bullhorn"></i></div> <span class="fw-bold text-dark">ประกาศข่าวสารชุมชน</span>
+        </button>
+        <button id="btn-menu-admins" class="admin-card admin-card-hover border-0 text-start w-100 d-flex align-items-center mb-0 p-3" onclick="window.closeMenuAndSwitchTab('admin-view-admins'); window.loadAdminsData();">
+          <div class="icon-box bg-info bg-opacity-10 text-info me-3"><i class="fa-solid fa-user-shield"></i></div> <span class="fw-bold text-dark">ผู้ดูแลระบบ (Admins)</span>
+        </button>
+        
+        <button id="btn-menu-bank" class="admin-card admin-card-hover border-0 text-start w-100 d-flex align-items-center mb-0 p-3" onclick="window.closeMenuAndSwitchTab('admin-view-bank');">
+          <div class="icon-box bg-success bg-opacity-10 text-success me-3"><i class="fa-solid fa-building-columns"></i></div> <span class="fw-bold text-dark">จัดการบัญชีธนาคาร</span>
+        </button>
+        <button id="btn-menu-connection" class="admin-card admin-card-hover border-0 text-start w-100 d-flex align-items-center mb-0 p-3" onclick="window.closeMenuAndSwitchTab('admin-view-connection');">
+          <div class="icon-box bg-primary bg-opacity-10 text-primary me-3"><i class="fa-solid fa-link"></i></div> <span class="fw-bold text-dark">ตั้งค่าและการเชื่อมต่อบัญชี</span>
+        </button>
+        <button id="btn-menu-privacy" class="admin-card admin-card-hover border-0 text-start w-100 d-flex align-items-center mb-0 p-3" onclick="window.closeMenuAndSwitchTab('admin-view-privacy');">
+          <div class="icon-box bg-danger bg-opacity-10 text-danger me-3"><i class="fa-solid fa-shield-halved"></i></div> <span class="fw-bold text-dark">ความเป็นส่วนตัวและความปลอดภัย</span>
+        </button>
+        <button id="btn-menu-support" class="admin-card admin-card-hover border-0 text-start w-100 d-flex align-items-center mb-0 p-3" onclick="window.closeMenuAndSwitchTab('admin-view-support');">
+          <div class="icon-box bg-secondary bg-opacity-10 text-secondary me-3"><i class="fa-solid fa-circle-info"></i></div> <span class="fw-bold text-dark">การใช้งานทั่วไป</span>
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <div class="container-fluid pt-2" style="max-width: 800px; margin: 0 auto;">
+    
+
+  <!-- 📊 ADMIN TAB: ภาพรวมการเงิน (Modern UI) -->
+    <div class="admin-tab-pane d-none" id="admin-view-overview">
+      <div class="wallet-card">
+        <div class="d-flex justify-content-between mb-2 align-items-center position-relative" style="z-index: 2;">
+          <span class="text-white-50 small fw-bold"><i class="fa-solid fa-wallet me-1"></i> ยอดเงินกองทุนสวัสดิการชุมชน</span>
+          <i class="fa-solid fa-building-columns text-white-50 fs-5"></i>
+        </div>
+        <h1 class="fw-bold mb-1 text-white position-relative" style="z-index: 2; font-size: 2.5rem;">
+          <span style="font-size:1.2rem; font-weight:normal; opacity: 0.8;">THB</span> <span id="cap-total">0.00</span>
+        </h1>
+        <div class="d-flex justify-content-between small pt-3 position-relative mt-4" style="border-top: 1px solid rgba(255,255,255,0.15); z-index: 2;">
+          <span class="text-white-50"><i class="fa-solid fa-user-shield me-1"></i> CWF-ADMIN</span>
+          <span class="text-white-50"><i class="fa-solid fa-bolt text-warning me-1"></i> อัปเดตแบบ Real-time</span>
+        </div>
+      </div>
+
+      <!-- 🌟 การ์ดกระแสเงินสด (อัปเดตแก้ปัญหาตัวเลขซ้อนทับบนมือถือ) 🌟 -->
+      <div class="admin-card border-0 p-4 mb-4 shadow-sm rounded-4 bg-white">
+          <!-- Header -->
+          <div class="d-flex justify-content-between mb-3 align-items-center">
+              <h6 class="fw-bold text-dark mb-0">
+                  <i class="fa-solid fa-wallet text-primary me-2 fs-5"></i>กระแสเงินสด รับ-จ่าย และหนี้สิน
+              </h6>
+          </div>
+
+          <!-- ส่วนที่ 1: สรุปข้อมูลรับ-จ่ายเชิงลึก -->
+          <div class="row g-2 mb-3">
+              <div class="col-6">
+                  <div class="border border-opacity-50 rounded-3 p-3 bg-light bg-opacity-50 h-100 overflow-hidden">
+                      <div class="d-flex align-items-center mb-2">
+                          <div class="d-flex justify-content-center align-items-center bg-success bg-opacity-10 text-success rounded-circle me-2 flex-shrink-0" style="width: 24px; height: 24px;">
+                              <i class="fa-solid fa-arrow-turn-down" style="font-size: 0.6rem;"></i>
+                          </div>
+                          <small class="text-muted fw-bold text-nowrap" style="font-size: 0.75rem;">รายรับรวม</small>
+                      </div>
+                      <!-- ใช้ clamp() ย่อตัวอักษรอัตโนมัติ และ text-nowrap ห้ามตัดบรรทัด -->
+                      <div class="fw-bold text-dark mb-0 text-nowrap" id="stat-total-in" style="font-size: clamp(0.85rem, 4vw, 1.15rem);">฿0.00</div>
+                  </div>
+              </div>
+              <div class="col-6">
+                  <div class="border border-opacity-50 rounded-3 p-3 bg-light bg-opacity-50 h-100 overflow-hidden">
+                      <div class="d-flex align-items-center mb-2">
+                          <div class="d-flex justify-content-center align-items-center bg-danger bg-opacity-10 text-danger rounded-circle me-2 flex-shrink-0" style="width: 24px; height: 24px;">
+                              <i class="fa-solid fa-arrow-turn-up" style="font-size: 0.6rem;"></i>
+                          </div>
+                          <small class="text-muted fw-bold text-nowrap" style="font-size: 0.75rem;">จ่ายสวัสดิการ</small>
+                      </div>
+                      <div class="fw-bold text-dark mb-0 text-nowrap" id="stat-total-out" style="font-size: clamp(0.85rem, 4vw, 1.15rem);">฿0.00</div>
+                  </div>
+              </div>
+          </div>
+
+          <!-- ส่วนที่ 2: ยอดคงเหลือสภาพคล่อง (แบ่ง 1 แถวบน 2 แถวล่าง) -->
+          <div class="row g-3 mt-2 pt-3" style="border-top: 1px dashed #E2E8F0;">
+              <!-- คงเหลือทั้งหมด (เต็มความกว้าง) -->
+              <div class="col-12 text-center mb-2 overflow-hidden">
+                  <small class="text-muted fw-bold d-block mb-1" style="font-size: 0.75rem;">คงเหลือทั้งหมด</small>
+                  <div class="text-dark fw-bold text-nowrap" id="chart-sum-total" style="font-size: clamp(1.4rem, 6vw, 2rem);">฿0.00</div>
+              </div>
+              
+              <!-- ธนาคาร และ เงินสด -->
+              <div class="col-6 text-center border-end border-light overflow-hidden">
+                  <small class="text-muted fw-bold d-block mb-1" style="font-size: 0.7rem;">ธนาคาร</small>
+                  <div class="text-primary fw-bold text-nowrap" id="liq-bank" style="font-size: clamp(0.9rem, 4.5vw, 1.25rem);">฿0.00</div>
+              </div>
+              <div class="col-6 text-center overflow-hidden">
+                  <small class="text-muted fw-bold d-block mb-1" style="font-size: 0.7rem;">เงินสด</small>
+                  <div class="text-success fw-bold text-nowrap" id="liq-cash" style="font-size: clamp(0.9rem, 4.5vw, 1.25rem);">฿0.00</div>
+              </div>
+          </div>
+
+          <!-- ส่วนที่ 3: ยอดลูกหนี้ค้างชำระ -->
+          <div class="row mt-4">
+              <div class="col-12">
+                  <div class="border-0 bg-danger bg-opacity-10 border border-danger border-opacity-25 rounded-3 p-3 d-flex justify-content-between align-items-center overflow-hidden">
+                      <div class="d-flex align-items-center" style="min-width: 0;">
+                          <div class="icon-box bg-white text-danger shadow-sm me-3 d-flex justify-content-center align-items-center rounded-circle flex-shrink-0" style="width: 40px; height: 40px;">
+                              <i class="fa-solid fa-triangle-exclamation"></i>
+                          </div>
+                          <div style="min-width: 0;">
+                              <small class="text-danger fw-bold d-block text-nowrap" style="font-size: 0.75rem;">ยอดสมทบ(ลูกหนี้)</small>
+                              <div class="fw-bold text-danger mb-0 mt-1 text-nowrap" id="stat-total-debt" style="font-size: clamp(0.85rem, 4vw, 1.15rem);">฿0.00</div>
+                          </div>
+                      </div>
+                      <button class="btn btn-sm btn-danger rounded-pill px-3 shadow-sm flex-shrink-0 ms-2" onclick="switchAdminTab('admin-view-members', document.getElementById('nav-members'))">ติดตาม</button>
+                  </div>
+              </div>
+          </div>
+      </div>
+      <!-- 🌟 สิ้นสุดการ์ดกระแสเงินสด 🌟 -->
+
+      <div class="d-flex justify-content-between align-items-center mb-3 mt-4 ps-1">
+    <div class="d-flex align-items-center">
+        <i class="fa-solid fa-radar text-danger fs-5 me-2 blink-anim"></i>
+        <h6 class="fw-bold text-dark mb-0">เรดาร์เงินค้างส่ง (อยู่ที่ใครบ้าง?)</h6>
+    </div>
+</div>
+
+<!-- ปรับ Container ให้เป็นแนวนอน (Horizontal Scroll) -->
+<div id="holderRadarContainer" class="d-flex flex-nowrap overflow-x-auto gap-2 pb-2 mb-4 horizontal-scroll-container">
+    <!-- ข้อมูลที่จะถูก Inject ผ่าน JS จะมาอยู่ในนี้ -->
+</div>
+
+      <div class="admin-card border-0 p-4 mb-4 shadow-sm rounded-4 bg-white">
+          <div class="d-flex justify-content-between align-items-end mb-3">
+              <div>
+                  <h6 class="fw-bold text-dark mb-1"><i class="fa-solid fa-users text-primary me-2"></i>ข้อมูลฐานสมาชิก</h6>
+                  <small class="text-muted" style="font-size: 0.75rem;">เป้าหมายชุมชน: <strong id="eq-population">20k</strong> คน</small>
+              </div>
+              <div class="text-end">
+                  <h3 class="text-success fw-bold mb-0" id="eq-active">0</h3>
+                  <span class="badge bg-success bg-opacity-10 text-success rounded-pill mt-1" style="font-size: 0.7rem;">สัดส่วน <span id="eq-percent-active">0</span>%</span>
+              </div>
+          </div>
+          <div class="progress bg-light" style="height: 10px; border-radius: 10px;">
+              <div id="eq-progress-bar" class="progress-bar bg-success progress-bar-striped progress-bar-animated" role="progressbar" style="width: 0%;" aria-valuenow="0" aria-valuemin="0" aria-valuemax="100"></div>
+          </div>
+      </div>
+
+      <div class="admin-card border-0 p-4 mb-4 shadow-sm rounded-4">
+        <div class="d-flex align-items-center mb-3">
+            <div class="d-flex justify-content-center align-items-center bg-info bg-opacity-10 text-info rounded-circle me-2" style="width: 28px; height: 28px;"><i class="fa-solid fa-coins"></i></div>
+            <h6 class="fw-bold text-dark mb-0">โครงสร้างทุนสะสม</h6>
+        </div>
+        <div class="chart-container" style="height: 200px;"><canvas id="doughnutChart"></canvas></div>
+      </div>
+
+      <div id="overviewChartArea">
+          <div id="sharedTrendChart" class="admin-card border-0 p-4 mb-4 shadow-sm rounded-4" style="display: block;">
+              <div class="d-flex justify-content-between align-items-center mb-4">
+                  <div class="d-flex align-items-center">
+                      <div class="d-flex justify-content-center align-items-center bg-primary bg-opacity-10 text-primary rounded-circle me-2" style="width: 28px; height: 28px;"><i class="fa-solid fa-chart-line"></i></div>
+                      <h6 class="fw-bold text-dark mb-0">สถิติกระแสเงินสด</h6>
+                  </div>
+                  <select id="trendFilter" class="form-select-modern bg-light border-0 py-1 px-3 text-primary fw-bold" style="font-size:0.8rem; width: auto; border-radius: 20px;" onchange="renderTrendChart()">
+                      <option value="6months" selected>6 เดือน</option><option value="thisYear">ปีปัจจุบัน</option><option value="fiscal">ปีงบประมาณ</option><option value="allYears">รายปี</option>
+                  </select>
+              </div>
+              <div class="chart-container" style="height: 250px; width: 100%;"><canvas id="trendChart"></canvas></div>
+          </div>
+      </div>
+    </div>
+
+    <!-- 👥 ADMIN TAB: ทะเบียนสมาชิก -->
+    <div class="admin-tab-pane d-none" id="admin-view-members">
+      <div class="d-flex justify-content-between align-items-center mb-3 px-1">
+        <h5 class="fw-bold text-dark mb-0">ทะเบียนสมาชิก</h5>
+        <div class="d-flex gap-2">
+            <button class="btn btn-sm btn-success rounded-pill px-3 py-2 fw-bold shadow-sm" onclick="bulkCollectContribution()"><i class="fa-solid fa-coins"></i> เก็บเงินกลุ่ม</button>
+            <button id="btn-add-member" class="btn btn-sm btn-primary rounded-pill px-3 py-2 fw-bold shadow-sm" onclick="openAdminRegisterModal()"><i class="fa-solid fa-plus"></i> เพิ่มสมาชิก</button>
+        </div>
+      </div>
+      
+      <div id="pendingLinkAlert" class="admin-card border-0 bg-primary bg-opacity-10 mb-3" style="display:none;">
+          <div class="d-flex justify-content-between align-items-center">
+              <div class="d-flex align-items-center gap-3">
+                  <div class="icon-box bg-primary text-white shadow-sm"><i class="fa-brands fa-line"></i></div>
+                  <div><h6 class="fw-bold text-dark mb-0" style="font-size: 0.9rem;">คำขอผูกบัญชี LINE</h6><small class="text-muted" style="font-size: 0.75rem;">รอการยืนยัน <span id="linkRequestCount" class="text-danger fw-bold">0</span> รายการ</small></div>
+              </div>
+              <button class="btn btn-sm btn-primary rounded-pill px-3 shadow-sm" onclick="showPendingLinksModal()">ตรวจสอบ</button>
+          </div>
+      </div>
+
+      <!-- ส่วนกรองข้อมูลสมาชิก -->
+      <div class="position-sticky pb-2" style="background-color: var(--bg-light); top: 68px; z-index: 10;">
+        <div class="admin-card p-2 m-0 border-0 d-flex align-items-center gap-2">
+            <div class="d-flex align-items-center flex-grow-1">
+                <i class="fa-solid fa-magnifying-glass text-muted ms-2 me-2"></i>
+                <input type="text" id="searchMemberInput" class="form-control border-0 shadow-none bg-transparent px-0" placeholder="ค้นหาชื่อ, รหัส, เลข ปชช..." onkeyup="filterMembersLocally()">
+            </div>
+            <div class="dropdown">
+                <button class="btn btn-light rounded-circle shadow-sm border p-2 d-flex align-items-center justify-content-center text-muted" type="button" data-bs-toggle="dropdown" aria-expanded="false" data-bs-auto-close="outside" style="width: 40px; height: 40px;">
+                    <i class="fa-solid fa-filter"></i>
+                </button>
+                <div class="dropdown-menu dropdown-menu-end p-3 border-0 shadow-lg rounded-3" style="min-width: 260px;">
+    <h6 class="fw-bold text-dark mb-3">ตัวกรองข้อมูลสมาชิก</h6>
+    
+    <!-- ศูนย์ประสานงาน -->
+    <div class="mb-2">
+        <label class="form-label small text-muted mb-1"><i class="fa-solid fa-building me-1"></i> ศูนย์ประสานงาน</label>
+        <select id="filterCenter" class="form-select form-select-sm shadow-none" onchange="filterMembersLocally()">
+            <option value="">ทั้งหมด</option>
+        </select>
+    </div>
+    
+    <!-- ผู้ดูแล -->
+    <div class="mb-2">
+        <label class="form-label small text-muted mb-1"><i class="fa-solid fa-user-tie me-1"></i> ผู้ดูแล</label>
+        <select id="filterAdmin" class="form-select form-select-sm shadow-none" onchange="filterMembersLocally()">
+            <option value="">ทั้งหมด</option>
+        </select>
+    </div>
+    
+    <!-- ประเภทสมาชิก -->
+    <div class="mb-2">
+        <label class="form-label small text-muted mb-1"><i class="fa-solid fa-id-card me-1"></i> ประเภทสมาชิก</label>
+        <select id="filterType" class="form-select form-select-sm shadow-none" onchange="filterMembersLocally()">
+            <option value="">ทั้งหมด</option>
+        </select>
+    </div>
+
+    <!-- อายุการเป็นสมาชิก -->
+    <div class="mb-2">
+        <label class="form-label small text-muted mb-1"><i class="fa-solid fa-clock-rotate-left me-1"></i> อายุสมาชิก</label>
+        <select id="filterAge" class="form-select form-select-sm shadow-none border-primary" onchange="filterMembersLocally()">
+            <option value="">ทั้งหมด</option>
+            <option value="over1year">ครบ 1 ปีขึ้นไป</option>
+            <option value="under1year">ไม่ถึง 1 ปี</option>
+        </select>
+    </div>
+
+    <!-- ความเปราะบาง -->
+    <div class="mb-1">
+        <label class="form-label small text-muted mb-1"><i class="fa-solid fa-wheelchair me-1"></i> กลุ่มเปราะบาง</label>
+        <select id="filterVulnerable" class="form-select form-select-sm shadow-none border-danger border-opacity-50" onchange="filterMembersLocally()">
+            <option value="">ทั้งหมด</option>
+            <option value="ปกติ">ไม่มีความเปราะบาง (ปกติ)</option>
+        </select>
+    </div>
+</div>
+            </div>
+        </div>
+      </div>
+      
+      <div id="list-members" class="mt-3">กำลังโหลด...</div>
+    </div>
+
+    <!-- 💳 ADMIN TAB: การเงิน & บัญชี (Ledger & Transactions) -->
+    <div class="admin-tab-pane d-none" id="admin-view-ledger">
+      
+      <div class="d-flex justify-content-between align-items-center mb-3 px-2 mt-2">
+          <h5 class="fw-bold text-dark mb-0">ระบบการเงินส่วนกลาง</h5>
+          <!-- 🌟 ปุ่มยืนยันยอดเข้ากองทุน (โผล่มาเฉพาะเมื่อมียอดค้าง) -->
+          <div id="financeApproveBtnBox" style="display: none;">
+              <button onclick="approveFundsToCentralBank()" class="btn btn-sm btn-success rounded-pill fw-bold shadow-sm px-3">
+                  <i class="fa-solid fa-building-columns me-1"></i> ยืนยันยอดเข้าคลัง
+              </button>
+          </div>
+      </div>
+
+      <!-- 🌟 เมนูด่วน (Quick Actions) เลื่อนซ้ายขวาได้ -->
+      <div class="quick-actions-scroll-container px-2 mb-4">
+          <div class="d-flex flex-nowrap gap-3 pb-2 overflow-auto" style="-webkit-overflow-scrolling: touch; scrollbar-width: none;">
+              
+              <!-- 1. สแกนรับเงิน -->
+              <div class="text-center flex-shrink-0 cursor-pointer" onclick="scanToReceiveAdminFunds()" style="width: 70px;">
+                  <div class="icon-box bg-dark text-white mx-auto mb-2 shadow-sm rounded-4" style="width: 50px; height: 50px; font-size: 1.5rem;">
+                      <i class="fa-solid fa-expand"></i>
+                  </div>
+                  <small class="fw-bold text-dark d-block" style="font-size: 0.7rem;">สแกนรับ</small>
+              </div>
+
+              <!-- 2. ส่งเงิน QR -->
+              <div class="text-center flex-shrink-0 cursor-pointer" onclick="generateTransferAdminQR()" style="width: 70px;">
+                  <div class="icon-box bg-primary bg-opacity-10 text-primary mx-auto mb-2 shadow-sm rounded-4" style="width: 50px; height: 50px; font-size: 1.5rem;">
+                      <i class="fa-solid fa-arrow-up-from-bracket"></i>
+                  </div>
+                  <small class="fw-bold text-dark d-block" style="font-size: 0.7rem;">ส่งยอด</small>
+              </div>
+
+              <!-- 3. เรียกเก็บ QR -->
+              <div class="text-center flex-shrink-0 cursor-pointer" onclick="generatePaymentQR()" style="width: 70px;">
+                  <div class="icon-box bg-danger bg-opacity-10 text-danger mx-auto mb-2 shadow-sm rounded-4" style="width: 50px; height: 50px; font-size: 1.5rem;">
+                      <i class="fa-solid fa-qrcode"></i>
+                  </div>
+                  <small class="fw-bold text-dark d-block" style="font-size: 0.7rem;">เรียกเก็บ</small>
+              </div>
+
+              <!-- 4. บันทึกรับ-จ่าย -->
+              <div class="text-center flex-shrink-0 cursor-pointer" onclick="toggleLedgerActionForm('ie')" style="width: 70px;">
+                  <div class="icon-box bg-success bg-opacity-10 text-success mx-auto mb-2 shadow-sm rounded-4" style="width: 50px; height: 50px; font-size: 1.5rem;">
+                      <i class="fa-solid fa-money-bill-wave"></i>
+                  </div>
+                  <small class="fw-bold text-dark d-block" style="font-size: 0.7rem;">รับ-จ่าย</small>
+              </div>
+
+              <!-- 5. โอนย้ายบัญชี -->
+              <div class="text-center flex-shrink-0 cursor-pointer" onclick="toggleLedgerActionForm('tf')" style="width: 70px;">
+                  <div class="icon-box bg-warning bg-opacity-10 text-warning mx-auto mb-2 shadow-sm rounded-4" style="width: 50px; height: 50px; font-size: 1.5rem;">
+                      <i class="fa-solid fa-arrow-right-arrow-left"></i>
+                  </div>
+                  <small class="fw-bold text-dark d-block" style="font-size: 0.7rem;">โอนย้าย</small>
+              </div>
+
+          </div>
+      </div>
+
+      <!-- 🌟 พื้นที่แสดงฟอร์มทำงาน (ซ่อนไว้ก่อน จะกางออกเมื่อกดปุ่มเมนูด่วน รับ-จ่าย หรือ โอนย้าย) -->
+      <div id="ledgerActionContainer" class="admin-card border-0 p-3 mb-4 shadow-sm rounded-4" style="display: none;">
+          <div class="d-flex justify-content-between align-items-center mb-3">
+              <h6 id="ledgerActionTitle" class="fw-bold text-primary mb-0">บันทึกข้อมูล</h6>
+              <button class="btn btn-sm btn-light rounded-circle text-muted" onclick="toggleLedgerActionForm('close')"><i class="fa-solid fa-xmark"></i></button>
+          </div>
+          
+          <!-- ฟอร์มรับ-จ่าย -->
+          <form id="form-ie" onsubmit="submitLedgerIE(event)" style="display: none;">
+              <div class="btn-group w-100 shadow-sm mb-4" role="group">
+                  <input type="radio" class="btn-check" name="ieType" id="ieTypeIn" value="income" autocomplete="off" checked onchange="renderNoteDropdown()">
+                  <label class="btn btn-outline-success fw-bold py-2 rounded-start-4" for="ieTypeIn"><i class="fa-solid fa-arrow-turn-down me-1"></i> รับ</label>
+                  <input type="radio" class="btn-check" name="ieType" id="ieTypeOut" value="expense" autocomplete="off" onchange="renderNoteDropdown()">
+                  <label class="btn btn-outline-danger fw-bold py-2 rounded-end-4" for="ieTypeOut"><i class="fa-solid fa-arrow-turn-up me-1"></i> จ่าย</label>
+              </div>
+              <div class="row g-3">
+                  <div class="col-12">
+                      <div class="input-group shadow-sm rounded-4">
+                          <span class="input-group-text bg-light border-0"><i class="fa-solid fa-tag text-muted"></i></span>
+                          <select id="ieNote" class="form-select border-0 bg-light" required><option value="" selected disabled>-- หมวดหมู่ --</option></select>
+                          <button type="button" class="btn btn-primary px-3" onclick="addNewLedgerNote()"><i class="fa-solid fa-plus"></i></button>
+                      </div>
+                  </div>
+                  <div class="col-12">
+                      <div class="form-floating shadow-sm">
+                          <input type="text" id="ieAddNote" class="form-control border-0 bg-light rounded-4" placeholder="รายละเอียด">
+                          <label for="ieAddNote" class="text-muted"><i class="fa-solid fa-pen me-1"></i> รายละเอียดเพิ่มเติม</label>
+                      </div>
+                  </div>
+                  <div class="col-12">
+                      <div class="form-floating shadow-sm">
+                          <input type="number" id="ieAmt" class="form-control border-0 bg-success bg-opacity-10 text-success fw-bold fs-4 rounded-4" placeholder="0.00" step="0.01" required>
+                          <label for="ieAmt" class="text-success"><i class="fa-solid fa-coins me-1"></i> จำนวนเงิน (บาท)</label>
+                      </div>
+                  </div>
+                  <div class="col-6">
+                      <div class="form-floating shadow-sm">
+                          <input type="date" id="ieDate" class="form-control border-0 bg-light rounded-4" required>
+                          <label for="ieDate" class="text-muted"><i class="fa-solid fa-calendar me-1"></i> วันที่</label>
+                      </div>
+                  </div>
+                  <div class="col-6">
+                      <div class="form-floating shadow-sm">
+                          <select id="ieWallet" class="form-select border-0 bg-light rounded-4"><option value="bank">ธนาคาร</option><option value="cash">เงินสด</option></select>
+                          <label for="ieWallet" class="text-muted"><i class="fa-solid fa-wallet me-1"></i> ช่องทาง</label>
+                      </div>
+                  </div>
+              </div>
+              <button type="submit" class="btn btn-primary w-100 mt-4 rounded-pill py-3 fw-bold shadow-sm"><i class="fa-solid fa-floppy-disk me-2"></i> บันทึกรายการ</button>
+          </form>
+
+          <!-- ฟอร์มโอนย้าย -->
+          <form id="form-tf" onsubmit="submitLedgerTF(event)" style="display: none;">
+              <div class="row g-2 align-items-center bg-light p-2 rounded-4 mx-0 mb-3 shadow-sm">
+                  <div class="col-5 px-1 text-center">
+                      <small class="text-muted fw-bold mb-1 d-block">จาก (ต้นทาง)</small>
+                      <select id="tfFrom" class="form-select border-0 text-center fw-bold shadow-sm rounded-3"><option value="bank">ธนาคาร</option><option value="cash">เงินสด</option></select>
+                  </div>
+                  <div class="col-2 text-center px-0"><div class="icon-box bg-white shadow-sm text-primary mx-auto rounded-circle" style="width: 30px; height: 30px;"><i class="fa-solid fa-arrow-right"></i></div></div>
+                  <div class="col-5 px-1 text-center">
+                      <small class="text-muted fw-bold mb-1 d-block">ไป (ปลายทาง)</small>
+                      <select id="tfTo" class="form-select border-0 text-center fw-bold shadow-sm rounded-3"><option value="cash">เงินสด</option><option value="bank">ธนาคาร</option></select>
+                  </div>
+              </div>
+              <div class="row g-3">
+                  <div class="col-12"><div class="form-floating shadow-sm"><input type="number" id="tfAmt" class="form-control border-0 bg-warning bg-opacity-10 text-dark fw-bold text-center fs-3 rounded-4" placeholder="0.00" step="0.01" required><label for="tfAmt" class="text-muted text-center w-100">จำนวนเงินโอน (บาท)</label></div></div>
+                  <div class="col-12"><div class="form-floating shadow-sm"><input type="date" id="tfDate" class="form-control border-0 bg-light rounded-4" required><label for="tfDate" class="text-muted"><i class="fa-solid fa-calendar me-1"></i> วันที่ทำรายการ</label></div></div>
+              </div>
+              <button type="submit" class="btn btn-dark w-100 mt-4 rounded-pill py-3 fw-bold shadow-sm"><i class="fa-solid fa-money-bill-transfer me-2"></i> ยืนยันโอนย้าย</button>
+          </form>
+      </div>
+
+      <!-- 🌟 ส่วนประวัติและการตรวจสอบ (Weekly Calendar View) -->
+      <div id="finance-only-history">
+
+          <!-- 🔔 1. แถบแจ้งเตือนรายการรอตรวจสอบ (ย่อ/ขยายได้) -->
+          <div class="admin-card border-0 p-3 mb-3 bg-white rounded-4 shadow-sm border border-warning border-opacity-25">
+              <div class="d-flex justify-content-between align-items-center cursor-pointer" onclick="toggleCollapse('collapse-pending-tx', 'arrow-pending-tx')">
+                  <div class="d-flex align-items-center position-relative pe-3">
+                      <i class="fa-solid fa-bell text-warning fs-5 me-2 blink-anim"></i>
+                      <h6 class="fw-bold text-dark mb-0" style="font-size: 0.9rem;">รายการรอตรวจสอบ / ส่งมอบ</h6>
+                      <!-- กระดิ่งตัวเลขแดง -->
+                      <span class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger shadow-sm" id="pendingTxBadge" style="font-size: 0.6rem; display: none;">0</span>
+                  </div>
+                  <div class="text-muted bg-light rounded-circle p-1"><i class="fa-solid fa-chevron-down transition" id="arrow-pending-tx"></i></div>
+              </div>
+              <div class="collapse mt-3 pt-3 border-top" id="collapse-pending-tx">
+                  <div id="list-pending-transactions">กำลังโหลด...</div>
+              </div>
+          </div>
+
+          <!-- 📅 2. แถบปฏิทินรายวัน (Calendar Strip) แถวบนสุด -->
+          <div class="mb-3 px-1">
+              <div class="d-flex justify-content-between align-items-center mb-2">
+                  <h6 class="fw-bold text-dark mb-0"><i class="fa-solid fa-calendar-day text-primary me-2"></i>เลือกวันที่ทำธุรกรรม</h6>
+                  <button class="btn btn-sm btn-outline-success rounded-pill px-3 py-1 shadow-sm d-flex align-items-center" onclick="exportTransactionsToCSV()" title="ส่งออกเป็น Excel">
+                      <i class="fa-solid fa-file-excel me-1"></i> <span class="d-none d-sm-inline">ส่งออก</span>
+                  </button>
+              </div>
+              <div id="calendarStrip" class="d-flex flex-nowrap overflow-auto gap-2 pb-2 mt-2" style="-webkit-overflow-scrolling: touch; scrollbar-width: none;">
+                  <!-- JS จะสร้างปุ่มวันที่ตรงนี้อัตโนมัติ -->
+              </div>
+          </div>
+
+          <!-- 📋 3. พื้นที่แสดงผลรายการของวันที่เลือก พร้อมปุ่ม +รับ / -จ่าย -->
+              <div class="d-flex justify-content-between align-items-center mb-3 border-bottom pb-2">
+                      <h6 class="fw-bold text-primary mb-0" id="selectedDateDisplay">ประวัติธุรกรรม</h6>
+                      <div class="d-flex gap-2">
+                          <button class="btn btn-sm btn-success rounded-pill fw-bold shadow-sm px-3 flex-fill" onclick="openDailyLedgerForm('income')"><i class="fa-solid fa-plus me-1"></i> รับ</button>
+                          <button class="btn btn-sm btn-danger rounded-pill fw-bold shadow-sm px-3 flex-fill" onclick="openDailyLedgerForm('expense')"><i class="fa-solid fa-minus me-1"></i> จ่าย</button>
+                          <button class="btn btn-sm btn-warning text-dark rounded-pill fw-bold shadow-sm px-3 flex-fill" onclick="openTransferForm()"><i class="fa-solid fa-arrow-right-arrow-left me-1"></i> โอนย้าย</button>
+                      </div>
+                  </div>
+                  
+                  <!-- 🌟 กล่องสรุปยอดที่อัปเดตใหม่ (มียอดสุทธิด้านบน) 🌟 -->
+                  <div class="mb-3 px-2 bg-light p-3 rounded-4 border">
+                      <div class="text-center mb-2 pb-2 border-bottom border-secondary border-opacity-25">
+                          <small class="text-muted fw-bold" style="font-size: 0.75rem;">ยอดเงินสุทธิประจำวัน</small>
+                          <h4 class="fw-bold mb-0 mt-1" id="dailyNetTotal">฿0.00</h4>
+                      </div>
+                      <div class="d-flex justify-content-between align-items-center">
+                          <div class="text-center w-50 border-end border-secondary border-opacity-25">
+                              <small class="text-muted fw-bold" style="font-size: 0.65rem;">รายรับรวม</small>
+                              <h6 class="text-success fw-bold mb-0 mt-1" id="dailyTotalIn">฿0.00</h6>
+                          </div>
+                          <div class="text-center w-50">
+                              <small class="text-muted fw-bold" style="font-size: 0.65rem;">รายจ่ายรวม</small>
+                              <h6 class="text-danger fw-bold mb-0 mt-1" id="dailyTotalOut">฿0.00</h6>
+                          </div>
+                      </div>
+                  </div>
+                  
+                  <div id="list-daily-transactions"></div>
+              </div>
+
+      </div>
+          
+          <!-- ระบบแบ่งหน้า (Pagination) -->
+          <div id="tx-pagination" class="d-flex justify-content-center flex-wrap gap-2 mt-4 mb-3"></div>
+      </div>
+    </div>
+    <!-- 🏥 ADMIN TAB: สวัสดิการ -->
+    <div class="admin-tab-pane d-none" id="admin-view-claims">
+      <div class="d-flex align-items-center mb-4 px-1"><span class="dot-red me-2"></span><h5 class="fw-bold text-dark mb-0">คำขอเบิกสวัสดิการ</h5></div>
+      <div id="list-pending-claims">กำลังโหลด...</div>
+      <div class="d-flex align-items-center mb-3 mt-5 px-1"><span class="dot-green me-2"></span><h6 class="fw-bold text-dark mb-0">ประวัติการจ่ายเงินล่าสุด</h6></div>
+      <div id="list-approved-claims"></div>
+    </div>
+
+    <!-- 🏪 ADMIN TAB: จัดการร้านค้าสวัสดิการ -->
+    <div class="admin-tab-pane d-none" id="admin-view-shops">
+      <div class="d-flex justify-content-between align-items-center mb-4 px-1">
+        <div class="d-flex align-items-center">
+          <i class="fa-solid fa-store text-success me-2 fs-5"></i>
+          <h5 class="fw-bold text-dark mb-0">อนุมัติและจัดการร้านค้าสวัสดิการ</h5>
+        </div>
+        <!-- 🌟 ปุ่มเพิ่มร้านค้าใหม่โดยแอดมิน -->
+        <button class="btn btn-sm btn-primary rounded-pill px-3 fw-bold shadow-sm" onclick="window.openAddShopModal()">
+          <i class="fa-solid fa-plus me-1"></i> เพิ่มร้านค้า
+        </button>
+      </div>
+      ...
+
+      <!-- คำขอเปิดร้านรออนุมัติ -->
+      <div class="d-flex align-items-center mb-3 ps-1">
+        <span class="dot-yellow me-2 blink-anim"></span>
+        <h6 class="fw-bold text-dark mb-0">คำขอเปิดร้านค้า (รอตรวจสอบ)</h6>
+      </div>
+      <div id="list-pending-shops" class="mb-4">กำลังโหลด...</div>
+
+      <!-- ร้านค้าที่อนุมัติแล้ว -->
+      <div class="d-flex align-items-center mb-3 ps-1 pt-3 border-top">
+        <span class="dot-green me-2"></span>
+        <h6 class="fw-bold text-dark mb-0">ร้านค้าที่เปิดจำหน่ายแล้ว</h6>
+      </div>
+      <div id="list-approved-shops">กำลังโหลด...</div>
+    </div>
+
+    <!-- 📰 ADMIN TAB: ข่าวสารและประกาศ -->
+    <div class="admin-tab-pane d-none" id="admin-view-news">
+      <div class="d-flex justify-content-between align-items-center mb-4 px-1">
+        <div class="d-flex align-items-center">
+          <i class="fa-solid fa-bullhorn text-primary me-2 fs-5"></i>
+          <h5 class="fw-bold text-dark mb-0">ข่าวสารและประกาศชุมชน</h5>
+        </div>
+        <button class="btn btn-sm btn-primary rounded-pill px-3 fw-bold shadow-sm" onclick="openCreateNewsModal()">
+          <i class="fa-solid fa-plus me-1"></i> โพสต์ข่าวใหม่
+        </button>
+      </div>
+      <div id="list-admin-news" class="d-flex flex-column gap-2">กำลังโหลดข่าวสาร...</div>
+    </div>
+
+    <!-- ⚙️ ADMIN TAB: ตั้งค่าระบบ -->
+    <div class="admin-tab-pane d-none" id="admin-view-settings">
+      <div class="d-flex justify-content-between align-items-center mb-4 px-1 sticky-top pt-2" style="background: var(--bg-light); z-index: 100;">
+        <div class="d-flex align-items-center"><i class="fa-solid fa-gear text-secondary me-2 fs-5"></i><h5 class="fw-bold text-dark mb-0">ตั้งค่าระบบ (Global)</h5></div>
+        <button onclick="saveGlobalSettings()" class="btn btn-primary rounded-pill px-4 py-2 fw-bold shadow-sm"><i class="fa-solid fa-floppy-disk me-1"></i> บันทึกข้อมูล</button>
+      </div>
+
+      <!-- ข้อมูลองค์กรและการติดต่อ -->
+      <div class="admin-card border-0 p-4 mb-3">
+        <div class="d-flex align-items-center mb-3 border-bottom pb-2"><i class="fa-solid fa-sitemap text-primary me-2"></i><h6 class="fw-bold text-dark mb-0">1. ข้อมูลองค์กรและการติดต่อ</h6></div>
+        <div class="row g-2 mb-3">
+            <div class="col-8"><label class="small fw-bold text-muted mb-1">ชื่อกองทุนสวัสดิการ</label><input type="text" id="setFundName" class="form-control-modern w-100 fw-bold text-primary"></div>
+            <!-- 🌟 เพิ่ม รหัสจัดตั้งกองทุน -->
+            <div class="col-4"><label class="small fw-bold text-muted mb-1">รหัสจัดตั้งกองทุน</label><input type="text" id="setFundCode" class="form-control-modern w-100 text-center" placeholder="เช่น 100241803"></div>
+            
+            <div class="col-4"><label class="small fw-bold text-muted mb-1">ที่อยู่เลขที่</label><input type="text" id="setAddressNo" class="form-control-modern w-100"></div>
+            <div class="col-4"><label class="small fw-bold text-muted mb-1">หมู่ที่</label><input type="text" id="setAddressMoo" class="form-control-modern w-100"></div>
+            <div class="col-4"><label class="small fw-bold text-muted mb-1">ตำบล</label><input type="text" id="setAddressSub" class="form-control-modern w-100"></div>
+            <div class="col-4"><label class="small fw-bold text-muted mb-1">อำเภอ</label><input type="text" id="setAddressDist" class="form-control-modern w-100"></div>
+            <div class="col-4"><label class="small fw-bold text-muted mb-1">จังหวัด</label><input type="text" id="setAddressProv" class="form-control-modern w-100"></div>
+            <div class="col-4"><label class="small fw-bold text-muted mb-1">รหัสไปรษณีย์</label><input type="text" id="setAddressZip" class="form-control-modern w-100"></div>
+            
+            <!-- 🌟 เพิ่ม พิกัดกองทุน -->
+<div class="col-6">
+    <label class="small fw-bold text-muted mb-1">ละติจูด (Latitude)</label>
+    <input type="text" id="setFundLat" class="form-control-modern w-100" placeholder="เช่น 5.92159">
+</div>
+<div class="col-6">
+    <label class="small fw-bold text-muted mb-1">ลองจิจูด (Longitude)</label>
+    <div class="input-group">
+        <input type="text" id="setFundLng" class="form-control-modern flex-grow-1" placeholder="เช่น 101.76996">
+        <button type="button" class="btn btn-danger px-3 rounded-end-4 ms-1 shadow-sm" onclick="getCurrentLocation()" title="ดึงพิกัดตำแหน่งปัจจุบัน">
+            <i class="fa-solid fa-map-location-dot"></i>
+        </button>
+    </div>
+</div>
+            
+            <div class="col-6"><label class="small fw-bold text-muted mb-1">เบอร์ติดต่อกองทุน</label><input type="tel" id="setFundPhone" class="form-control-modern w-100"></div>
+            <div class="col-6"><label class="small fw-bold text-muted mb-1">อีเมลกองทุน</label><input type="email" id="setFundEmail" class="form-control-modern w-100"></div>
+            <div class="col-12"><label class="small fw-bold text-muted mb-1">เพจ Facebook / เว็บไซต์</label><input type="text" id="setFundFb" class="form-control-modern w-100"></div>
+        </div>
+
+        <!-- 🌟 อัปเดต ข้อมูลประธานกองทุน -->
+        <div class="p-3 bg-light rounded-4 border mb-3">
+            <div class="d-flex justify-content-between align-items-center mb-2">
+                <h6 class="small fw-bold text-dark mb-0"><i class="fa-solid fa-user-tie text-secondary me-1"></i> ข้อมูลประธานกองทุน</h6>
+                <button type="button" class="btn btn-sm btn-outline-primary rounded-pill px-3 shadow-sm" onclick="openMemberSearchModal('president')"><i class="fa-solid fa-search me-1"></i> ดึงจากทะเบียนสมาชิก</button>
+            </div>
+            <div class="row g-2">
+                <div class="col-12"><input type="text" id="setPresidentName" class="form-control-modern w-100" placeholder="ชื่อ-สกุล ประธาน"></div>
+                <div class="col-12"><input type="text" id="setPresidentAddress" class="form-control-modern w-100 text-muted" placeholder="ที่อยู่ (เลขที่, หมู่, อปท., ตำบล, อำเภอ, จังหวัด, รหัสไปรษณีย์)"></div>
+                <div class="col-6"><input type="tel" id="setPresidentPhone" class="form-control-modern w-100" placeholder="เบอร์โทรศัพท์"></div>
+                <div class="col-6"><input type="email" id="setPresidentEmail" class="form-control-modern w-100" placeholder="อีเมลประธาน"></div>
+            </div>
+        </div>
+
+        <!-- 🌟 เพิ่ม ข้อมูลผู้ประสานงาน -->
+        <div class="p-3 bg-light rounded-4 border">
+            <div class="d-flex justify-content-between align-items-center mb-2">
+                <h6 class="small fw-bold text-dark mb-0"><i class="fa-solid fa-headset text-secondary me-1"></i> ข้อมูลผู้ประสานงาน</h6>
+                <button type="button" class="btn btn-sm btn-outline-primary rounded-pill px-3 shadow-sm" onclick="openMemberSearchModal('coordinator')"><i class="fa-solid fa-search me-1"></i> ดึงจากทะเบียนสมาชิก</button>
+            </div>
+            <div class="row g-2">
+                <div class="col-12"><input type="text" id="setCoordinatorName" class="form-control-modern w-100" placeholder="ชื่อ-สกุล ผู้ประสานงาน"></div>
+                <div class="col-12"><input type="text" id="setCoordinatorAddress" class="form-control-modern w-100 text-muted" placeholder="ที่อยู่ (เลขที่, หมู่, อปท., ตำบล, อำเภอ, จังหวัด, รหัสไปรษณีย์)"></div>
+                <div class="col-6"><input type="tel" id="setCoordinatorPhone" class="form-control-modern w-100" placeholder="เบอร์โทรศัพท์"></div>
+                <div class="col-6"><input type="email" id="setCoordinatorEmail" class="form-control-modern w-100" placeholder="อีเมลผู้ประสานงาน"></div>
+            </div>
+        </div>
+      </div>
+
+      <!-- 🌟 เพิ่ม ประวัติการก่อตั้งและวัตถุประสงค์ -->
+      <div class="admin-card border-0 p-4 mb-3">
+        <div class="d-flex align-items-center mb-3 border-bottom pb-2"><i class="fa-solid fa-clock-rotate-left text-info me-2"></i><h6 class="fw-bold text-dark mb-0">2. ประวัติการก่อตั้งและวัตถุประสงค์</h6></div>
+        <div class="row g-2 mb-3">
+            <div class="col-6"><label class="small fw-bold text-muted mb-1">วันที่ก่อตั้งกองทุน</label><input type="date" id="setEstablishDate" class="form-control-modern w-100"></div>
+            <div class="col-6"><label class="small fw-bold text-muted mb-1">องค์กรที่สนับสนุน</label><input type="text" id="setSupportOrg" class="form-control-modern w-100" placeholder="เช่น สถาบันพัฒนาองค์กรชุมชน (พอช.)"></div>
+        </div>
+        
+        <label class="small fw-bold text-muted mb-1">วัตถุประสงค์ของการจัดตั้งกองทุน</label>
+        <div class="input-group mb-2">
+            <input type="text" id="newObjectiveInput" class="form-control-modern flex-grow-1" placeholder="พิมพ์วัตถุประสงค์..." onkeypress="if(event.key === 'Enter') addObjectiveItem();">
+            <button type="button" class="btn btn-info px-3 rounded-end-4 ms-1 text-white" onclick="addObjectiveItem()"><i class="fa-solid fa-plus"></i> เพิ่ม</button>
+        </div>
+        <div id="objectivesContainer" class="d-flex flex-column gap-2 mb-2"></div>
+      </div>
+     
+
+      <!-- 💰 5. เศรษฐศาสตร์แต้ม (Tokenomics & Earning) -->
+      <div class="admin-card border-0 p-4 mb-4" style="background: linear-gradient(135deg, #1E293B 0%, #0F172A 100%); border: 1px solid #334155;">
+        
+        <div class="d-flex align-items-center mb-4 border-bottom pb-3" style="border-color: rgba(255,255,255,0.1) !important;">
+          <i class="fa-solid fa-coins text-warning me-2 fs-4"></i>
+          <h6 class="fw-bold text-white mb-0">5. เศรษฐศาสตร์แต้ม (รับแต้ม 6 ช่องทาง)</h6>
+        </div>
+        
+       <div class="mb-4">
+           <label class="small text-white-50 fw-bold mb-2">สถานะงบประมาณแต้มรวมรายปี (Global Point Pool)</label>
+           <div class="row g-2">
+              <div class="col-4">
+                 <div class="p-2 rounded-3 text-center" style="background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1);">
+                    <small class="text-white-50 d-block" style="font-size: 0.7rem;">ตั้งงบเริ่มต้น</small>
+                    <input type="number" id="setInitialPointPool" class="form-control form-control-sm text-white fw-bold text-center border-0 bg-transparent p-0 mt-1" placeholder="ระบุแต้ม">
+                 </div>
+              </div>
+              <div class="col-4">
+                 <div class="p-2 rounded-3 text-center" style="background: rgba(239, 68, 68, 0.1); border: 1px solid rgba(239, 68, 68, 0.2);">
+                    <small class="text-danger d-block" style="font-size: 0.7rem;">สมาชิกรับแต้มไปแล้ว</small>
+                    <div id="displayPointsUsed" class="text-danger fw-bold mt-1" style="font-size: 0.95rem;">0</div>
+                 </div>
+              </div>
+              <div class="col-4">
+                 <div class="p-2 rounded-3 text-center" style="background: rgba(16, 185, 129, 0.1); border: 1px solid rgba(16, 185, 129, 0.2);">
+                    <small class="text-success d-block" style="font-size: 0.7rem;">แต้มคงเหลือแจกได้</small>
+                    <div id="displayPointsRemain" class="text-success fw-bold mt-1 fs-6">0</div>
+                 </div>
+              </div>
+           </div>
+        </div>
+
+        <div class="row g-3">
+          <!-- 1. เช็คอินรายวัน -->
+          <div class="col-md-6">
+            <div class="p-3 rounded-4 h-100" style="background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1);">
+               <label class="small text-white fw-bold mb-2"><i class="fa-solid fa-calendar-check text-success me-2"></i>1. เช็คอินรายวัน</label>
+               <div class="input-group input-group-sm">
+                  <span class="input-group-text bg-dark text-white-50 border-secondary">ได้รับ</span>
+                  <input type="number" id="setPtCheckIn" class="form-control bg-dark text-white border-secondary text-center" value="2">
+                  <span class="input-group-text bg-dark text-white-50 border-secondary">แต้ม/วัน</span>
+               </div>
+            </div>
+          </div>
+
+          <!-- 2. ตรวจสอบธุรกรรม -->
+          <div class="col-md-6">
+            <div class="p-3 rounded-4 h-100" style="background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1);">
+               <label class="small text-white fw-bold mb-2"><i class="fa-solid fa-magnifying-glass-chart text-info me-2"></i>2. ตรวจสอบธุรกรรม (FOMO)</label>
+               <div class="d-flex gap-2 align-items-center mb-1">
+                  <span class="text-white-50 small w-50">1-10 คนแรก:</span>
+                  <input type="number" id="setFomoTier1" class="form-control form-control-sm bg-dark text-white border-secondary text-center w-50" value="5">
+               </div>
+               <div class="d-flex gap-2 align-items-center mb-1">
+                  <span class="text-white-50 small w-50">11-30 คน:</span>
+                  <input type="number" id="setFomoTier2" class="form-control form-control-sm bg-dark text-white border-secondary text-center w-50" value="3">
+               </div>
+               <div class="d-flex gap-2 align-items-center">
+                  <span class="text-white-50 small w-50">31 คนขึ้นไป:</span>
+                  <input type="number" id="setFomoTier3" class="form-control form-control-sm bg-dark text-white border-secondary text-center w-50" value="1">
+               </div>
+            </div>
+          </div>
+
+          <!-- 3. ร้านค้าชุมชน -->
+          <div class="col-md-6">
+            <div class="p-3 rounded-4 h-100" style="background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1);">
+               <label class="small text-white fw-bold mb-2"><i class="fa-solid fa-shop text-warning me-2"></i>3. กิจกรรมร้านค้า</label>
+               <div class="input-group input-group-sm mb-2">
+                  <span class="input-group-text bg-dark text-white-50 border-secondary">ซื้อสินค้า</span>
+                  <input type="number" id="setPtShopBuy" class="form-control bg-dark text-white border-secondary text-center" value="1">
+                  <span class="input-group-text bg-dark text-white-50 border-secondary">แต้ม/บิล</span>
+               </div>
+               <div class="input-group input-group-sm">
+                  <span class="input-group-text bg-dark text-white-50 border-secondary">ขายสินค้า</span>
+                  <input type="number" id="setPtShopSell" class="form-control bg-dark text-white border-secondary text-center" value="2">
+                  <span class="input-group-text bg-dark text-white-50 border-secondary">แต้ม/บิล</span>
+               </div>
+            </div>
+          </div>
+
+          <!-- 4. ชวนเพื่อน -->
+          <div class="col-md-6">
+            <div class="p-3 rounded-4 h-100" style="background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1);">
+               <label class="small text-white fw-bold mb-2"><i class="fa-solid fa-user-group text-primary me-2"></i>4. ชวนเพื่อนสมทบ</label>
+               <div class="input-group input-group-sm mt-3">
+                  <span class="input-group-text bg-dark text-white-50 border-secondary">สำเร็จรับ</span>
+                  <input type="number" id="setPtInvite" class="form-control bg-dark text-white border-secondary text-center" value="50">
+                  <span class="input-group-text bg-dark text-white-50 border-secondary">แต้ม/คน</span>
+               </div>
+            </div>
+          </div>
+
+          <!-- 5. แชร์ข่าว -->
+          <div class="col-md-6">
+            <div class="p-3 rounded-4 h-100" style="background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1);">
+               <label class="small text-white fw-bold mb-2"><i class="fa-solid fa-share-nodes text-danger me-2"></i>5. แชร์ข่าวสู่สาธารณะ</label>
+               <div class="input-group input-group-sm mt-3">
+                  <span class="input-group-text bg-dark text-white-50 border-secondary">แชร์ได้</span>
+                  <input type="number" id="setPtShare" class="form-control bg-dark text-white border-secondary text-center" value="5">
+                  <span class="input-group-text bg-dark text-white-50 border-secondary">แต้ม/ครั้ง</span>
+               </div>
+            </div>
+          </div>
+
+          <!-- 6. ทำความดี -->
+          <div class="col-md-6">
+            <div class="p-3 rounded-4 h-100 d-flex flex-column" style="background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1);">
+               <label class="small text-white fw-bold mb-1"><i class="fa-solid fa-hand-holding-heart text-pink me-2" style="color:#EC4899;"></i>6. ทำความดี (ตั้งค่าเอง)</label>
+               <p class="small text-white-50 mb-2" style="font-size: 0.7rem;">(เช่น เก็บขยะ, ช่วยเหลืองานศูนย์ฯ)</p>
+               <button class="btn btn-sm btn-outline-light rounded-pill w-100 mt-auto" onclick="openMissionModal()">+ เพิ่มรายการทำความดี</button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- รายการความดี (Missions Container) -->
+      <div id="missionsContainer" class="mb-4"></div>
+
+      <!-- 🎁 7. ตั้งค่าของรางวัล (Rewards) -->
+      <div class="admin-card border-0 p-4 mb-4">
+        <div class="d-flex justify-content-between align-items-center mb-3 border-bottom pb-2">
+            <div class="d-flex align-items-center"><i class="fa-solid fa-gift text-danger me-2 fs-5"></i><h6 class="fw-bold text-dark mb-0">7. การแลกของรางวัล (Redeem)</h6></div>
+            <button class="btn btn-sm btn-danger rounded-pill px-3 fw-bold shadow-sm" onclick="window.openRewardModal()"><i class="fa-solid fa-plus me-1"></i> เพิ่มรางวัล</button>
+        </div>
+        <div class="alert alert-danger bg-opacity-10 border-0 small py-2"><i class="fa-solid fa-circle-info me-1"></i> สามารถตั้งค่าให้ใช้ <strong>แต้ม + เงินสด</strong> ในการแลกรับสิทธิ์ได้</div>
+        <div id="rewardsContainer"></div>
+      </div>
+      
+    </div> <!-- 🌟🌟🌟 เติม </div> ตรงนี้! เพื่อปิดแท็บ admin-view-settings 🌟🌟🌟 -->
+
+    <!-- 🗺️ ADMIN TAB: แผนที่ (GIS) -->
+    <div class="admin-tab-pane d-none" id="admin-view-gis">
+      <div class="admin-card border-0 p-3">
+        <div class="d-flex flex-column gap-3 mb-3">
+          <h5 class="fw-bold text-dark mb-0"><i class="fa-solid fa-map-location-dot text-primary me-2"></i>พิกัดสมาชิก (GIS)</h5>
+          <div class="btn-group w-100 shadow-sm" role="group">
+            <input type="radio" class="btn-check" name="btnMapMode" id="btnMapMacro" autocomplete="off" onchange="switchMapMode('macro')">
+            <label class="btn btn-outline-primary py-2" for="btnMapMacro"><i class="fa-solid fa-fire me-1"></i> ภาพรวม</label>
+            <input type="radio" class="btn-check" name="btnMapMode" id="btnMapMicro" autocomplete="off" checked onchange="switchMapMode('micro')">
+            <label class="btn btn-outline-primary py-2" for="btnMapMicro"><i class="fa-solid fa-location-dot me-1"></i> รายบุคคล</label>
+          </div>
+        </div>
+        <div class="border-0 rounded-4 overflow-hidden shadow-sm position-relative">
+          <div id="adminGISMap" style="width: 100%; height: 50vh; background-color: #E2E8F0; display: flex; align-items: center; justify-content: center;">
+            <div class="text-center text-muted"><div class="spinner-border mb-2 text-primary"></div></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ⚖️ ADMIN TAB: ระเบียบกองทุน และ โครงสร้าง -->
+    <div class="admin-tab-pane d-none" id="admin-view-rules">
+      <!-- Header -->
+      <div class="d-flex justify-content-between align-items-center mb-4 px-1 sticky-top pt-2" style="background: var(--bg-light); z-index: 100;">
+        <h5 class="fw-bold text-dark mb-0"><i class="fa-solid fa-scale-balanced text-warning me-2"></i> ระเบียบและโครงสร้างกองทุน</h5>
+        </div>
+
+      <!-- ตัวแปรจัดการฐานข้อมูล (ย้ายมาจากตั้งค่าระบบ) -->
+      <div class="admin-card border-0 p-4 mb-3">
+        <div class="d-flex align-items-center mb-3 border-bottom pb-2"><i class="fa-solid fa-sliders text-success me-2"></i><h6 class="fw-bold text-dark mb-0">ตัวแปรจัดการฐานข้อมูล</h6></div>
+        <label class="small fw-bold text-muted mb-1">เงินสมทบเป้าหมายต่อปี (บาท)</label><input type="number" id="setAnnualFee" class="form-control-modern w-100 mb-4 text-success fw-bold" value="365" step="0.01">
+        
+        <label class="small fw-bold text-muted mb-1">ประเภทสมาชิก</label>
+        <div class="input-group mb-2"><input type="text" id="newMemberTypeInput" class="form-control-modern flex-grow-1" placeholder="เช่น สมาชิกสามัญ..." onkeypress="if(event.key === 'Enter') addMemberTypeBadge();"><button type="button" class="btn btn-dark px-3 rounded-end-4 ms-1" onclick="addMemberTypeBadge()"><i class="fa-solid fa-plus"></i></button></div>
+        <div id="memberTypesContainer" class="d-flex flex-wrap gap-2 mb-4"></div>
+
+        <label class="small fw-bold text-muted mb-1">หมู่บ้านในเขตพื้นที่</label>
+        <div class="input-group mb-2"><input type="text" id="newVillageInput" class="form-control-modern flex-grow-1" placeholder="พิมพ์ชื่อหมู่บ้าน..." onkeypress="if(event.key === 'Enter') addVillageBadge();"><button type="button" class="btn btn-success px-3 rounded-end-4 ms-1" onclick="addVillageBadge()"><i class="fa-solid fa-plus"></i></button></div>
+        <div id="villagesContainer" class="d-flex flex-wrap gap-2 mb-4"></div>
+        
+        <label class="small fw-bold text-muted mb-1">รายชื่อศูนย์ประสานงาน</label>
+        <div class="input-group mb-2"><input type="text" id="newCenterInput" class="form-control-modern flex-grow-1" placeholder="พิมพ์ชื่อศูนย์ประสานงาน..." onkeypress="if(event.key === 'Enter') addCenterBadge();"><button type="button" class="btn btn-primary px-3 rounded-end-4 ms-1" onclick="addCenterBadge()"><i class="fa-solid fa-plus"></i></button></div>
+        <div id="centersContainer" class="d-flex flex-wrap gap-2 mb-4"></div>
+      </div>
+      
+      <!-- 🌟 เพิ่มช่องตัวแปรประเภทสวัสดิการและเงื่อนไข (ต่อท้ายศูนย์ประสานงาน) -->
+<label class="small fw-bold text-muted mb-1 mt-2"><i class="fa-solid fa-hand-holding-heart text-danger"></i> ประเภทสวัสดิการ (สำหรับตั้งระเบียบ)</label>
+<div class="input-group mb-2">
+    <input type="text" id="newWelfareTypeInput" class="form-control-modern flex-grow-1" placeholder="เช่น ค่าคลอดบุตร, ค่าทำศพ..." onkeypress="if(event.key === 'Enter') addWelfareTypeBadge();">
+    <button type="button" class="btn btn-danger px-3 rounded-end-4 ms-1" onclick="addWelfareTypeBadge()">
+        <i class="fa-solid fa-plus"></i> เพิ่ม
+    </button>
+</div>
+<div id="welfareTypesContainer" class="d-flex flex-wrap gap-2 mb-4"></div>
+
+<label class="small fw-bold text-muted mb-1"><i class="fa-solid fa-filter text-warning"></i> ประเภทเงื่อนไขการรับสิทธิ์</label>
+<div class="input-group mb-2">
+    <input type="text" id="newConditionTypeInput" class="form-control-modern flex-grow-1" placeholder="เช่น อายุสมาชิกขั้นต่ำ, จ่ายสูงสุดต่อครั้ง..." onkeypress="if(event.key === 'Enter') addConditionTypeBadge();">
+    <button type="button" class="btn btn-warning px-3 rounded-end-4 ms-1 text-dark" onclick="addConditionTypeBadge()">
+        <i class="fa-solid fa-plus"></i> เพิ่ม
+    </button>
+</div>
+<div id="conditionTypesContainer" class="d-flex flex-wrap gap-2 mb-4"></div>
+
+
+      <!-- โครงสร้างคณะกรรมการ -->
+      <div class="admin-card border-0 p-4 mb-3">
+        <div class="d-flex justify-content-between align-items-center mb-3 border-bottom pb-2">
+            <div class="d-flex align-items-center">
+                <i class="fa-solid fa-users-gear text-warning me-2"></i>
+                <h6 class="fw-bold text-dark mb-0">โครงสร้างคณะกรรมการ</h6>
+            </div>
+            <!-- ปุ่มกดเพื่อกางฟอร์ม -->
+            <button class="btn btn-sm btn-outline-warning rounded-pill px-3 fw-bold shadow-sm" type="button" data-bs-toggle="collapse" data-bs-target="#collapseCommitteeForm" aria-expanded="false" aria-controls="collapseCommitteeForm">
+                <i class="fa-solid fa-plus"></i> เพิ่ม
+            </button>
+        </div>
+
+        <!-- ฟอร์มเพิ่มกรรมการ (ถูกซ่อนไว้โดยค่าเริ่มต้น) -->
+        <div class="collapse mb-3" id="collapseCommitteeForm">
+            <div class="bg-warning bg-opacity-10 p-3 rounded-4 border border-warning shadow-sm">
+                <h6 class="small fw-bold text-dark mb-2">กรอกข้อมูลกรรมการ</h6>
+                <div class="row g-2">
+                    <div class="col-12"><input type="text" id="comName" class="form-control-modern w-100 form-control-sm" placeholder="ชื่อ-นามสกุล"></div>
+                    <div class="col-6"><input type="text" id="comPos" class="form-control-modern w-100 form-control-sm" placeholder="ตำแหน่ง"></div>
+                    <div class="col-6"><input type="text" id="comRole" class="form-control-modern w-100 form-control-sm" placeholder="หน้าที่"></div>
+                    <div class="col-6"><input type="tel" id="comPhone" class="form-control-modern w-100 form-control-sm" placeholder="เบอร์ติดต่อ"></div>
+                    <div class="col-6"><input type="email" id="comEmail" class="form-control-modern w-100 form-control-sm" placeholder="อีเมล"></div>
+                    <div class="col-12 mt-2">
+                        <button type="button" onclick="addCommitteeMember()" class="btn btn-sm btn-warning w-100 fw-bold rounded-pill shadow-sm">
+                            <i class="fa-solid fa-save"></i> บันทึกกรรมการ
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- พื้นที่แสดงรายชื่อที่บันทึกแล้ว (จะถูกสร้างจาก JavaScript) -->
+        <div id="committeeContainer" class="d-flex flex-column gap-2"></div>
+      </div>
+
+      <!-- รายการระเบียบสวัสดิการ -->
+      <div class="admin-card border-0 p-4 mb-4">
+        <div class="d-flex justify-content-between align-items-center mb-3 border-bottom pb-2">
+            <div class="d-flex align-items-center">
+                <i class="fa-solid fa-list-check text-primary me-2"></i>
+                <h6 class="fw-bold text-dark mb-0">รายการระเบียบสวัสดิการ</h6>
+            </div>
+            <!-- ปุ่มกดเพื่อกางฟอร์มเพิ่มระเบียบ -->
+            <button class="btn btn-sm btn-outline-primary rounded-pill px-3 fw-bold shadow-sm" type="button" data-bs-toggle="collapse" data-bs-target="#collapseRuleForm" aria-expanded="false" aria-controls="collapseRuleForm">
+                <i class="fa-solid fa-plus"></i> เพิ่มระเบียบ
+            </button>
+        </div>
+
+        <!-- ฟอร์มเพิ่มระเบียบและเงื่อนไข (ถูกซ่อนไว้โดยค่าเริ่มต้น) -->
+        <div class="collapse mb-3" id="collapseRuleForm">
+            <div class="bg-primary bg-opacity-10 p-3 rounded-4 border border-primary shadow-sm">
+                <h6 class="small fw-bold text-primary mb-2">กำหนดระเบียบและเงื่อนไขการจ่าย</h6>
+                
+                <div class="row g-2 mb-2">
+                    <div class="col-12">
+                        <label class="small text-muted fw-bold mb-1">ชื่อประเภทสวัสดิการ</label>
+                        <!-- 🌟 แก้ไข: เติม window. หน้า toggleCustomRuleName -->
+                        <select id="ruleName" class="form-select-modern w-100 form-select-sm" onchange="window.toggleCustomRuleName(this)">
+                            <option value="" disabled selected>-- เลือกประเภทสวัสดิการ --</option>
+                        </select>
+                        <!-- กล่องจะโผล่มาเมื่อเลือก "อื่นๆ (ระบุเอง)" -->
+                        <input type="text" id="ruleNameCustom" class="form-control-modern w-100 form-control-sm mt-2 d-none" placeholder="ระบุชื่อสวัสดิการด้วยตนเอง...">
+                    </div>
+                </div>
+                
+                <!-- กล่องสำหรับเพิ่มเงื่อนไขแบบไดนามิก -->
+                <div class="p-2 bg-white rounded-3 border mb-2">
+                    <div class="d-flex justify-content-between align-items-center mb-2 border-bottom pb-1">
+                        <small class="fw-bold text-dark"><i class="fa-solid fa-filter text-secondary me-1"></i> เงื่อนไขการรับสิทธิ์</small>
+                        <!-- 🌟 แก้ไข: เติม window. หน้า addRuleConditionRow -->
+                        <button type="button" class="btn btn-sm btn-light text-primary py-0 px-2 rounded-pill border shadow-sm" onclick="window.addRuleConditionRow()" style="font-size: 0.7rem;">
+                            <i class="fa-solid fa-plus"></i> เพิ่มเงื่อนไข
+                        </button>
+                    </div>
+                    <!-- พื้นที่แสดงเงื่อนไขที่ถูกเพิ่ม -->
+                    <div id="ruleConditionsContainer" class="d-flex flex-column gap-2">
+                        <!-- แถวเงื่อนไขจะถูกเพิ่มด้วย JavaScript ที่นี่ -->
+                    </div>
+                </div>
+
+                <div class="col-12 mt-2 text-end">
+                    <!-- 🌟 แก้ไข: เติม window. หน้า saveWelfareRule -->
+                    <button type="button" onclick="window.saveWelfareRule()" class="btn btn-sm btn-primary w-100 fw-bold rounded-pill shadow-sm">
+                        <i class="fa-solid fa-save"></i> บันทึกระเบียบ
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- พื้นที่แสดงระเบียบที่บันทึกแล้วแบบย่อ-ขยาย -->
+        <div id="list-rules" class="d-flex flex-column gap-2">กำลังโหลด...</div>
+      </div> <!-- บรรทัดนี้คือปิดกล่อง admin-card ของรายการระเบียบ -->
+
+    </div> <!-- 🌟🌟🌟 เติม </div> บรรทัดนี้ครับ! เพื่อปิดหน้าต่างระเบียบสวัสดิการ 🌟🌟🌟 -->
+
+    <!-- 🛡️ ADMIN TAB: ผู้ดูแลระบบ -->
+    <div class="admin-tab-pane d-none" id="admin-view-admins">
+      <div class="d-flex justify-content-between align-items-center mb-3 px-1">
+        <h5 class="fw-bold text-dark mb-0"><i class="fa-solid fa-user-shield text-info me-2"></i> ผู้ดูแลระบบ</h5>
+        <!-- 🌟 แก้ไข: เติม window. หน้า openAddAdminModal() -->
+        <button class="btn btn-sm btn-primary rounded-pill px-4 py-2 fw-bold shadow-sm" id="btnAddAdmin" onclick="window.openAddAdminModal()" style="display:none;">+ เพิ่มแอดมิน</button>
+      </div>
+      <div class="alert bg-info bg-opacity-10 text-info small rounded-4 border-0 mb-4 px-3 py-2"><i class="fa-solid fa-circle-info me-1"></i> เฉพาะ <b>Admin-Master</b> เท่านั้นที่เพิ่มผู้ดูแลได้</div>
+      <div id="list-admins">กำลังโหลด...</div>
+    </div>
+
+    <!-- 🏦 ADMIN TAB: จัดการบัญชีธนาคาร -->
+    <div class="admin-tab-pane d-none" id="admin-view-bank">
+      <div class="d-flex align-items-center mb-4 px-1"><i class="fa-solid fa-building-columns text-success me-2 fs-5"></i><h5 class="fw-bold text-dark mb-0">จัดการบัญชีธนาคาร</h5></div>
+      <div class="admin-card border-0 p-4 mb-3 bg-white rounded-4 shadow-sm text-start">
+          <label class="small fw-bold text-muted mb-1">ชื่อธนาคาร</label>
+          <input type="text" id="bankName" class="form-control mb-3" placeholder="เช่น ธนาคารกรุงไทย">
+          
+          <label class="small fw-bold text-muted mb-1">ชื่อบัญชี</label>
+          <input type="text" id="bankAccountName" class="form-control mb-3" placeholder="เช่น กองทุนสวัสดิการชุมชน...">
+          
+          <label class="small fw-bold text-muted mb-1">เลขที่บัญชี</label>
+          <input type="text" id="bankAccountNumber" class="form-control mb-4" placeholder="000-0-00000-0">
+          
+          <button class="btn btn-success w-100 rounded-pill fw-bold shadow-sm" onclick="saveBankSettings()"><i class="fa-solid fa-save me-1"></i> บันทึกข้อมูลธนาคาร</button>
+      </div>
+    </div>
+
+    <!-- 🔗 ADMIN TAB: ตั้งค่าและการเชื่อมต่อบัญชี -->
+    <div class="admin-tab-pane d-none" id="admin-view-connection">
+      <div class="d-flex align-items-center mb-4 px-1"><i class="fa-solid fa-link text-primary me-2 fs-5"></i><h5 class="fw-bold text-dark mb-0">ตั้งค่าและการเชื่อมต่อบัญชี</h5></div>
+      <div class="admin-card border-0 p-4 mb-3 bg-white rounded-4 shadow-sm text-start">
+          <label class="small fw-bold text-muted mb-1">LIFF ID (แอปสมาชิก)</label>
+          <input type="text" id="settingLiffId" class="form-control mb-3" placeholder="เช่น 1234567890-AbCdEfGh">
+          
+          <label class="small fw-bold text-muted mb-1">LINE Messaging API (Channel Access Token)</label>
+          <textarea id="settingLineToken" class="form-control mb-4" rows="3" placeholder="ใส่ Token สำหรับส่งข้อความแจ้งเตือนอัตโนมัติ"></textarea>
+          
+          <button class="btn btn-primary w-100 rounded-pill fw-bold shadow-sm" onclick="saveConnectionSettings()"><i class="fa-solid fa-save me-1"></i> บันทึกการเชื่อมต่อ API</button>
+      </div>
+    </div>
+
+    <!-- 🛡️ ADMIN TAB: ความเป็นส่วนตัวและความปลอดภัย -->
+    <div class="admin-tab-pane d-none" id="admin-view-privacy">
+      <div class="d-flex align-items-center mb-4 px-1"><i class="fa-solid fa-shield-halved text-danger me-2 fs-5"></i><h5 class="fw-bold text-dark mb-0">ความเป็นส่วนตัวและความปลอดภัย</h5></div>
+      <div class="admin-card border-0 p-4 mb-3 bg-white rounded-4 shadow-sm text-start">
+          <div class="form-check form-switch mb-3 mt-2">
+            <input class="form-check-input fs-5" type="checkbox" id="requirePdpa" checked>
+            <label class="form-check-label fw-bold text-dark ms-2 mt-1" for="requirePdpa">บังคับให้สมาชิกยอมรับนโยบาย PDPA ก่อนสมัคร</label>
+          </div>
+          <div class="form-check form-switch mb-4">
+            <input class="form-check-input fs-5" type="checkbox" id="maskSensitiveData" checked>
+            <label class="form-check-label fw-bold text-dark ms-2 mt-1" for="maskSensitiveData">ซ่อนข้อมูลอ่อนไหว (เช่น เลข ปชช.) เป็นค่าเริ่มต้น</label>
+          </div>
+          <!-- 🌟 ปุ่มเปลี่ยนรหัส PIN ของตัวเอง 🌟 -->
+          <button class="btn btn-outline-primary w-100 rounded-pill fw-bold shadow-sm mb-3" onclick="changeAdminPin()">
+              <i class="fa-solid fa-unlock-keyhole me-1"></i> เปลี่ยนรหัส PIN ของฉัน (6 หลัก)
+          </button>
+          <button class="btn btn-danger w-100 rounded-pill fw-bold shadow-sm" onclick="savePrivacySettings()"><i class="fa-solid fa-save me-1"></i> บันทึกการตั้งค่าความปลอดภัย</button>
+      </div>
+    </div>
+    
+    <!-- ℹ️ ADMIN TAB: การใช้งานทั่วไป -->
+    <div class="admin-tab-pane d-none" id="admin-view-support">
+      <div class="d-flex align-items-center mb-4 px-1"><i class="fa-solid fa-circle-info text-secondary me-2 fs-5"></i><h5 class="fw-bold text-dark mb-0">การใช้งานทั่วไป</h5></div>
+      <div class="admin-card border-0 p-4 text-center mt-2">
+          <div class="mx-auto mb-3" style="width: 70px; height: 70px;">
+    <svg viewBox="380 40 1000 600" xmlns="http://www.w3.org/2000/svg" style="width: 100%; height: 100%; filter: drop-shadow(0px 4px 6px rgba(0,0,0,0.15));">
+      <defs>
+        <path id="swPathMini3" d="M 1346 58 L 1343 58 L 1317 73 L 1276 92 L 1223 108 L 1173 115 L 1056 116 L 1027 119 L 1024 121 L 1000 125 L 968 135 L 942 148 L 939 148 L 919 160 L 888 183 L 878 193 L 876 193 L 843 231 L 801 296 L 794 310 L 788 316 L 787 321 L 724 424 L 708 442 L 691 452 L 678 455 L 667 455 L 654 452 L 641 446 L 628 437 L 614 423 L 604 409 L 584 389 L 566 375 L 537 359 L 512 350 L 489 346 L 488 343 L 511 324 L 532 315 L 549 312 L 581 313 L 608 320 L 636 324 L 663 324 L 679 320 L 690 314 L 705 298 L 711 287 L 714 267 L 697 274 L 680 278 L 653 279 L 619 275 L 585 267 L 557 265 L 530 268 L 498 279 L 488 284 L 464 301 L 442 325 L 433 338 L 423 359 L 416 394 L 422 395 L 456 390 L 488 392 L 511 398 L 544 416 L 564 434 L 580 454 L 615 514 L 641 549 L 672 578 L 686 587 L 707 596 L 727 600 L 761 599 L 781 594 L 807 580 L 820 570 L 842 548 L 866 514 L 867 510 L 890 475 L 893 476 L 901 489 L 903 495 L 905 496 L 941 559 L 949 570 L 967 586 L 984 595 L 1004 600 L 1026 600 L 1050 594 L 1064 586 L 1086 564 L 1180 409 L 1236 321 L 1240 311 L 1233 313 L 1199 331 L 1166 343 L 1162 343 L 1160 345 L 1079 362 L 1063 370 L 1050 382 L 1039 399 L 1035 414 L 1036 418 L 1049 412 L 1126 399 L 1130 399 L 1131 402 L 1049 536 L 1039 547 L 1024 554 L 1013 555 L 1004 553 L 993 548 L 986 542 L 919 430 L 920 424 L 922 423 L 926 414 L 1022 259 L 1019 257 L 994 257 L 976 263 L 967 269 L 952 284 L 945 298 L 925 328 L 923 334 L 919 338 L 823 496 L 801 524 L 782 541 L 768 549 L 752 554 L 730 554 L 718 551 L 706 545 L 691 533 L 666 505 L 665 501 L 686 500 L 711 493 L 730 483 L 748 468 L 764 448 L 804 380 L 813 368 L 816 360 L 882 256 L 898 237 L 921 215 L 926 213 L 948 196 L 972 183 L 1005 171 L 1045 163 L 1081 161 L 1168 161 L 1210 157 L 1253 148 L 1288 136 L 1289 139 L 1284 152 L 1265 182 L 1249 199 L 1241 204 L 1232 213 L 1189 236 L 1156 247 L 1121 254 L 1103 262 L 1090 272 L 1079 284 L 1069 302 L 1068 308 L 1070 309 L 1086 305 L 1139 298 L 1179 288 L 1214 275 L 1250 256 L 1273 239 L 1290 223 L 1302 209 L 1324 176 L 1324 172 L 1337 143 L 1344 113 L 1347 85 Z"/>
+        <linearGradient id="swMark3DMini3" x1="420" y1="550" x2="1320" y2="40" gradientUnits="userSpaceOnUse"><stop offset="0%" stop-color="#075E50"/><stop offset="25%" stop-color="#0B8068"/><stop offset="52%" stop-color="#18A18A"/><stop offset="78%" stop-color="#168DB5"/><stop offset="100%" stop-color="#35B7E8"/></linearGradient>
+        <linearGradient id="swEnergyMini3" x1="0%" y1="0%" x2="100%" y2="0%"><stop offset="0%" stop-color="#FFFFFF" stop-opacity="0"/><stop offset="48%" stop-color="#DFFFFF" stop-opacity=".95"/><stop offset="52%" stop-color="#FFFFFF" stop-opacity="1"/><stop offset="56%" stop-color="#B8F8FF" stop-opacity=".95"/><stop offset="100%" stop-color="#FFFFFF" stop-opacity="0"/></linearGradient>
+      </defs>
+      <use href="#swPathMini3" transform="translate(0 10)" fill="rgba(4,72,65,.25)"/>
+      <use href="#swPathMini3" transform="translate(0 5)" fill="#087361"/>
+      <use href="#swPathMini3" fill="url(#swMark3DMini3)"/>
+      <use href="#swPathMini3" fill="url(#swEnergyMini3)"/>
+    </svg>
+</div>
+          <h5 class="fw-bold text-dark mb-1">SmartWelf <span class="text-warning">5.0</span></h5>
+          <p class="text-muted small mb-3">เวอร์ชัน 5.0.1 (Build 20260903)</p>
+          <hr class="border-light my-3">
+          <small class="text-muted" style="font-size: 0.7rem;">&copy; 2026 SmartWelf All rights reserved.</small>
+      </div>
+    </div>
+
+  </div> <!-- End container-fluid -->
+</div> <!-- End adminApp -->
+<!-- ==========================================
+     MODAL: ฟอร์มเพิ่ม/แก้ไขข้อมูลสมาชิก
+=========================================== -->
+<div class="modal fade" id="memberFormModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered modal-lg">
+        <div class="modal-content border-0 shadow-lg rounded-4 overflow-hidden">
+            <div class="modal-header bg-primary bg-opacity-10 border-0 p-4">
+                <h5 class="modal-title fw-bold text-primary" id="memberModalTitle"><i class="fa-solid fa-user-plus me-2"></i>ขึ้นทะเบียนสมาชิกใหม่</h5>
+                <button type="button" class="btn-close shadow-none" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body p-4 bg-light">
+                <form id="memberDataForm" onsubmit="saveMemberData(event)">
+                    <!-- ซ่อน ID ไว้ใช้กรณีแก้ไขข้อมูล -->
+                    <input type="hidden" id="memDocId" value="">
+
+                    <div class="row g-3">
+                        <!-- ส่วนที่ 1: ข้อมูลส่วนตัว -->
+                        <div class="col-12"><h6 class="fw-bold text-dark mb-1 border-bottom pb-2">1. ข้อมูลส่วนตัวพื้นฐาน</h6></div>
+                        
+                        <div class="col-md-6">
+                            <label class="small text-muted fw-bold mb-1">เลขประจำตัวประชาชน (13 หลัก) *</label>
+                            <input type="text" id="memNationalId" class="form-control-modern w-100" maxlength="13" required placeholder="เลข 13 หลัก">
+                        </div>
+                        <div class="col-md-6">
+                            <label class="small text-muted fw-bold mb-1">ชื่อ-นามสกุล *</label>
+                            <input type="text" id="memFullName" class="form-control-modern w-100" required placeholder="นาย/นาง/นางสาว...">
+                        </div>
+                        
+                        <div class="col-md-6">
+                            <label class="small text-muted fw-bold mb-1">วัน/เดือน/ปีเกิด (เพื่อคำนวณอายุ) *</label>
+                            <input type="date" id="memDob" class="form-control-modern w-100" required>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="small text-muted fw-bold mb-1">เบอร์โทรศัพท์</label>
+                            <input type="tel" id="memPhone" class="form-control-modern w-100" placeholder="08X-XXX-XXXX">
+                        </div>
+
+                        <!-- ส่วนที่ 2: ข้อมูลที่อยู่และสถานะทางสังคม (สำคัญสำหรับรายงาน) -->
+                        <div class="col-12 mt-4"><h6 class="fw-bold text-dark mb-1 border-bottom pb-2">2. ข้อมูลที่อยู่และกลุ่มเปราะบาง</h6></div>
+
+                        <div class="col-md-4">
+                            <label class="small text-muted fw-bold mb-1">บ้านเลขที่</label>
+                            <input type="text" id="memAddressNo" class="form-control-modern w-100" placeholder="เลขที่ / ซอย">
+                        </div>
+                        <div class="col-md-4">
+                            <label class="small text-muted fw-bold mb-1">หมู่ที่ (ดึงจากตั้งค่า)</label>
+                            <select id="memVillage" class="form-select-modern w-100 border-0 bg-white shadow-sm"></select>
+                        </div>
+                        <div class="col-md-4">
+                            <label class="small text-muted fw-bold mb-1">กลุ่มเปราะบาง *</label>
+                            <select id="memVulnerability" class="form-select-modern w-100 border-0 bg-white shadow-sm" required>
+                                <option value="ปกติ">ปกติ (ไม่มีความเปราะบาง)</option>
+                                <option value="ผู้ด้อยโอกาส">ผู้ด้อยโอกาส</option>
+                                <option value="ผู้พิการ">ผู้พิการ</option>
+                                <option value="ผู้ป่วยติดเตียง">ผู้ป่วยติดเตียง</option>
+                            </select>
+                        </div>
+
+                        <!-- ส่วนที่ 3: ข้อมูลกองทุนสวัสดิการ -->
+                        <div class="col-12 mt-4"><h6 class="fw-bold text-dark mb-1 border-bottom pb-2">3. ข้อมูลทางกองทุน</h6></div>
+
+                        <div class="col-md-6">
+                            <label class="small text-muted fw-bold mb-1">รหัสสมาชิกกองทุน</label>
+                            <input type="text" id="memFundId" class="form-control-modern w-100 text-primary fw-bold" placeholder="ปล่อยว่างเพื่อรันอัตโนมัติ">
+                        </div>
+                        <div class="col-md-6">
+                            <label class="small text-muted fw-bold mb-1">วันที่สมัครเข้ากองทุน *</label>
+                            <input type="date" id="memRegDate" class="form-control-modern w-100" required>
+                        </div>
+                        <div class="col-md-4">
+                            <label class="small text-muted fw-bold mb-1">ประเภทสมาชิก *</label>
+                            <select id="memType" class="form-select-modern w-100 border-0 bg-white shadow-sm" required></select>
+                        </div>
+                        <div class="col-md-4">
+                            <label class="small text-muted fw-bold mb-1">ศูนย์ประสานงาน *</label>
+                            <select id="memCenter" class="form-select-modern w-100 border-0 bg-white shadow-sm" required></select>
+                        </div>
+                        <div class="col-md-4">
+                            <label class="small text-muted fw-bold mb-1">ผู้รับผลประโยชน์</label>
+                            <input type="text" id="memBeneficiary" class="form-control-modern w-100" placeholder="ชื่อ-สกุล (ความสัมพันธ์)">
+                        </div>
+
+                        <!-- ซ่อนฟิลด์สำหรับแอดมินศูนย์ -->
+                        <div class="col-12">
+                            <p class="small text-danger mb-0 mt-2 d-none" id="adminLockWarning"><i class="fa-solid fa-lock"></i> สิทธิ์ของคุณถูกล็อกให้เพิ่ม/แก้ไขสมาชิกได้เฉพาะในศูนย์ประสานงานของคุณเท่านั้น</p>
+                        </div>
+                    </div>
+                    
+                    <div class="d-flex justify-content-end gap-2 mt-4 pt-3 border-top">
+                        <button type="button" class="btn btn-light rounded-pill px-4 fw-bold shadow-sm" data-bs-dismiss="modal">ยกเลิก</button>
+                        <button type="submit" class="btn btn-primary rounded-pill px-4 fw-bold shadow-sm"><i class="fa-solid fa-save me-1"></i> บันทึกข้อมูลสมาชิก</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+<!-- ==========================================
+     MODAL: สมุดบัญชีและประวัติรายบุคคล (Member Passbook)
+=========================================== -->
+<div class="modal fade" id="passbookModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered modal-lg modal-dialog-scrollable">
+        <div class="modal-content border-0 shadow-lg rounded-4 overflow-hidden" style="background-color: #F8FAFC;">
+            <!-- Header -->
+            <div class="modal-header bg-primary bg-opacity-10 border-0 p-4 align-items-start">
+                <div class="d-flex align-items-center gap-3">
+                    <div id="pbProfileImage" class="icon-box bg-primary text-white shadow-sm flex-shrink-0" style="width: 55px; height: 55px; font-size: 1.5rem; border-radius: 16px;">
+                        <i class="fa-solid fa-user"></i>
+                    </div>
+                    <div>
+                        <h5 class="fw-bold text-dark mb-0" id="pbMemberName">ชื่อ-นามสกุล</h5>
+                        <div class="d-flex align-items-center gap-2 mt-1 flex-wrap">
+                            <span class="badge bg-primary bg-opacity-10 text-primary rounded-pill px-2 shadow-sm" id="pbMemberId">ID: </span>
+                            <span class="badge bg-white border text-muted shadow-sm" id="pbMemberType">ประเภทสมาชิก</span>
+                        </div>
+                    </div>
+                </div>
+                <button type="button" class="btn-close shadow-none" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            
+            <!-- Body -->
+            <div class="modal-body p-0">
+                <!-- Summary Cards -->
+                <div class="row g-2 p-3 bg-white border-bottom mx-0">
+                    <div class="col-6">
+                        <div class="p-3 bg-success bg-opacity-10 rounded-4 border border-success border-opacity-25 h-100">
+                            <small class="text-success fw-bold d-block mb-1"><i class="fa-solid fa-coins me-1"></i> สมทบแล้วสะสม</small>
+                            <h4 class="text-success fw-bold mb-0" id="pbTotalContribute">฿0.00</h4>
+                        </div>
+                    </div>
+                    <div class="col-6">
+                        <div class="p-3 bg-danger bg-opacity-10 rounded-4 border border-danger border-opacity-25 h-100">
+                            <small class="text-danger fw-bold d-block mb-1"><i class="fa-solid fa-hand-holding-medical me-1"></i> รับสวัสดิการสะสม</small>
+                            <h4 class="text-danger fw-bold mb-0" id="pbTotalClaim">฿0.00</h4>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Passbook Table -->
+                <div class="p-3">
+                    <div class="d-flex justify-content-between align-items-center mb-3">
+                        <h6 class="fw-bold text-dark mb-0"><i class="fa-solid fa-book-open text-primary me-2"></i> รายการเดินบัญชี (Statement)</h6>
+                    </div>
+                    <div class="table-responsive bg-white rounded-4 shadow-sm border">
+                        <table class="table table-hover table-borderless align-middle mb-0" style="font-size: 0.8rem;">
+                            <thead class="bg-light text-muted border-bottom" style="font-size: 0.75rem;">
+                                <tr>
+                                    <th class="py-3 px-3">วันที่ / เวลา</th>
+                                    <th class="py-3">รายการ</th>
+                                    <th class="py-3 text-end text-success">ยอดรับ (In)</th>
+                                    <th class="py-3 text-end text-danger">ยอดจ่าย (Out)</th>
+                                    <th class="py-3 text-end px-3">คงเหลือ</th>
+                                </tr>
+                            </thead>
+                            <tbody id="passbookTableBody">
+                                <!-- ข้อมูลจาก JS จะมาแทรกที่นี่ -->
+                                <tr><td colspan="5" class="text-center py-4 text-muted">กำลังโหลดข้อมูล...</td></tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+<!-- ==========================================
+     [6] JAVASCRIPT MODULES 
+=========================================== -->
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+
+<!-- 1. โหลด Core & Config -->
+<script src="./assets/js/shared/firebase-init.js?v=5"></script>
+<script src="./assets/js/shared/helpers.js?v=5"></script>
+<script src="./assets/js/admin/admin-config.js?v=5"></script>
+
+<!-- 2. โหลดระบบ Auth และ UI ของแอดมิน -->
+<script src="./assets/js/admin/admin-auth.js?v=15"></script>
+<script src="./assets/js/admin/admin-ui.js?v=5"></script>
+
+<!-- 3. โหลด Modules การทำงานต่างๆ -->
+<script src="./assets/js/admin/dashboard.js?v=10"></script>
+<script src="./assets/js/admin/members.js?v=10"></script>
+<script src="./assets/js/admin/ledger.js?v=27"></script>
+<script src="./assets/js/admin/claims.js?v=10"></script>
+<script src="./assets/js/admin/shops-news.js?v=10"></script>
+<script src="./assets/js/admin/shops.js?v=10"></script>
+
+<!-- 🌟 โหลด Modules ที่แยกเป็น 3 ไฟล์ -->
+<script src="./assets/js/admin/settings-global.js?v=11"></script>
+<script src="./assets/js/admin/settings-rules.js?v=11"></script>
+<script src="./assets/js/admin/settings-system.js?v=14"></script>
+
+<script src="./assets/js/admin/admin-main.js?v=12"></script>
+
+</body>
+</html>

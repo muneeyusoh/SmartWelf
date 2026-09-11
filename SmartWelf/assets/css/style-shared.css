@@ -1,0 +1,77 @@
+/* =========================================================
+   🎨 style-shared.css: สไตล์ที่ใช้ร่วมกันทั้งแอดมินและสมาชิก
+   ========================================================= */
+
+:root { 
+    --primary-dark: #0F172A; 
+    --primary-main: #2563EB; 
+    --success-main: #10B981; 
+    --danger-main: #EF4444; 
+    --warning-main: #F59E0B; 
+    --bg-light: #F8FAFC; 
+    --text-muted: #64748B; 
+    --card-border: #E2E8F0;
+}
+
+body { 
+    background-color: var(--bg-light); 
+    font-family: 'Prompt', sans-serif; 
+    -webkit-tap-highlight-color: transparent; 
+    overflow-x: hidden; 
+}
+
+/* --- ส่วนประกอบทั่วไป (Common Utilities) --- */
+.icon-box { 
+    width: 42px; height: 42px; border-radius: 14px; 
+    display: flex; justify-content: center; align-items: center; 
+    font-size: 1.1rem; 
+}
+
+.cursor-pointer { cursor: pointer; }
+
+/* ฟอร์ม input รุ่นใหม่ */
+.form-control-modern, .form-select-modern { 
+    background-color: #F1F5F9; border: 2px solid transparent; 
+    border-radius: 16px; padding: 0.75rem 1.2rem; 
+    font-weight: 500; color: #334155; transition: 0.3s; 
+}
+.form-control-modern:focus, .form-select-modern:focus { 
+    background-color: #ffffff; border-color: var(--primary-main); 
+    box-shadow: 0 0 0 4px rgba(37, 99, 235, 0.1) !important; 
+    outline: none;
+}
+
+@keyframes blinkWarning { 0% { opacity: 1; } 50% { opacity: 0.6; } 100% { opacity: 1; } }
+.blink-anim { animation: blinkWarning 1.5s infinite; }
+
+/* --- หน้าต่างโหลด (System 3D Loader) --- */
+#systemLoading { 
+    position: fixed; top: 0; left: 0; width: 100%; height: 100%; 
+    background: rgba(255, 255, 255, 0.95); z-index: 9999; 
+    display: flex; flex-direction: column; justify-content: center; 
+    align-items: center; backdrop-filter: blur(10px); 
+}
+.loading-container { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 20px; }
+.sw-logo-svg { 
+    width: 200px; max-width: 60vw; height: auto; 
+    filter: drop-shadow(0 15px 25px rgba(5,150,105, 0.2)); 
+    animation: floatLogo 3s ease-in-out infinite; 
+}
+@keyframes floatLogo { 0% { transform: translateY(0px); } 50% { transform: translateY(-12px); } 100% { transform: translateY(0px); } }
+
+.sw-depth path { fill: #064E3B; transform: translate(3px, 6px); }
+.sw-face path { fill: url(#swMark3D); }
+.sw-energy-path { 
+    fill: none; stroke: #6EE7B7; stroke-width: 5; stroke-linecap: round; 
+    stroke-dasharray: 72 928; stroke-dashoffset: 1000; 
+    animation: swEnergyRun 2.15s linear 1.2s infinite; 
+}
+@keyframes swEnergyRun { 0% { stroke-dashoffset: 928; } 100% { stroke-dashoffset: -72; } }
+
+.loading-text-glow { 
+    font-size: 1.8rem; font-weight: 700; margin: 0; 
+    background: linear-gradient(90deg, #059669, #2563EB); 
+    -webkit-background-clip: text; -webkit-text-fill-color: transparent; 
+    animation: pulseTextGlow 1.5s ease-in-out infinite; 
+}
+@keyframes pulseTextGlow { 0% { opacity: 0.6; transform: scale(0.98); } 50% { opacity: 1; transform: scale(1); } 100% { opacity: 0.6; transform: scale(0.98); } }
