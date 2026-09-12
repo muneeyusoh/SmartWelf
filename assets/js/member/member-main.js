@@ -884,6 +884,36 @@ window.generateMemberEReceipt = function(txId, type, amount, date, note, name) {
     ctx.fillStyle = themeColor; ctx.font = 'bold 64px Prompt'; ctx.fillText('฿ ' + amount.toLocaleString('en-US', {minimumFractionDigits: 2}), canvas.width / 2, 670);
     ctx.fillStyle = '#CBD5E1'; ctx.font = '18px Prompt'; ctx.fillText('ออกโดย: ' + fundName, canvas.width / 2, 770); ctx.fillText('เอกสารนี้ออกโดยระบบอัตโนมัติ SmartWelf 5.0', canvas.width / 2, 800);
 
+    // ... โค้ดด้านบนของฟังก์ชัน generateMemberEReceipt เหมือนเดิม ...
+
     const imgData = canvas.toDataURL('image/jpeg', 1.0); AppHelper.showLoader(false);
-    Swal.fire({ title: 'ใบเสร็จรับเงิน (E-Slip)', imageUrl: imgData, imageWidth: '100%', imageAlt: 'Receipt Image', showCancelButton: true, confirmButtonText: '<i class="fa-solid fa-download"></i> บันทึกรูปลงเครื่อง', cancelButtonText: 'ปิด', confirmButtonColor: '#2563EB', customClass: { image: 'rounded-4 shadow-sm border' } }).then((res) => { if(res.isConfirmed) { const link = document.createElement('a'); link.download = `SmartWelf_Slip_${txId}.jpg`; link.href = imgData; link.click(); Swal.fire({icon: 'success', title: 'บันทึกรูปภาพสำเร็จ!', showConfirmButton: false, timer: 1500}); } });
+    
+    // 🌟 อัปเดตส่วนนี้: เพิ่ม fetch blob เพื่อให้บันทึกบนมือถือผ่าน LINE ได้ 100% 🌟
+    Swal.fire({ 
+        title: 'ใบเสร็จรับเงิน (E-Slip)', 
+        html: '<div class="alert alert-success bg-opacity-10 py-2 small mb-2"><i class="fa-solid fa-hand-pointer me-1 text-success"></i> ผู้ใช้ LINE แตะค้างที่รูปภาพแล้วเลือก <b>"บันทึก"</b> หรือกดปุ่มด้านล่าง</div>',
+        imageUrl: imgData, 
+        imageWidth: '100%', 
+        imageAlt: 'Receipt Image', 
+        showCancelButton: true, 
+        confirmButtonText: '<i class="fa-solid fa-download"></i> ดาวน์โหลด', 
+        cancelButtonText: 'ปิดหน้าต่าง', 
+        confirmButtonColor: '#10B981', 
+        customClass: { image: 'rounded-4 shadow-sm border' } 
+    }).then((res) => { 
+        if(res.isConfirmed) { 
+            // แปลง Base64 เป็น Blob เพื่อให้ Browser มือถือยอมให้ดาวน์โหลด
+            fetch(imgData).then(r => r.blob()).then(blob => {
+                const url = window.URL.createObjectURL(blob);
+                const link = document.createElement('a'); 
+                link.download = `SmartWelf_Slip_${txId}.jpg`; 
+                link.href = url; 
+                document.body.appendChild(link);
+                link.click();
+                document.body.removeChild(link);
+                window.URL.revokeObjectURL(url);
+                Swal.fire({icon: 'success', title: 'ดาวน์โหลดสลิปสำเร็จ!', showConfirmButton: false, timer: 1500}); 
+            });
+        } 
+    });
 };
