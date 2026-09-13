@@ -102,11 +102,13 @@ window.confirmAmount = async function(memberId, currentStatus) {
                 lastContributionDate: new Date().toISOString() 
             };
 
+            // หากสถานะยัง "รอตรวจสอบ" ให้ปรับเป็น "เป็นสมาชิก"
             if (currentStatus.includes('รอ') || doc.data().status.includes('รอ')) {
                 updatePayload.status = 'เป็นสมาชิก';
                 if(!doc.data().registerDateObj) updatePayload.registerDateObj = new Date().toISOString();
             }
             
+            // อัปเดตข้อมูลสมาชิกเลย ไม่ต้องเช็ค status การเงินแล้ว
             transaction.update(memberRef, updatePayload);
 
             savedTxId = "TX" + Date.now().toString().slice(-8) + Math.floor(Math.random() * 100).toString().padStart(2,'0');

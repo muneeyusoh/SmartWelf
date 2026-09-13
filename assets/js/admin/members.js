@@ -577,16 +577,26 @@ async function openMemberPassbook(memberId) {
         txs.forEach(tx => {
             const dateObj = new Date(tx.timestampSort);
             const dateStr = `${dateObj.getDate().toString().padStart(2,'0')}/${(dateObj.getMonth()+1).toString().padStart(2,'0')}/${(dateObj.getFullYear()+543).toString().slice(-2)}`;
+            const fullDateStr = dateObj.toISOString().split('T')[0]; // สำหรับส่งให้ E-Slip
             
             let inText = tx.in > 0 ? `+${AppHelper.formatMoney(tx.in)}` : '-';
             let outText = tx.out > 0 ? `-${AppHelper.formatMoney(tx.out)}` : '-';
+            
+            // 🌟 สร้างปุ่มดาวน์โหลด E-Slip ย้อนหลัง
+            let slipBtn = '';
+            if(tx.txId) {
+                let slipType = tx.in > 0 ? 'รับเงินสมทบ' : 'จ่ายสวัสดิการ';
+                let slipAmt = tx.in > 0 ? tx.in : tx.out;
+                slipBtn = `<button class="btn btn-sm btn-outline-primary py-0 px-2 mt-1 rounded-pill" style="font-size: 0.65rem;" onclick="window.generateEReceipt('${tx.txId}', '${slipType}', ${slipAmt}, '${fullDateStr}', '${tx.note || ''}', '${member.fullName}')"><i class="fa-solid fa-receipt me-1"></i> E-Slip</button>`;
+            }
 
             html += `
             <tr class="border-bottom border-light">
                 <td class="py-3 px-3 text-muted">${dateStr}</td>
                 <td class="py-3">
                     <strong class="text-dark d-block" style="font-size: 0.8rem;">${tx.type}</strong>
-                    <span class="text-muted" style="font-size: 0.7rem;">${tx.note || '-'}</span>
+                    <span class="text-muted d-block" style="font-size: 0.7rem;">${tx.note || '-'}</span>
+                    ${slipBtn}
                 </td>
                 <td class="py-3 text-end text-success fw-bold">${inText}</td>
                 <td class="py-3 text-end text-danger fw-bold">${outText}</td>

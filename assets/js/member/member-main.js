@@ -479,7 +479,7 @@ async function scanToPayAdmin() {
                     if (res.isConfirmed) {
                         Swal.fire({ title: 'กำลังบันทึก...', didOpen: () => Swal.showLoading() });
                         try {
-                            const scannerUid = document.getElementById('uid').value; // ดึง UID ของคนที่กำลังสแกน
+                            const scannerUid = document.getElementById('uid').value; 
                             const batch = db.batch();
                             const newTxRef = db.collection("transactions").doc();
                             
@@ -491,15 +491,32 @@ async function scanToPayAdmin() {
                                 txPayload.uid = "BULK"; 
                                 txPayload.bulkMembers = payData.bulkMembers; 
                             } else { 
-                                // 🌟 แทนที่ UID ลงในประวัติ เป็นของคนที่สแกนจ่ายทันที
                                 txPayload.uid = payData.uid === "SCANNER" ? scannerUid : payData.uid; 
                             }
                             
                             batch.set(newTxRef, txPayload);
                             batch.update(payRef, { status: "completed", scannedByUid: scannerUid, completedAt: firebase.firestore.FieldValue.serverTimestamp() });
+
+                            // 🌟 แก้ไข: เพิ่มคำสั่งอัปเดตยอดเงินในโปรไฟล์สมาชิกทันทีที่สแกนจ่ายสำเร็จ
+                            if (qrData.action === "member_pay_bulk") {
+                                for (let member of payData.bulkMembers) {
+                                    batch.update(db.collection("members").doc(member.uid), {
+                                        totalContribution: firebase.firestore.FieldValue.increment(member.amt),
+                                        outstandingBalance: firebase.firestore.FieldValue.increment(-member.amt),
+                                        lastContributionDate: new Date().toISOString()
+                                    });
+                                }
+                            } else {
+                                const payerUid = payData.uid === "SCANNER" ? scannerUid : payData.uid;
+                                batch.update(db.collection("members").doc(payerUid), {
+                                    totalContribution: firebase.firestore.FieldValue.increment(payData.amount),
+                                    outstandingBalance: firebase.firestore.FieldValue.increment(-payData.amount),
+                                    lastContributionDate: new Date().toISOString()
+                                });
+                            }
+
                             await batch.commit();
 
-                            // 🌟 เด้งสลิปให้สมาชิกทันทีหลังจากสแกนจ่ายเงิน
                             if (typeof window.generateMemberEReceipt === 'function') {
                                 window.generateMemberEReceipt(payData.txId, 'สมทบเงินกองทุน', payData.amount, payData.date, `มอบเงินสดให้: ${payData.adminName}`, cachedUserData?.fullName || "สมาชิก");
                                 checkMemberOnCloud(scannerUid);
