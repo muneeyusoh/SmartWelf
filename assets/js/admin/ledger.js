@@ -836,7 +836,7 @@ window.bulkCollectContribution = async function() {
             if (formValues.isQR) {
                 AppHelper.showLoader(true, "กำลังเตรียมข้อมูลสแกนจ่าย...");
                 
-                // 🌟 1. สร้างบิลรอดำเนินการในฐานข้อมูลก่อน
+                // 1. สร้างบิลรอดำเนินการในฐานข้อมูลก่อน
                 await db.collection("pending_payments").doc(bulkTxId).set({
                     txId: bulkTxId,
                     amount: totalAmt,
@@ -851,11 +851,13 @@ window.bulkCollectContribution = async function() {
 
                 AppHelper.showLoader(false);
 
-                // 🌟 2. ฝังแค่ "รหัสบิลสั้นๆ" ใน QR โค้ด
+                // 2. ฝังแค่ "รหัสบิลสั้นๆ" ใน QR โค้ด
                 const qrPayload = JSON.stringify({
                     action: "member_pay_bulk",
                     ref: bulkTxId
                 });
+
+                const utf8Payload = unescape(encodeURIComponent(qrPayload));
 
                 Swal.fire({
                     title: 'QR Code เก็บเงินกลุ่ม',
@@ -873,7 +875,7 @@ window.bulkCollectContribution = async function() {
                             if(qrBox) {
                                 qrBox.innerHTML = ""; 
                                 new QRCode(qrBox, { 
-                                    text: qrPayload, 
+                                    text: utf8Payload, 
                                     width: 180, 
                                     height: 180,
                                     colorDark : "#0F172A",
@@ -890,6 +892,8 @@ window.bulkCollectContribution = async function() {
                 const routeData = getNextFinancialStatusAndHolder(AdminState.currentAdmin.role, adminEmail);
                 const batch = db.batch();
                 const txRef = db.collection("transactions").doc();
+                
+                // 🌟 บันทึกประวัติการเงิน (เรดาร์ยังตามได้ว่าเงินอยู่ที่ใคร จาก currentHolder)
                 batch.set(txRef, { 
                     txId: bulkTxId, type: 'สมทบเงินกองทุน', amount: totalAmt, paymentMethod: 'เงินสด', 
                     transactionDate: formValues.date, fullName: 'แอดมิน: ' + adminName, status: routeData.status, 
@@ -897,16 +901,16 @@ window.bulkCollectContribution = async function() {
                     timestamp: firebase.firestore.FieldValue.serverTimestamp() 
                 });
 
-                if(routeData.status === 'เข้าคลังแล้ว') {
-                    for (let member of formValues.membersData) {
-                        const memRef = db.collection("members").doc(member.id);
-                        batch.update(memRef, { 
-                            totalContribution: firebase.firestore.FieldValue.increment(member.amount), 
-                            outstandingBalance: firebase.firestore.FieldValue.increment(-member.amount),
-                            lastContributionDate: new Date().toISOString()
-                        });
-                    }
+                // 🌟 แก้ไข: ลบเงื่อนไข "เข้าคลังแล้ว" ออก เพื่อให้อัปเดตยอดค้างชำระของสมาชิกทันที
+                for (let member of formValues.membersData) {
+                    const memRef = db.collection("members").doc(member.id);
+                    batch.update(memRef, { 
+                        totalContribution: firebase.firestore.FieldValue.increment(member.amount), 
+                        outstandingBalance: firebase.firestore.FieldValue.increment(-member.amount),
+                        lastContributionDate: new Date().toISOString()
+                    });
                 }
+                
                 await batch.commit();
                 
                 // 🌟 เด้งใบเสร็จ E-Slip (กลุ่ม) ให้แอดมินทันที
@@ -914,7 +918,7 @@ window.bulkCollectContribution = async function() {
                     window.generateEReceipt(bulkTxId, 'สมทบเงินกองทุน (กลุ่ม)', totalAmt, formValues.date, finalNote, `ตัวแทนกลุ่ม (${formValues.membersData.length} ท่าน)`);
                 } else {
                     AppHelper.showLoader(false);
-                    Swal.fire('สำเร็จ', routeData.status === 'เข้าคลังแล้ว' ? 'ส่งยอดเข้าส่วนกลางเรียบร้อย' : 'บันทึกเข้ากระเป๋าของคุณ (รอส่งมอบขั้นต่อไป)', 'success');
+                    Swal.fire('สำเร็จ', 'บันทึกยอดเงินเรียบร้อยแล้ว', 'success');
                 }
                 
                 if(typeof window.loadMembersData === 'function') window.loadMembersData();

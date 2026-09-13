@@ -94,12 +94,56 @@ window.openRewardModal = function() {
             return { title: name, pointsNeeded: points, cashNeeded: cash, stock: stock, remaining: stock, imageUrl: document.getElementById('rewardImg').value.trim() || 'https://images.unsplash.com/photo-1549465220-1a8b9238cd48?w=500&q=80', createdAt: firebase.firestore.FieldValue.serverTimestamp() };
         }
     }).then(async (res) => {
-        if (res.isConfirmed) {
-            Swal.fire({title:'กำลังบันทึก...', didOpen: ()=>Swal.showLoading()});
-            try { await db.collection("rewards").add(res.value); Swal.fire('สำเร็จ', 'เพิ่มของรางวัลเข้าระบบแล้ว', 'success'); window.loadRewards(); } 
-            catch (e) { Swal.fire('Error', 'บันทึกไม่สำเร็จ', 'error'); }
-        }
-    });
+                    if (res.isConfirmed) {
+                        Swal.fire({ title: 'กำลังบันทึก...', didOpen: () => Swal.showLoading() });
+                        try {
+                            const scannerUid = document.getElementById('uid').value; 
+                            const batch = db.batch();
+                            const newTxRef = db.collection("transactions").doc();
+                            
+                            let txPayload = {
+                                txId: payData.txId, type: 'สมทบเงินกองทุน', amount: payData.amount, paymentMethod: 'เงินสด', transactionDate: payData.date, fullName: 'แอดมิน: ' + payData.adminName, status: 'รอส่งมอบ', currentHolder: payData.adminEmail, note: payData.note, timestamp: firebase.firestore.FieldValue.serverTimestamp()
+                            };
+                            
+                            if (qrData.action === "member_pay_bulk") { 
+                                txPayload.uid = "BULK"; 
+                                txPayload.bulkMembers = payData.bulkMembers; 
+                            } else { 
+                                txPayload.uid = payData.uid === "SCANNER" ? scannerUid : payData.uid; 
+                            }
+                            
+                            batch.set(newTxRef, txPayload);
+                            batch.update(payRef, { status: "completed", scannedByUid: scannerUid, completedAt: firebase.firestore.FieldValue.serverTimestamp() });
+
+                            // 🌟 แก้ไข: เพิ่มคำสั่งอัปเดตยอดเงินในโปรไฟล์สมาชิกทันทีที่สแกนจ่ายสำเร็จ
+                            if (qrData.action === "member_pay_bulk") {
+                                for (let member of payData.bulkMembers) {
+                                    batch.update(db.collection("members").doc(member.uid), {
+                                        totalContribution: firebase.firestore.FieldValue.increment(member.amt),
+                                        outstandingBalance: firebase.firestore.FieldValue.increment(-member.amt),
+                                        lastContributionDate: new Date().toISOString()
+                                    });
+                                }
+                            } else {
+                                const payerUid = payData.uid === "SCANNER" ? scannerUid : payData.uid;
+                                batch.update(db.collection("members").doc(payerUid), {
+                                    totalContribution: firebase.firestore.FieldValue.increment(payData.amount),
+                                    outstandingBalance: firebase.firestore.FieldValue.increment(-payData.amount),
+                                    lastContributionDate: new Date().toISOString()
+                                });
+                            }
+
+                            await batch.commit();
+
+                            if (typeof window.generateMemberEReceipt === 'function') {
+                                window.generateMemberEReceipt(payData.txId, 'สมทบเงินกองทุน', payData.amount, payData.date, `มอบเงินสดให้: ${payData.adminName}`, cachedUserData?.fullName || "สมาชิก");
+                                checkMemberOnCloud(scannerUid);
+                            } else {
+                                Swal.fire({ icon: 'success', title: 'ชำระเงินสำเร็จ!', text: 'ระบบบันทึกการมอบเงินให้กรรมการเรียบร้อยแล้ว', confirmButtonColor: '#10B981' }).then(() => { checkMemberOnCloud(scannerUid); });
+                            }
+                        } catch(err) { Swal.fire('Error', 'เกิดข้อผิดพลาดในการบันทึก', 'error'); }
+                    }
+                });
 };
 
 window.loadRewards = async function() {
