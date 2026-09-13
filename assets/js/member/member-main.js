@@ -528,10 +528,15 @@ async function loadCommunityNews() {
         snap.forEach(doc => {
             const n = doc.data();
             const img = n.imageUrl || "https://images.unsplash.com/photo-1585829365295-ab7cd400c167?w=500&q=80";
+            // 🌟 โชว์ป้ายแจกแต้มที่มุมขวาบนของรูป
+            const rewardBadge = (n.rewardPoints > 0) ? `<span class="badge bg-warning text-dark position-absolute top-0 end-0 m-2 shadow-sm" style="font-size: 0.65rem; z-index: 10;"><i class="fa-solid fa-gift"></i> +${n.rewardPoints} แต้ม</span>` : '';
             
             html += `
                 <div class="vertical-news-card" onclick="viewNewsDetail('${doc.id}')">
-                    <img src="${img}" class="news-img" alt="News">
+                    <div class="position-relative">
+                        ${rewardBadge}
+                        <img src="${img}" class="news-img" alt="News">
+                    </div>
                     <div class="news-content">
                         <span class="badge bg-primary bg-opacity-10 text-primary rounded-pill mb-2" style="font-size: 0.65rem; width: fit-content;">${n.category || 'ทั่วไป'}</span>
                         <strong class="text-dark d-block mb-1 text-truncate" style="font-size: 0.85rem; line-height: 1.3;">${n.title}</strong>
@@ -552,12 +557,43 @@ window.viewNewsDetail = async function(newsId) {
     try {
         const doc = await db.collection("news").doc(newsId).get();
         if (!doc.exists) return Swal.fire('Error', 'ไม่พบข้อมูลข่าวสาร', 'error');
-        const n = doc.data();
         
+        const n = doc.data();
+        const uid = document.getElementById('uid').value || (cachedUserData ? cachedUserData.lineUid : "");
+        
+        // 🌟 ตรวจสอบสิทธิ์การรับแต้ม
+        let unreadReward = false;
+        let earnedPoints = 0;
+        
+        if (n.rewardPoints > 0 && uid) {
+            const readByArray = n.readBy || [];
+            // ถ้ายังไม่เคยอ่านข่าวนี้ ให้แจกแต้ม
+            if (!readByArray.includes(uid)) {
+                unreadReward = true;
+                earnedPoints = n.rewardPoints;
+                
+                // อัปเดตฐานข้อมูล 3 ส่วนพร้อมกัน
+                const batch = db.batch();
+                batch.update(db.collection("news").doc(newsId), { readBy: firebase.firestore.FieldValue.arrayUnion(uid) });
+                batch.update(db.collection("members").doc(uid), { cwfPoints: firebase.firestore.FieldValue.increment(earnedPoints) });
+                batch.update(db.collection("settings").doc("master"), { globalPointPool: firebase.firestore.FieldValue.increment(-earnedPoints) });
+                await batch.commit();
+                
+                // อัปเดตหน้าจอทันที
+                if (cachedUserData) cachedUserData.cwfPoints += earnedPoints;
+                const dashCwfPoints = document.getElementById('dashCwfPoints');
+                if (dashCwfPoints) dashCwfPoints.innerText = cachedUserData.cwfPoints;
+            }
+        }
+
+        // ข้อความแสดงความยินดี หากได้แต้ม
+        let rewardAlert = unreadReward ? `<div class="alert alert-success py-2 small mb-3 border-0 bg-success bg-opacity-10 text-success fw-bold text-center"><i class="fa-solid fa-gift me-1 fs-5"></i> ยินดีด้วย! คุณได้รับ ${earnedPoints} แต้มจากการอ่านข่าวนี้</div>` : '';
+
         Swal.fire({
             title: n.title,
             html: `
                 <div class="text-start" style="font-family:'Prompt';">
+                    ${rewardAlert}
                     <img src="${n.imageUrl || 'https://images.unsplash.com/photo-1585829365295-ab7cd400c167?w=500&q=80'}" class="w-100 rounded-3 mb-3" style="max-height: 220px; object-fit: cover; border: 1px solid #E5E7EB;">
                     <div class="d-flex justify-content-between align-items-center mb-3 border-bottom pb-2">
                         <span class="badge bg-primary bg-opacity-10 text-primary rounded-pill">${n.category || 'ทั่วไป'}</span>
