@@ -4,7 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
   <meta name="theme-color" content="#0F172A">
-  <title>SmartWelf 5.0 | ศูนย์จัดการกองทุนส่วนกลาง (แอดมิน)</title>
+  <title>SmartWelf 5.0.1 | ศูนย์จัดการกองทุนส่วนกลาง (แอดมิน)</title>
 
   <!-- ========================================== -->
   <!-- 📊 โค้ด Google Analytics (ติดตามสถิติ) -->
@@ -228,68 +228,39 @@
         </div>
       </div>
 
-      <!-- 🌟 การ์ดกระแสเงินสด (ดีไซน์ใหม่ 2x2 ทันสมัย ลดความซ้ำซ้อน) 🌟 -->
-      <div class="admin-card border-0 p-4 mb-4 shadow-sm rounded-4 bg-white">
-          <!-- Header -->
-          <div class="d-flex justify-content-between mb-3 align-items-center">
-              <h6 class="fw-bold text-dark mb-0">
-                  <i class="fa-solid fa-chart-pie text-primary me-2 fs-5"></i>สัดส่วนการเงินและสภาพคล่อง
-              </h6>
-          </div>
+      <!-- 🌟 กราฟ Mixed Chart (เปรียบเทียบรับ-จ่าย) แทนที่การ์ดตัวเลขเดิม 🌟 -->
+<div class="admin-card border-0 p-4 mb-4 shadow-sm rounded-4 bg-white" id="overviewChartArea">
+    <div id="sharedTrendChart">
+        
+        <!-- Header & ตัวกรอง -->
+        <div class="d-flex justify-content-between align-items-center mb-4">
+            <div class="d-flex align-items-center">
+                <div class="d-flex justify-content-center align-items-center bg-primary bg-opacity-10 text-primary rounded-circle me-2" style="width: 32px; height: 32px;">
+                    <i class="fa-solid fa-chart-line fs-6"></i>
+                </div>
+                <div>
+                    <h6 class="fw-bold text-dark mb-0">เปรียบเทียบรับ-จ่าย</h6>
+                    <small class="text-muted" style="font-size: 0.7rem;">แนวโน้มกระแสเงินสดรายเดือน</small>
+                </div>
+            </div>
+            
+<<select id="trendFilter" class="form-select-modern bg-light border-0 py-1 px-3 text-primary fw-bold shadow-sm" style="font-size:0.75rem; width: auto; border-radius: 20px; cursor: pointer;" onchange="if(typeof renderTrendChart === 'function') renderTrendChart()">
+    <option value="1month">1 เดือนย้อนหลัง</option>
+    <option value="3months">ราย 3 เดือน</option>
+    <option value="6months" selected>ราย 6 เดือน</option>
+    <option value="thisYear">ปีปัจจุบัน</option>
+    <option value="fiscal">ปีงบประมาณ</option>
+    <option value="all">ทั้งหมด</option>
+</select>
+        </div>
+        
+        <!-- พื้นที่แสดงผลกราฟ -->
+        <div class="chart-container" style="position: relative; height: 260px; width: 100%;">
+            <canvas id="trendChart"></canvas>
+        </div>
 
-          <!-- 🌟 แบ่งเป็น Grid 2x2: บน=รับ/จ่าย, ล่าง=ที่เก็บเงิน (ธนาคาร/เงินสด) -->
-          <div class="row g-3 mb-4">
-              <!-- กล่อง 1: รายรับ (พื้นสีเขียวอ่อน) -->
-              <div class="col-6">
-                  <div class="p-3 bg-success bg-opacity-10 rounded-4 h-100 border border-success border-opacity-25 overflow-hidden">
-                      <small class="text-success fw-bold d-block mb-1"><i class="fa-solid fa-arrow-turn-down me-1"></i> รายรับรวม</small>
-                      <div class="fw-bold text-success text-nowrap" id="stat-total-in" style="font-size: clamp(1rem, 4vw, 1.25rem);">฿0.00</div>
-                  </div>
-              </div>
-              
-              <!-- กล่อง 2: รายจ่าย (พื้นสีแดงอ่อน) -->
-              <div class="col-6">
-                  <div class="p-3 bg-danger bg-opacity-10 rounded-4 h-100 border border-danger border-opacity-25 overflow-hidden">
-                      <small class="text-danger fw-bold d-block mb-1"><i class="fa-solid fa-arrow-turn-up me-1"></i> จ่ายสวัสดิการ</small>
-                      <div class="fw-bold text-danger text-nowrap" id="stat-total-out" style="font-size: clamp(1rem, 4vw, 1.25rem);">฿0.00</div>
-                  </div>
-              </div>
-
-              <!-- กล่อง 3: ธนาคาร (ขอบเรียบหรู) -->
-              <div class="col-6">
-                  <div class="p-3 bg-light rounded-4 h-100 border border-secondary border-opacity-25 overflow-hidden">
-                      <small class="text-muted fw-bold d-block mb-1"><i class="fa-solid fa-building-columns text-primary me-1"></i> ยอดในธนาคาร</small>
-                      <div class="fw-bold text-dark text-nowrap" id="liq-bank" style="font-size: clamp(1rem, 4vw, 1.25rem);">฿0.00</div>
-                  </div>
-              </div>
-
-              <!-- กล่อง 4: เงินสด (ขอบเรียบหรู) -->
-              <div class="col-6">
-                  <div class="p-3 bg-light rounded-4 h-100 border border-secondary border-opacity-25 overflow-hidden">
-                      <small class="text-muted fw-bold d-block mb-1"><i class="fa-solid fa-money-bill-wave text-success me-1"></i> เงินสดในมือ</small>
-                      <div class="fw-bold text-dark text-nowrap" id="liq-cash" style="font-size: clamp(1rem, 4vw, 1.25rem);">฿0.00</div>
-                  </div>
-              </div>
-          </div>
-
-          <!-- ส่วนยอดลูกหนี้ค้างชำระ (ดีไซน์เดิม) -->
-          <div class="row">
-              <div class="col-12">
-                  <div class="border-0 bg-danger bg-opacity-10 border border-danger border-opacity-25 rounded-3 p-3 d-flex justify-content-between align-items-center overflow-hidden">
-                      <div class="d-flex align-items-center" style="min-width: 0;">
-                          <div class="icon-box bg-white text-danger shadow-sm me-3 d-flex justify-content-center align-items-center rounded-circle flex-shrink-0" style="width: 40px; height: 40px;">
-                              <i class="fa-solid fa-triangle-exclamation"></i>
-                          </div>
-                          <div style="min-width: 0;">
-                              <small class="text-danger fw-bold d-block text-nowrap" style="font-size: 0.75rem;">ยอดสมทบ(ลูกหนี้)</small>
-                              <div class="fw-bold text-danger mb-0 mt-1 text-nowrap" id="stat-total-debt" style="font-size: clamp(0.85rem, 4vw, 1.15rem);">฿0.00</div>
-                          </div>
-                      </div>
-                      <button class="btn btn-sm btn-danger rounded-pill px-3 shadow-sm flex-shrink-0 ms-2" onclick="switchAdminTab('admin-view-members', document.getElementById('nav-members'))">ติดตาม</button>
-                  </div>
-              </div>
-          </div>
-      </div>
+    </div>
+</div>
 
       <div class="d-flex justify-content-between align-items-center mb-3 mt-4 ps-1">
     <div class="d-flex align-items-center">
@@ -327,21 +298,7 @@
         <div class="chart-container" style="height: 200px;"><canvas id="doughnutChart"></canvas></div>
       </div>
 
-      <div id="overviewChartArea">
-          <div id="sharedTrendChart" class="admin-card border-0 p-4 mb-4 shadow-sm rounded-4" style="display: block;">
-              <div class="d-flex justify-content-between align-items-center mb-4">
-                  <div class="d-flex align-items-center">
-                      <div class="d-flex justify-content-center align-items-center bg-primary bg-opacity-10 text-primary rounded-circle me-2" style="width: 28px; height: 28px;"><i class="fa-solid fa-chart-line"></i></div>
-                      <h6 class="fw-bold text-dark mb-0">สถิติกระแสเงินสด</h6>
-                  </div>
-                  <select id="trendFilter" class="form-select-modern bg-light border-0 py-1 px-3 text-primary fw-bold" style="font-size:0.8rem; width: auto; border-radius: 20px;" onchange="renderTrendChart()">
-                      <option value="6months" selected>6 เดือน</option><option value="thisYear">ปีปัจจุบัน</option><option value="fiscal">ปีงบประมาณ</option><option value="allYears">รายปี</option>
-                  </select>
-              </div>
-              <div class="chart-container" style="height: 250px; width: 100%;"><canvas id="trendChart"></canvas></div>
-          </div>
-      </div>
-    </div>
+      
 
     <!-- 👥 ADMIN TAB: ทะเบียนสมาชิก -->
     <div class="admin-tab-pane d-none" id="admin-view-members">
