@@ -158,18 +158,34 @@
     <button onclick="logoutApp()" class="btn btn-sm btn-danger rounded-pill px-3 py-1 text-white" style="font-size: 0.7rem;"><i class="fa-solid fa-power-off me-1"></i> ออก</button>
   </div>
 
-  <!-- Bottom Nav -->
-  <nav class="bottom-nav" id="bottomNav">
-    <button class="nav-item active" id="nav-overview" onclick="switchAdminTab('admin-view-overview', this); loadDashboardOverview();"><i class="fa-solid fa-chart-pie"></i> ภาพรวม</button>
-    <button class="nav-item" id="nav-members" onclick="switchAdminTab('admin-view-members', this); loadMembersData();"><i class="fa-solid fa-users"></i> สมาชิก</button>
+ <!-- 🌟 ปรับโฉม Bottom Nav ให้ยึดติดขอบล่างเสมอ -->
+  <nav class="bottom-nav d-flex justify-content-around align-items-center" id="bottomNav" style="position: fixed; bottom: 0; left: 0; width: 100%; background-color: #ffffff; z-index: 1040; border-top-left-radius: 20px; border-top-right-radius: 20px; box-shadow: 0 -4px 20px rgba(0,0,0,0.08); padding-bottom: env(safe-area-inset-bottom, 15px);">
+    
+    <button class="nav-item" id="nav-overview" onclick="switchAdminTab('admin-view-overview', this); loadDashboardOverview();"><i class="fa-solid fa-chart-pie mb-1"></i> ภาพรวม</button>
+    <button class="nav-item" id="nav-members" onclick="switchAdminTab('admin-view-members', this); loadMembersData();"><i class="fa-solid fa-users mb-1"></i> สมาชิก</button>
+    
+    <!-- 🌟 ปุ่มตรงกลาง (Center FAB) สำหรับ Admin-ผู้ดูแล & ศูนย์ประสานงาน -->
+    <div class="fab-container d-none" id="center-action-btn" style="position: relative; top: -20px; margin: 0 5px;">
+        <button class="btn btn-primary d-flex align-items-center justify-content-center shadow-lg" style="width: 55px; height: 55px; border-radius: 50%; border: 4px solid #ffffff; background: linear-gradient(135deg, #2563EB 0%, #1D4ED8 100%); transition: transform 0.2s;" onclick="new bootstrap.Offcanvas(document.getElementById('actionMenuOffcanvas')).show();" onmousedown="this.style.transform='scale(0.9)'" onmouseup="this.style.transform='scale(1)'">
+            <i class="fa-solid fa-qrcode fs-4 text-white"></i>
+        </button>
+    </div>
+
     <button class="nav-item" id="nav-ledger" onclick="switchAdminTab('admin-view-ledger', this); loadLedgerData();">
-      <i class="fa-solid fa-wallet"></i><span class="nav-badge" id="nav-badge-ledger"></span> การเงิน
+      <i class="fa-solid fa-wallet mb-1"></i><span class="nav-badge" id="nav-badge-ledger"></span> การเงิน
     </button>
     <button class="nav-item" id="nav-claims" onclick="switchAdminTab('admin-view-claims', this); loadClaims();">
-      <i class="fa-solid fa-hand-holding-medical"></i><span class="nav-badge" id="nav-badge-claims"></span> สวัสดิการ
+      <i class="fa-solid fa-hand-holding-medical mb-1"></i><span class="nav-badge" id="nav-badge-claims"></span> สวัสดิการ
     </button>
-    <button class="nav-item" id="nav-menu" data-bs-toggle="offcanvas" data-bs-target="#menuOffcanvas"><i class="fa-solid fa-bars"></i> เมนู</button>
+    <button class="nav-item" id="nav-menu" data-bs-toggle="offcanvas" data-bs-target="#menuOffcanvas"><i class="fa-solid fa-bars mb-1"></i> เมนู</button>
   </nav>
+
+  <!-- 🌟 ปุ่มลอยมุมขวาล่าง (Bottom-Right FAB) สำหรับ Admin-Master -->
+  <div class="d-none" id="master-action-btn" style="position: fixed; bottom: 85px; right: 20px; z-index: 1050;">
+      <button class="btn btn-primary d-flex align-items-center justify-content-center shadow-lg" style="width: 55px; height: 55px; border-radius: 50%; background: linear-gradient(135deg, #2563EB 0%, #1D4ED8 100%); transition: transform 0.2s;" onclick="new bootstrap.Offcanvas(document.getElementById('actionMenuOffcanvas')).show();" onmousedown="this.style.transform='scale(0.9)'" onmouseup="this.style.transform='scale(1)'">
+          <i class="fa-solid fa-qrcode fs-4 text-white"></i>
+      </button>
+  </div>
 
   <!-- Offcanvas Menu -->
   <div class="offcanvas offcanvas-bottom rounded-top-4" tabindex="-1" id="menuOffcanvas">
@@ -430,52 +446,50 @@
           </div>
       </div>
 
-      <!-- 🌟 เมนูด่วน (Quick Actions) เลื่อนซ้ายขวาได้ -->
-      <div class="quick-actions-scroll-container px-2 mb-4">
-          <div class="d-flex flex-nowrap gap-3 pb-2 overflow-auto" style="-webkit-overflow-scrolling: touch; scrollbar-width: none;">
-              
-              <!-- 1. สแกนรับเงิน -->
-              <div class="text-center flex-shrink-0 cursor-pointer" onclick="scanToReceiveAdminFunds()" style="width: 70px;">
-                  <div class="icon-box bg-dark text-white mx-auto mb-2 shadow-sm rounded-4" style="width: 50px; height: 50px; font-size: 1.5rem;">
-                      <i class="fa-solid fa-expand"></i>
-                  </div>
-                  <small class="fw-bold text-dark d-block" style="font-size: 0.7rem;">สแกนรับ</small>
-              </div>
+      <!-- 🌟 แผงควบคุมกระแสเงินสด (แทนที่เมนู 5 ปุ่มเดิม) -->
+<div id="ledger-summary-cards" class="mb-4 mt-2">
+    
+    <!-- 1. ยอดรวมกองทุน -->
+    <div class="wallet-card mb-3 shadow" style="background: linear-gradient(135deg, #0F172A 0%, #1E293B 100%); border-radius: 20px; padding: 1.5rem; color: white; position: relative; overflow: hidden;">
+        <div style="position: absolute; top: -10px; right: -15px; opacity: 0.1; font-size: 7rem;"><i class="fa-solid fa-coins"></i></div>
+        <span class="text-white-50 small fw-bold"><i class="fa-solid fa-building-columns me-1"></i> ยอดเงินกองทุนสวัสดิการชุมชน</span>
+        <h1 class="fw-bold mb-0 mt-2" style="font-size: 2.2rem;">
+            <span style="font-size:1rem; font-weight:normal; opacity: 0.8;">THB</span> <span id="ledger-summary-total">0.00</span>
+        </h1>
+    </div>
 
-              <!-- 2. ส่งเงิน QR -->
-              <div class="text-center flex-shrink-0 cursor-pointer" onclick="generateTransferAdminQR()" style="width: 70px;">
-                  <div class="icon-box bg-primary bg-opacity-10 text-primary mx-auto mb-2 shadow-sm rounded-4" style="width: 50px; height: 50px; font-size: 1.5rem;">
-                      <i class="fa-solid fa-arrow-up-from-bracket"></i>
-                  </div>
-                  <small class="fw-bold text-dark d-block" style="font-size: 0.7rem;">ส่งยอด</small>
-              </div>
+    <!-- 2. เงินในบัญชี & เงินสด -->
+    <div class="row g-2 mb-2">
+        <div class="col-6">
+            <div class="admin-card border-0 p-3 shadow-sm rounded-4 bg-white h-100">
+                <small class="text-muted fw-bold d-block mb-1" style="font-size: 0.75rem;"><i class="fa-solid fa-landmark text-primary me-1"></i> เงินในบัญชี</small>
+                <h5 class="fw-bold text-primary mb-0 text-truncate" id="ledger-summary-bank">฿0.00</h5>
+            </div>
+        </div>
+        <div class="col-6">
+            <div class="admin-card border-0 p-3 shadow-sm rounded-4 bg-white h-100">
+                <small class="text-muted fw-bold d-block mb-1" style="font-size: 0.75rem;"><i class="fa-solid fa-wallet text-warning me-1"></i> เงินสดในมือ</small>
+                <h5 class="fw-bold text-warning mb-0 text-truncate" id="ledger-summary-cash">฿0.00</h5>
+            </div>
+        </div>
+    </div>
 
-              <!-- 3. เรียกเก็บ QR -->
-              <div class="text-center flex-shrink-0 cursor-pointer" onclick="generatePaymentQR()" style="width: 70px;">
-                  <div class="icon-box bg-danger bg-opacity-10 text-danger mx-auto mb-2 shadow-sm rounded-4" style="width: 50px; height: 50px; font-size: 1.5rem;">
-                      <i class="fa-solid fa-qrcode"></i>
-                  </div>
-                  <small class="fw-bold text-dark d-block" style="font-size: 0.7rem;">เรียกเก็บ</small>
-              </div>
-
-              <!-- 4. บันทึกรับ-จ่าย -->
-              <div class="text-center flex-shrink-0 cursor-pointer" onclick="toggleLedgerActionForm('ie')" style="width: 70px;">
-                  <div class="icon-box bg-success bg-opacity-10 text-success mx-auto mb-2 shadow-sm rounded-4" style="width: 50px; height: 50px; font-size: 1.5rem;">
-                      <i class="fa-solid fa-money-bill-wave"></i>
-                  </div>
-                  <small class="fw-bold text-dark d-block" style="font-size: 0.7rem;">รับ-จ่าย</small>
-              </div>
-
-              <!-- 5. โอนย้ายบัญชี -->
-              <div class="text-center flex-shrink-0 cursor-pointer" onclick="toggleLedgerActionForm('tf')" style="width: 70px;">
-                  <div class="icon-box bg-warning bg-opacity-10 text-warning mx-auto mb-2 shadow-sm rounded-4" style="width: 50px; height: 50px; font-size: 1.5rem;">
-                      <i class="fa-solid fa-arrow-right-arrow-left"></i>
-                  </div>
-                  <small class="fw-bold text-dark d-block" style="font-size: 0.7rem;">โอนย้าย</small>
-              </div>
-
-          </div>
-      </div>
+    <!-- 3. รายรับ & รายจ่าย -->
+    <div class="row g-2">
+        <div class="col-6">
+            <div class="admin-card border-0 p-3 shadow-sm rounded-4 h-100" style="background-color: #F0FDF4;">
+                <small class="fw-bold d-block mb-1" style="color: #16A34A; font-size: 0.75rem;"><i class="fa-solid fa-arrow-down me-1"></i> รายรับรวม</small>
+                <h6 class="fw-bold mb-0 text-truncate" style="color: #16A34A;" id="ledger-summary-in">฿0.00</h6>
+            </div>
+        </div>
+        <div class="col-6">
+            <div class="admin-card border-0 p-3 shadow-sm rounded-4 h-100" style="background-color: #FEF2F2;">
+                <small class="fw-bold d-block mb-1" style="color: #DC2626; font-size: 0.75rem;"><i class="fa-solid fa-arrow-up me-1"></i> รายจ่ายรวม</small>
+                <h6 class="fw-bold mb-0 text-truncate" style="color: #DC2626;" id="ledger-summary-out">฿0.00</h6>
+            </div>
+        </div>
+    </div>
+</div>
 
       <!-- 🌟 พื้นที่แสดงฟอร์มทำงาน (ซ่อนไว้ก่อน จะกางออกเมื่อกดปุ่มเมนูด่วน รับ-จ่าย หรือ โอนย้าย) -->
       <div id="ledgerActionContainer" class="admin-card border-0 p-3 mb-4 shadow-sm rounded-4" style="display: none;">
@@ -1299,6 +1313,54 @@
         </div>
     </div>
 </div>
+<!-- 🌟 ACTION MENU (หน้าต่างเมนูด่วนที่จะเด้งขึ้นมาจากขอบล่าง พอกดปุ่ม FAB) -->
+<div class="offcanvas offcanvas-bottom rounded-top-4" tabindex="-1" id="actionMenuOffcanvas" style="height: auto; max-height: 80vh; z-index: 1060;">
+  <div class="offcanvas-header pb-2 border-bottom border-light">
+    <h6 class="fw-bold mb-0 text-primary"><i class="fa-solid fa-bolt me-2 text-warning"></i> ธุรกรรมด่วน (Quick Actions)</h6>
+    <button type="button" class="btn-close shadow-none" data-bs-dismiss="offcanvas"></button>
+  </div>
+  <div class="offcanvas-body px-4 pt-4 pb-5">
+    <div class="row g-3 text-center">
+        <!-- 1. ปุ่มสแกนรับเงิน -->
+        <div class="col-6">
+            <div class="admin-card border-0 p-3 shadow-sm h-100 cursor-pointer" style="background: linear-gradient(135deg, #ECFDF5 0%, #D1FAE5 100%); transition: transform 0.2s;" onclick="if(typeof scanToReceiveAdminFunds === 'function') { scanToReceiveAdminFunds(); var myOffcanvas = document.getElementById('actionMenuOffcanvas'); var bsOffcanvas = bootstrap.Offcanvas.getInstance(myOffcanvas); if(bsOffcanvas) bsOffcanvas.hide(); }" onmousedown="this.style.transform='scale(0.95)'" onmouseup="this.style.transform='scale(1)'">
+                <div class="icon-box bg-success text-white mx-auto mb-2 shadow-sm rounded-circle d-flex align-items-center justify-content-center" style="width: 45px; height: 45px; font-size: 1.2rem;">
+                    <i class="fa-solid fa-expand"></i>
+                </div>
+                <strong class="text-success d-block mb-1" style="font-size: 0.9rem;">สแกนรับเงิน</strong>
+            </div>
+        </div>
+        <!-- 2. ปุ่มส่งยอดเงิน -->
+        <div class="col-6">
+            <div class="admin-card border-0 p-3 shadow-sm h-100 cursor-pointer" style="background: linear-gradient(135deg, #EFF6FF 0%, #DBEAFE 100%); transition: transform 0.2s;" onclick="if(typeof generateTransferAdminQR === 'function') { generateTransferAdminQR(); var myOffcanvas = document.getElementById('actionMenuOffcanvas'); var bsOffcanvas = bootstrap.Offcanvas.getInstance(myOffcanvas); if(bsOffcanvas) bsOffcanvas.hide(); }" onmousedown="this.style.transform='scale(0.95)'" onmouseup="this.style.transform='scale(1)'">
+                <div class="icon-box bg-primary text-white mx-auto mb-2 shadow-sm rounded-circle d-flex align-items-center justify-content-center" style="width: 45px; height: 45px; font-size: 1.2rem;">
+                    <i class="fa-solid fa-arrow-up-from-bracket"></i>
+                </div>
+                <strong class="text-primary d-block mb-1" style="font-size: 0.9rem;">ส่งยอดเงิน</strong>
+            </div>
+        </div>
+        <!-- 3. ปุ่มเรียกเก็บเงิน (ใหม่) -->
+        <div class="col-6">
+            <div class="admin-card border-0 p-3 shadow-sm h-100 cursor-pointer" style="background: linear-gradient(135deg, #FFF1F2 0%, #FFE4E6 100%); transition: transform 0.2s;" onclick="if(typeof generatePaymentQR === 'function') { generatePaymentQR(); var myOffcanvas = document.getElementById('actionMenuOffcanvas'); var bsOffcanvas = bootstrap.Offcanvas.getInstance(myOffcanvas); if(bsOffcanvas) bsOffcanvas.hide(); }" onmousedown="this.style.transform='scale(0.95)'" onmouseup="this.style.transform='scale(1)'">
+                <div class="icon-box bg-danger text-white mx-auto mb-2 shadow-sm rounded-circle d-flex align-items-center justify-content-center" style="width: 45px; height: 45px; font-size: 1.2rem;">
+                    <i class="fa-solid fa-qrcode"></i>
+                </div>
+                <strong class="text-danger d-block mb-1" style="font-size: 0.9rem;">เรียกเก็บ</strong>
+            </div>
+        </div>
+        <!-- 4. ปุ่มชวนเพื่อน -->
+        <div class="col-6">
+            <div class="admin-card border-0 p-3 shadow-sm h-100 cursor-pointer" style="background: linear-gradient(135deg, #F3E8FF 0%, #E9D5FF 100%); transition: transform 0.2s;" onclick="/* เว้นไว้เขียนโค้ดเพิ่ม */" onmousedown="this.style.transform='scale(0.95)'" onmouseup="this.style.transform='scale(1)'">
+                <div class="icon-box bg-purple text-white mx-auto mb-2 shadow-sm rounded-circle d-flex align-items-center justify-content-center" style="width: 45px; height: 45px; font-size: 1.2rem; background-color: #9333EA;">
+                    <i class="fa-solid fa-user-plus"></i>
+                </div>
+                <strong class="d-block mb-1" style="font-size: 0.9rem; color: #9333EA;">ชวนเพื่อน</strong>
+            </div>
+        </div>
+    </div>
+    </div>
+  </div>
+</div>
 <!-- ==========================================
      [6] JAVASCRIPT MODULES 
 =========================================== -->
@@ -1310,13 +1372,13 @@
 <script src="./assets/js/admin/admin-config.js?v=5"></script>
 
 <!-- 2. โหลดระบบ Auth และ UI ของแอดมิน -->
-<script src="./assets/js/admin/admin-auth.js?v=17"></script>
+<script src="./assets/js/admin/admin-auth.js?v=18"></script>
 <script src="./assets/js/admin/admin-ui.js?v=5"></script>
 
 <!-- 3. โหลด Modules การทำงานต่างๆ -->
 <script src="./assets/js/admin/dashboard.js?v=12"></script>
 <script src="./assets/js/admin/members.js?v=11"></script>
-<script src="./assets/js/admin/ledger.js?v=33"></script>
+<script src="./assets/js/admin/ledger.js?v=36"></script>
 <script src="./assets/js/admin/claims.js?v=10"></script>
 <script src="./assets/js/admin/shops-news.js?v=11"></script>
 <script src="./assets/js/admin/shops.js?v=10"></script>
