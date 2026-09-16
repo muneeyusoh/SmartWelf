@@ -367,42 +367,52 @@ function applyRoleRestrictions() {
     // ซ่อนทุกอย่างก่อน
     navs.forEach(n => { if(document.getElementById(n)) document.getElementById(n).style.display = 'none'; });
 
+    // 🌟 จัดการซ่อน/โชว์ ปุ่ม Action Button (FAB)
+    const centerFab = document.getElementById('center-action-btn');
+    const masterFab = document.getElementById('master-action-btn');
+    if(centerFab) centerFab.classList.add('d-none');
+    if(masterFab) masterFab.classList.add('d-none');
+
+    // ฟังก์ชันช่วยเหลือสำหรับเปิดเมนูโดยไม่ทำให้ CSS พัง (ใช้เคลียร์ค่า display ให้กลับไปใช้ class เดิม)
+    const showNav = (navId) => { if(document.getElementById(navId)) document.getElementById(navId).style.display = ''; };
+
     // 1. กำหนดการมองเห็น Tab หลักด้านล่าง
     if (r === 'Admin-ผู้ดูแล') {
-        ['nav-members', 'nav-ledger', 'nav-menu'].forEach(n => { if(document.getElementById(n)) document.getElementById(n).style.display = 'block'; });
+        ['nav-members', 'nav-ledger', 'nav-menu'].forEach(showNav);
+        if(centerFab) centerFab.classList.remove('d-none'); 
         switchAdminTab('admin-view-members', document.getElementById('nav-members'));
         if(typeof loadMembersData === 'function') loadMembersData();
     } 
     else if (r === 'Admin-ศูนย์ประสานงาน') {
-        ['nav-overview', 'nav-members', 'nav-menu'].forEach(n => { if(document.getElementById(n)) document.getElementById(n).style.display = 'block'; });
+        ['nav-overview', 'nav-members', 'nav-menu'].forEach(showNav);
+        if(centerFab) centerFab.classList.remove('d-none'); 
         switchAdminTab('admin-view-overview', document.getElementById('nav-overview'));
         if(typeof loadDashboardOverview === 'function') loadDashboardOverview();
     } 
     else if (r === 'Admin-การเงิน') {
-        ['nav-overview', 'nav-members', 'nav-ledger', 'nav-menu'].forEach(n => { if(document.getElementById(n)) document.getElementById(n).style.display = 'block'; });
+        ['nav-overview', 'nav-members', 'nav-ledger', 'nav-menu'].forEach(showNav);
         switchAdminTab('admin-view-ledger', document.getElementById('nav-ledger'));
         if(typeof loadLedgerData === 'function') loadLedgerData();
     } 
     else if (r === 'Admin-สวัสดิการ') {
-        ['nav-claims', 'nav-menu'].forEach(n => { if(document.getElementById(n)) document.getElementById(n).style.display = 'block'; });
+        ['nav-claims', 'nav-menu'].forEach(showNav);
         switchAdminTab('admin-view-claims', document.getElementById('nav-claims'));
         if(typeof loadClaims === 'function') loadClaims();
     } 
     else if (r === 'Admin-ตรวจสอบ') {
-        // 🌟 ฝ่ายตรวจสอบ: ดูกระแสเงินรายวันและภาพรวม
-        ['nav-overview', 'nav-ledger', 'nav-menu'].forEach(n => { if(document.getElementById(n)) document.getElementById(n).style.display = 'block'; });
+        ['nav-overview', 'nav-ledger', 'nav-menu'].forEach(showNav);
         switchAdminTab('admin-view-ledger', document.getElementById('nav-ledger'));
         if(typeof loadLedgerData === 'function') loadLedgerData();
     }
     else if (r === 'Viewer-ภาคีเครือข่าย') {
-        // 🌟 ภาคี/เทศบาล: ดูภาพรวมสถิติอย่างเดียว
-        ['nav-overview', 'nav-menu'].forEach(n => { if(document.getElementById(n)) document.getElementById(n).style.display = 'block'; });
+        ['nav-overview', 'nav-menu'].forEach(showNav);
         switchAdminTab('admin-view-overview', document.getElementById('nav-overview'));
         if(typeof loadDashboardOverview === 'function') loadDashboardOverview();
     }
     else { 
-        // Admin-Master (ผู้บริหารสูงสุด)
-        navs.forEach(n => { if(document.getElementById(n)) document.getElementById(n).style.display = 'block'; });
+        // Admin-Master
+        navs.forEach(showNav);
+        if(masterFab) masterFab.classList.remove('d-none'); 
         switchAdminTab('admin-view-overview', document.getElementById('nav-overview'));
         if(typeof loadDashboardOverview === 'function') loadDashboardOverview();
     }
@@ -413,7 +423,7 @@ function applyRoleRestrictions() {
         const btn = document.getElementById(`btn-menu-${m}`);
         if(!btn) return;
         
-        btn.style.display = 'none'; // ซ่อนเป็นค่าเริ่มต้น
+        btn.style.display = 'none'; 
         if(r === 'Admin-Master') btn.style.display = 'flex'; 
         else if (r === 'Admin-ศูนย์ประสานงาน' && ['gis', 'shops', 'news', 'admins', 'support'].includes(m)) btn.style.display = 'flex';
         else if (r === 'Admin-ผู้ดูแล' && ['admins', 'support'].includes(m)) btn.style.display = 'flex';
@@ -423,17 +433,14 @@ function applyRoleRestrictions() {
         else if (r === 'Viewer-ภาคีเครือข่าย' && ['gis', 'support'].includes(m)) btn.style.display = 'flex';
     });
 
-    // 3. 🔒 บล็อกการแก้ไข (Read-Only Mode) สำหรับฝ่ายตรวจสอบและภาคีเครือข่าย
+    // 3. บล็อกการแก้ไขสำหรับฝ่ายตรวจสอบและภาคีเครือข่าย
     if (['Admin-ตรวจสอบ', 'Viewer-ภาคีเครือข่าย'].includes(r)) {
-        // ซ่อนปุ่มหลัก
         const hideIds = ['btn-add-member', 'btnAddAdmin', 'financeApproveBtnBox'];
         hideIds.forEach(id => { const el = document.getElementById(id); if (el) el.style.display = 'none'; });
 
-        // ซ่อนแถบเมนูด่วน (สแกนรับยอด/โอนย้าย)
         const quickActions = document.querySelector('.quick-actions-scroll-container');
         if (quickActions) quickActions.style.display = 'none';
 
-        // แทรก CSS พิเศษเพื่อซ่อนปุ่ม Action ในตารางที่สร้างขึ้นด้วย JavaScript
         const style = document.createElement('style');
         style.innerHTML = `
             .amount-badge-wrapper, .input-overlay, .member-checkbox-wrapper { display: none !important; }

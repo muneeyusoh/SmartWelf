@@ -161,7 +161,7 @@ window.generateTransferAdminQR = async function() {
         // หาบิลทั้งหมดที่ตัวเราถืออยู่
         const snap = await db.collection("transactions")
             .where("currentHolder", "==", myEmail)
-            .where("status", "in", ["รอส่งมอบ", "รอตรวจสอบ"])
+            .where("status", "in", ["รอส่งมอบ", "รอตรวจสอบ", "รอส่งศูนย์", "รอส่งการเงิน"])
             .get();
 
         if (snap.empty) {
@@ -173,20 +173,21 @@ window.generateTransferAdminQR = async function() {
         let txIds = [];
         snap.forEach(doc => {
             totalAmt += parseFloat(doc.data().amount || 0);
-            txIds.push(doc.id);
+            txIds.push(doc.id); // เก็บไว้แค่นับจำนวนโชว์บนหน้าจอ
         });
 
         AppHelper.showLoader(false);
-        const qrPayload = JSON.stringify({
-            action: "admin_transfer",
+        
+        // 🌟 แก้ปัญหา QR ขาวเด็ดขาด: สร้าง Payload แบบสั้น ไม่ต้องยัด txIds ลงไปในรูป QR 
+        const shortPayloadStr = JSON.stringify({
+            action: "admin_transfer", 
             senderEmail: myEmail,
             senderName: AdminState.currentAdmin.name,
-            txIds: txIds,
             totalAmount: totalAmt
         });
         
-        // 🌟 แก้ไขปัญหา QR Code อ่านภาษาไทยไม่ได้
-        const utf8Payload = unescape(encodeURIComponent(qrPayload));
+        // ดักเรื่องภาษาไทย
+        const utf8Payload = unescape(encodeURIComponent(shortPayloadStr));
 
         Swal.fire({
             title: 'QR นำส่งเงินสด',
@@ -195,7 +196,7 @@ window.generateTransferAdminQR = async function() {
                     <p class="text-muted small mb-1">ยอดรวมที่ต้องส่งมอบ (${txIds.length} รายการ)</p>
                     <h2 class="text-primary fw-bold mb-3">฿${totalAmt.toLocaleString('en-US', {minimumFractionDigits: 2})}</h2>
                     <div id="adminTransferQrBox" class="d-flex justify-content-center align-items-center p-3 bg-white rounded-4 shadow-sm mx-auto mb-3 border" style="width: 220px; height: 220px;"></div>
-                    <p class="small text-danger"><i class="fa-solid fa-triangle-exclamation"></i> ให้แอดมินระดับสูงกว่า (ศูนย์ฯ หรือ การเงิน) สแกนเพื่อรับเงินสด</p>
+                    <p class="small text-danger"><i class="fa-solid fa-triangle-exclamation"></i> ให้แอดมินคนใดก็ได้ สแกนเพื่อรับเงินสดต่อจากคุณ</p>
                 </div>
             `,
             didOpen: () => {
@@ -203,7 +204,14 @@ window.generateTransferAdminQR = async function() {
                     const qrBox = document.getElementById("adminTransferQrBox");
                     if(qrBox) {
                         qrBox.innerHTML = "";
-                        new QRCode(qrBox, { text: utf8Payload, width: 180, height: 180, colorDark : "#0F172A", colorLight : "#ffffff" });
+                        new QRCode(qrBox, { 
+                            text: utf8Payload, 
+                            width: 180, 
+                            height: 180, 
+                            colorDark : "#0F172A", 
+                            colorLight : "#ffffff",
+                            correctLevel : QRCode.CorrectLevel.L // 🌟 ตั้งค่าระดับการแก้ Error ให้เป็น L เพื่อให้วาดรูปง่ายขึ้น
+                        });
                     }
                 }, 300);
             }
@@ -362,36 +370,83 @@ window.promptManualCodeInput = function() {
 window.handleScannedAdminQR = async function(codeValue) {
     let payload = {};
     try { payload = JSON.parse(codeValue); } catch (e) { return Swal.fire('QR ไม่ถูกต้อง', 'รหัส QR นี้ไม่ใช่รหัสโอนย้ายเงินของกองทุน', 'error'); }
-    if(payload.action !== 'admin_transfer_handover') return Swal.fire('QR ไม่ถูกต้อง', 'กรุณาสแกน QR สำหรับรับมอบเงิน', 'error');
-    const myRole = AdminState.currentAdmin.role;
     
-    if (payload.senderRole === 'Admin-ผู้ดูแล' && (myRole !== 'Admin-ศูนย์ประสานงาน' && myRole !== 'Admin-Master' && myRole !== 'Admin-การเงิน')) {
-        return Swal.fire('สิทธิ์ไม่เพียงพอ', 'เฉพาะ Admin-ศูนย์ประสานงาน หรือการเงิน เท่านั้นที่รับยอดนี้ได้', 'error');
+    // ตรวจสอบว่าเป็น QR สำหรับส่งยอดเงินหรือไม่
+    if(payload.action !== 'admin_transfer' && payload.action !== 'admin_transfer_handover') {
+        return Swal.fire('QR ไม่ถูกต้อง', 'กรุณาสแกน QR สำหรับรับมอบเงิน', 'error');
     }
-    if (payload.senderRole === 'Admin-ศูนย์ประสานงาน' && (myRole !== 'Admin-การเงิน' && myRole !== 'Admin-Master')) {
-        return Swal.fire('สิทธิ์ไม่เพียงพอ', 'เฉพาะ Admin-การเงิน หรือ Master เท่านั้นที่รับยอดจากศูนย์ได้', 'error');
+    
+    const myRole = AdminState.currentAdmin.role;
+    const myEmail = AdminState.currentAdmin.email;
+    
+    // 🌟 ดักไว้ไม่ให้สแกน QR ของตัวเอง
+    if (payload.senderEmail === myEmail) {
+        return Swal.fire('ผิดพลาด', 'คุณไม่สามารถสแกนรับเงินจากตัวเองได้', 'error');
     }
 
     Swal.fire({
         title: 'รับมอบเงินสด?',
-        html: `<div class="text-start" style="font-family:'Prompt';"><p class="mb-1 text-muted small">รับมอบจาก: <strong>${payload.senderName} (${payload.senderRole})</strong></p><p class="mb-1 text-muted small">จำนวนเงินรวม: <strong class="text-success fs-4">฿${parseFloat(payload.amount).toLocaleString('en-US', { minimumFractionDigits: 2 })}</strong></p></div>`,
+        html: `
+            <div class="text-start" style="font-family:'Prompt';">
+                <p class="mb-1 text-muted small">รับมอบจาก: <strong>${payload.senderName}</strong></p>
+                <p class="mb-1 text-muted small">จำนวนเงินรวม: <strong class="text-success fs-4">฿${parseFloat(payload.totalAmount || payload.amount).toLocaleString('en-US', { minimumFractionDigits: 2 })}</strong></p>
+            </div>
+        `,
         showCancelButton: true, confirmButtonText: 'ยืนยันรับเงิน', cancelButtonText: 'ยกเลิก', confirmButtonColor: '#10B981'
     }).then(async r => {
         if (r.isConfirmed) {
             AppHelper.showLoader(true, "กำลังย้ายสิทธิ์การถือเงิน...");
             try {
-                let searchStatus = payload.senderRole === 'Admin-ผู้ดูแล' ? "รอส่งศูนย์" : "รอส่งการเงิน";
-                const snap = await db.collection("transactions").where("currentHolder", "==", payload.sender).where("status", "==", searchStatus).get();
+                let txIds = payload.txIds || [];
                 const batch = db.batch();
-                const routeData = getNextFinancialStatusAndHolder(myRole, AdminState.currentAdmin.email);
+                // ระบบจะคำนวณสถานะถัดไปให้อัตโนมัติว่าคนที่สแกนเป็นใคร (เช่น ถ้าระดับ Master สแกน จะเป็น "เข้าคลังแล้ว" ทันที)
+                const routeData = getNextFinancialStatusAndHolder(myRole, myEmail);
 
-                snap.forEach(doc => {
-                    batch.update(doc.ref, { currentHolder: routeData.holder, status: routeData.status, receivedBy: AdminState.currentAdmin.name, receivedAt: firebase.firestore.FieldValue.serverTimestamp() });
-                });
-                await batch.commit(); AppHelper.showLoader(false); 
-                Swal.fire('สำเร็จ', routeData.status === 'เข้าคลังแล้ว' ? 'เงินเข้าสู่คลังส่วนกลางแล้ว' : 'เงินถูกย้ายมาอยู่ที่คุณแล้ว (รอส่งการเงิน)', 'success');
+                if (txIds.length > 0) {
+                    txIds.forEach(txId => {
+                        batch.update(db.collection("transactions").doc(txId), { 
+                            currentHolder: routeData.holder, 
+                            status: routeData.status, 
+                            receivedBy: AdminState.currentAdmin.name, 
+                            lastUpdated: firebase.firestore.FieldValue.serverTimestamp() 
+                        });
+                    });
+                } else {
+                    // Fallback เผื่อใช้ QR รูปแบบเก่า
+                    const snap = await db.collection("transactions").where("currentHolder", "==", payload.senderEmail || payload.sender).where("status", "in", ["รอส่งศูนย์", "รอส่งการเงิน", "รอตรวจสอบ", "รอส่งมอบ"]).get();
+                    snap.forEach(doc => {
+                        batch.update(doc.ref, { currentHolder: routeData.holder, status: routeData.status, receivedBy: AdminState.currentAdmin.name, lastUpdated: firebase.firestore.FieldValue.serverTimestamp() });
+                    });
+                }
+
+                // ถ้าคนที่สแกนรับเป็นการเงินหรือ Master ให้ลงบัญชีรายรับเข้ากองทุนกลาง (Vault) ทันที
+                if (routeData.status === 'เข้าคลังแล้ว') {
+                     const vaultTxId = "VAULT" + Date.now().toString().slice(-8);
+                     batch.set(db.collection("transactions").doc(vaultTxId), {
+                         txId: vaultTxId,
+                         type: "รับเงินสมทบ (ส่วนกลาง)",
+                         amount: parseFloat(payload.totalAmount || payload.amount),
+                         paymentMethod: "เงินสด",
+                         transactionDate: new Date().toISOString().split('T')[0],
+                         fullName: "แอดมิน: " + AdminState.currentAdmin.name,
+                         status: "อนุมัติแล้ว",
+                         currentHolder: "CENTRAL_BANK",
+                         note: `รับมอบเงินสดจาก ${payload.senderName}`,
+                         uid: "SYSTEM_TRANSFER",
+                         timestamp: firebase.firestore.FieldValue.serverTimestamp()
+                     });
+                }
+
+                await batch.commit(); 
+                AppHelper.showLoader(false); 
+                Swal.fire('สำเร็จ', routeData.status === 'เข้าคลังแล้ว' ? 'เงินเข้าสู่คลังส่วนกลางแล้ว' : 'เงินถูกย้ายมาอยู่ที่คุณแล้ว (รอส่งต่อ)', 'success');
+                
                 if(typeof window.loadLedgerData === 'function') window.loadLedgerData();
-            } catch(e) { AppHelper.showLoader(false); Swal.fire('Error', e.message, 'error'); }
+                if(typeof window.loadDashboardOverview === 'function') window.loadDashboardOverview();
+            } catch(e) { 
+                AppHelper.showLoader(false); 
+                Swal.fire('Error', e.message, 'error'); 
+            }
         }
     });
 };
@@ -678,7 +733,9 @@ window.updatePendingTransactionsList = function() {
     if (!pendingContainer) return;
     
     let pendingHtml = "";
-    const pendingData = ledgerTxCache.filter(d => d.status !== 'อนุมัติแล้ว');
+    
+    // 🌟 จุดที่แก้ไข: กรองไม่เอาทั้ง 'อนุมัติแล้ว' และ 'เข้าคลังแล้ว'
+    const pendingData = ledgerTxCache.filter(d => d.status !== 'อนุมัติแล้ว' && d.status !== 'เข้าคลังแล้ว');
     
     pendingData.forEach(d => {
         const amt = parseFloat(d.amount || 0).toLocaleString('en-US', { minimumFractionDigits: 2 });
@@ -690,9 +747,16 @@ window.updatePendingTransactionsList = function() {
     });
     
     pendingContainer.innerHTML = pendingHtml || '<div class="text-center text-muted small py-2">ไม่มีรายการค้างส่ง</div>';
-    if (badge) { if (pendingData.length > 0) { badge.innerText = pendingData.length; badge.style.display = 'block'; } else { badge.style.display = 'none'; } }
+    
+    if (badge) { 
+        if (pendingData.length > 0) { 
+            badge.innerText = pendingData.length; 
+            badge.style.display = 'block'; 
+        } else { 
+            badge.style.display = 'none'; 
+        } 
+    }
 };
-
 // 🟢 ป๊อปอัป + รับเงิน / - จ่ายเงิน (Smart Popup พร้อมเช็คยอดเงิน 100%)
 window.openDailyLedgerForm = async function(type) {
     const isIncome = type === 'income';
@@ -932,7 +996,7 @@ window.generateEReceipt = async function(txId, type, amount, date, note, name) {
     // ขยายแถบ Header เป็น 180px ให้พอดีกับขนาดโลโก้
     ctx.fillStyle = themeColor; ctx.fillRect(0, 0, canvas.width, 180);
 
-    // 🌟 โหลดและวาดโลโก้ 3D SmartWelf ที่ผ่านการบีบอัดโค้ดแล้ว
+    // 🌟 โหลดและวาดโลโก้ 3D SmartWelf
     const loadLogo = () => {
         return new Promise((resolve) => {
             const img = new Image();
@@ -947,7 +1011,6 @@ window.generateEReceipt = async function(txId, type, amount, date, note, name) {
                 <filter id="swDepthShadow" x="-30%" y="-30%" width="160%" height="180%"><feDropShadow dx="0" dy="12" stdDeviation="12" flood-color="#064C45" flood-opacity=".25"/><feDropShadow dx="0" dy="3" stdDeviation="2" flood-color="#083B52" flood-opacity=".25"/></filter>
                 <filter id="swHighlight" x="-30%" y="-30%" width="160%" height="160%"><feGaussianBlur stdDeviation="1.3"/></filter>
               </defs>
-              <!-- วาดชั้นแสงและเงาให้ครบ 5 ชั้นตามแบบ -->
               <g filter="url(#swDepthShadow)">
                 <use xlink:href="#swPath" transform="translate(0 10)" fill="rgba(4,72,65,.25)"/>
                 <use xlink:href="#swPath" transform="translate(0 5)" fill="#087361"/>
@@ -960,7 +1023,6 @@ window.generateEReceipt = async function(txId, type, amount, date, note, name) {
             img.src = "data:image/svg+xml;charset=utf-8," + encodeURIComponent(svgString);
             
             img.onload = () => {
-                // วาดโลโก้ให้กว้าง 90px สูง 54px ตรงกลางใบเสร็จ
                 ctx.drawImage(img, (canvas.width / 2) - 45, 15, 90, 54);
                 resolve();
             };
@@ -968,20 +1030,16 @@ window.generateEReceipt = async function(txId, type, amount, date, note, name) {
         });
     };
 
-    // รอให้รูปโลโก้ 3D โหลดและวาดเสร็จก่อน
     await loadLogo();
 
-    // วาดชื่อระบบใต้โลโก้
     ctx.fillStyle = 'rgba(255, 255, 255, 0.9)'; 
     ctx.font = '600 16px Prompt, sans-serif'; 
     ctx.textAlign = 'center'; 
     ctx.fillText('SmartWelf 5.0', canvas.width / 2, 95);
 
-    // วาดหัวข้อใบเสร็จ
     ctx.fillStyle = '#ffffff'; ctx.font = 'bold 38px Prompt, sans-serif'; ctx.textAlign = 'center'; 
     ctx.fillText(isIncome ? 'ใบเสร็จรับเงิน' : 'ใบสำคัญจ่าย', canvas.width / 2, 145);
     
-    // วาดข้อมูลกล่องรายละเอียด
     ctx.textAlign = 'left'; ctx.fillStyle = '#475569'; ctx.font = '22px Prompt, sans-serif';
     const fundName = AdminState.fundSettings?.fundName || "กองทุนสวัสดิการชุมชน";
     
@@ -989,7 +1047,6 @@ window.generateEReceipt = async function(txId, type, amount, date, note, name) {
         if (w < 2 * r) r = w / 2; if (h < 2 * r) r = h / 2; this.beginPath(); this.moveTo(x + r, y); this.arcTo(x + w, y, x + w, y + h, r); this.arcTo(x + w, y + h, x, y + h, r); this.arcTo(x, y + h, x, y, r); this.arcTo(x, y, x + w, y, r); this.closePath(); return this;
     }
     
-    // เลื่อนกรอบรายละเอียดลงมาที่แกน Y: 210
     ctx.fillStyle = '#F8FAFC'; ctx.roundRect(40, 210, 520, 360, 20); ctx.fill(); ctx.strokeStyle = '#E2E8F0'; ctx.lineWidth = 2; ctx.stroke();
     ctx.fillStyle = '#334155'; ctx.font = 'bold 24px Prompt'; ctx.fillText('ข้อมูลการทำรายการ', 70, 260);
     ctx.font = '22px Prompt'; ctx.fillStyle = '#64748B'; ctx.beginPath(); ctx.moveTo(70, 280); ctx.lineTo(530, 280); ctx.stroke();
@@ -1003,31 +1060,74 @@ window.generateEReceipt = async function(txId, type, amount, date, note, name) {
     let shortNote = note; if(shortNote.length > 25) shortNote = shortNote.substring(0, 25) + '...';
     ctx.fillText(shortNote, 530, 530);
     
-    // วาดจำนวนเงินและ Footer
     ctx.textAlign = 'center'; ctx.fillStyle = '#94A3B8'; ctx.font = '20px Prompt'; ctx.fillText('จำนวนเงิน (Amount)', canvas.width / 2, 620);
     ctx.fillStyle = themeColor; ctx.font = 'bold 64px Prompt'; ctx.fillText('฿ ' + amount.toLocaleString('en-US', {minimumFractionDigits: 2}), canvas.width / 2, 690);
     ctx.fillStyle = '#CBD5E1'; ctx.font = '18px Prompt'; ctx.fillText('ออกโดย: ' + fundName, canvas.width / 2, 780); ctx.fillText('เอกสารนี้ออกโดยระบบอัตโนมัติ SmartWelf 5.0', canvas.width / 2, 810);
 
     const imgData = canvas.toDataURL('image/jpeg', 1.0); AppHelper.showLoader(false);
     
+    // 🌟 ส่วนที่ปรับปรุง: สร้าง UI ไอคอนแชร์และโหลดไว้ใต้รูปแทนปุ่มเดิม
     Swal.fire({ 
         title: 'ใบเสร็จรับเงิน (E-Slip)', 
         imageUrl: imgData, 
         imageWidth: '100%', 
         imageAlt: 'Receipt Image', 
+        html: `
+            <div class="d-flex justify-content-center gap-4 mt-2">
+                <!-- 💾 ปุ่มบันทึกลงเครื่อง -->
+                <div class="text-center cursor-pointer" id="btn-save-slip">
+                    <div class="d-flex justify-content-center align-items-center bg-primary text-white rounded-circle shadow-sm" style="width: 54px; height: 54px; font-size: 1.4rem; margin: 0 auto; transition: transform 0.2s;" onmousedown="this.style.transform='scale(0.9)'" onmouseup="this.style.transform='scale(1)'">
+                        <i class="fa-solid fa-download"></i>
+                    </div>
+                    <small class="text-muted fw-bold mt-2 d-block" style="font-size: 0.75rem;">บันทึก</small>
+                </div>
+                <!-- 📤 ปุ่มแชร์ไปแอปอื่น -->
+                <div class="text-center cursor-pointer" id="btn-share-slip">
+                    <div class="d-flex justify-content-center align-items-center text-white rounded-circle shadow-sm" style="width: 54px; height: 54px; font-size: 1.4rem; margin: 0 auto; background: linear-gradient(135deg, #00C300, #009900); transition: transform 0.2s;" onmousedown="this.style.transform='scale(0.9)'" onmouseup="this.style.transform='scale(1)'">
+                        <i class="fa-solid fa-share-nodes"></i>
+                    </div>
+                    <small class="text-muted fw-bold mt-2 d-block" style="font-size: 0.75rem;">แชร์</small>
+                </div>
+            </div>
+        `,
+        showConfirmButton: false, // ❌ ปิดปุ่มยืนยันเดิมทิ้งไป
         showCancelButton: true, 
-        confirmButtonText: '<i class="fa-solid fa-download"></i> บันทึกรูปลงเครื่อง', 
         cancelButtonText: 'ปิด', 
-        confirmButtonColor: '#2563EB', 
-        customClass: { image: 'rounded-4 shadow-sm border' } 
-    }).then((res) => { 
-        if(res.isConfirmed) { 
-            const link = document.createElement('a'); 
-            link.download = `SmartWelf_Slip_${txId}.jpg`; 
-            link.href = imgData; 
-            link.click(); 
-            Swal.fire({icon: 'success', title: 'บันทึกรูปภาพสำเร็จ!', showConfirmButton: false, timer: 1500}); 
-        } 
+        customClass: { image: 'rounded-4 shadow-sm border mb-2' },
+        didOpen: () => {
+            // ฟังก์ชัน: เมื่อกดปุ่มบันทึก
+            document.getElementById('btn-save-slip').onclick = () => {
+                const link = document.createElement('a'); 
+                link.download = `SmartWelf_Slip_${txId}.jpg`; 
+                link.href = imgData; 
+                link.click(); 
+                Swal.fire({icon: 'success', title: 'บันทึกรูปภาพสำเร็จ!', showConfirmButton: false, timer: 1500});
+            };
+
+            // ฟังก์ชัน: เมื่อกดปุ่มแชร์ (เรียกใช้ระบบ Native Share ของมือถือ/คอมพิวเตอร์)
+            document.getElementById('btn-share-slip').onclick = async () => {
+                try {
+                    // แปลง base64 ให้เป็นไฟล์ภาพ .jpg เพื่อส่งให้ระบบมือถือ
+                    const res = await fetch(imgData);
+                    const blob = await res.blob();
+                    const file = new File([blob], `SmartWelf_Slip_${txId}.jpg`, { type: 'image/jpeg' });
+                    
+                    if (navigator.canShare && navigator.canShare({ files: [file] })) {
+                        // ถ้าเครื่องรองรับการแชร์ไฟล์ภาพ จะเด้งหน้าต่างให้เลือกแอปทันที
+                        await navigator.share({
+                            title: 'ใบเสร็จรับเงิน SmartWelf',
+                            text: `ใบเสร็จเลขที่ ${txId} ยอดเงิน ${amount} บาท`,
+                            files: [file]
+                        });
+                    } else {
+                        // ถ้าแอปเบราว์เซอร์ไม่รองรับ (เช่น คอมเก่าบางรุ่น) ให้แจ้งเตือนแทน
+                        Swal.fire('ไม่รองรับการแชร์', 'เบราว์เซอร์นี้ไม่รองรับการแชร์ภาพโดยตรง โปรดใช้ปุ่มบันทึกลงเครื่องแทนครับ', 'warning');
+                    }
+                } catch (error) {
+                    console.log('User cancelled share or error occurred', error);
+                }
+            };
+        }
     });
 };
 /**
@@ -1275,3 +1375,26 @@ window.generatePaymentQR = function() {
         }
     });
 };
+
+// 🌟 ฟังก์ชันกระจกเงา: คอยก๊อปปี้ตัวเลขมาแสดงในการ์ด 5 มิติ (ไม่กวนระบบหลัก)
+window.syncLedgerSummaryCards = function() {
+    const copyValue = (sourceId, targetId) => {
+        const source = document.getElementById(sourceId);
+        const target = document.getElementById(targetId);
+        if (source && target) target.innerHTML = source.innerHTML; // ก๊อปปี้ทั้งฟอนต์และตัวเลขมาเลย
+    };
+
+    // 1. ยอดรวมกองทุน (สมมติว่า ID เดิมในหน้าภาพรวมชื่อ cap-total)
+    copyValue('cap-total', 'ledger-summary-total');
+    // 2. เงินในบัญชี
+    copyValue('liq-bank', 'ledger-summary-bank');
+    // 3. เงินสดในมือ
+    copyValue('liq-cash', 'ledger-summary-cash');
+    // 4. รายรับรวม (จากกล่องสรุปรายวันเดิมของคุณ)
+    copyValue('dailyTotalIn', 'ledger-summary-in');
+    // 5. รายจ่ายรวม (จากกล่องสรุปรายวันเดิมของคุณ)
+    copyValue('dailyTotalOut', 'ledger-summary-out');
+};
+
+// สั่งให้มันคอยเช็คและอัปเดตตัวเลขทุกๆ 1 วินาที (ทำงานอยู่เบื้องหลังเงียบๆ)
+setInterval(window.syncLedgerSummaryCards, 1000);
