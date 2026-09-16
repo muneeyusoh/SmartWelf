@@ -1,5 +1,5 @@
 // =========================================================
-// 🔐 admin/admin-auth.js: ระบบยืนยันตัวตนและการจัดการสิทธิ์ (Independent Login V3)
+// 🔐 admin/admin-auth.js: ระบบยืนยันตัวตนและการจัดการสิทธิ์ (Independent Login V3 + Hashed PIN)
 // =========================================================
 
 // 🌟 1. ประกาศตัวแปรส่วนกลางเพื่อป้องกัน Error
@@ -7,6 +7,16 @@ window.AdminState = window.AdminState || {
     currentAdmin: null,
     fundSettings: {},
     currentPin: ""
+};
+
+// ==========================================
+// 🔐 ฟังก์ชันเข้ารหัส PIN (SHA-256)
+// ==========================================
+window.hashPin = async function(pin) {
+    const msgBuffer = new TextEncoder().encode(pin.toString());
+    const hashBuffer = await crypto.subtle.digest('SHA-256', msgBuffer);
+    const hashArray = Array.from(new Uint8Array(hashBuffer));
+    return hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
 };
 
 document.addEventListener("DOMContentLoaded", async () => { 
@@ -105,7 +115,7 @@ async function handleAdminLogin() {
 // ==========================================
 // 🚀 ระบบลืมรหัสผ่านและเปลี่ยน PIN (ส่งเข้าอีเมล)
 // ==========================================
-async function requestPasswordReset() {
+window.requestPasswordReset = async function() {
     const { value: email } = await Swal.fire({
         title: 'ลืมรหัสผ่าน / PIN ?',
         text: 'กรุณากรอกอีเมลแอดมินที่ลงทะเบียนไว้ ระบบจะส่งลิงก์ตั้งรหัสผ่านใหม่ไปให้ (เมื่อเข้าสู่ระบบด้วยรหัสผ่านใหม่แล้ว คุณสามารถตั้ง PIN ใหม่ในเมนูความปลอดภัยได้เลยครับ)',
@@ -131,11 +141,14 @@ async function requestPasswordReset() {
             }
         } catch (error) {
             AppHelper.showLoader(false);
-            Swal.fire('ข้อผิดพลาด', 'ไม่สามารถส่งอีเมลได้: ' + error.message, 'error');
+            console.error("Password Reset Error:", error);
+            let errorMsg = 'ไม่สามารถส่งอีเมลได้';
+            if (error.code === 'auth/user-not-found') errorMsg = 'ไม่พบบัญชีผู้ใช้นี้ในระบบการยืนยันตัวตน';
+            else if (error.code === 'auth/invalid-email') errorMsg = 'รูปแบบอีเมลไม่ถูกต้อง';
+            Swal.fire('ข้อผิดพลาด', errorMsg, 'error');
         }
     }
-}
-
+};
 // ==========================================
 // 🚀 สลับโหมดและจัดการ PIN (อิงจาก LocalStorage)
 // ==========================================
@@ -191,8 +204,9 @@ async function verifyPinLogin() {
     Swal.fire({ title: 'กำลังตรวจสอบ PIN...', allowOutsideClick: false, didOpen: () => Swal.showLoading() });
     try {
         const adminDoc = await db.collection("admins").doc(savedEmail).get();
+        const hashedInputPin = await window.hashPin(AdminState.currentPin);
         
-        if(adminDoc.exists && adminDoc.data().pin === AdminState.currentPin && adminDoc.data().status === 'ใช้งาน') { 
+        if(adminDoc.exists && adminDoc.data().pin === hashedInputPin && adminDoc.data().status === 'ใช้งาน') { 
             Swal.fire({ icon: 'success', title: 'เข้าสู่ระบบสำเร็จ', showConfirmButton: false, timer: 1000 });
             setTimeout(() => { 
                 grantAccess(adminDoc.data(), adminDoc.id); 
@@ -220,7 +234,8 @@ async function changeAdminPin() {
     });
 
     if (!oldPin) return;
-    if (oldPin !== AdminState.currentAdmin.pin) {
+    const hashedOldPin = await window.hashPin(oldPin);
+    if (hashedOldPin !== AdminState.currentAdmin.pin) {
         return Swal.fire('ผิดพลาด', 'รหัส PIN เดิมไม่ถูกต้อง', 'error');
     }
 
@@ -235,8 +250,9 @@ async function changeAdminPin() {
     if (newPin && newPin.length === 6) {
         AppHelper.showLoader(true, "กำลังบันทึก PIN...");
         try {
-            await db.collection("admins").doc(AdminState.currentAdmin.id).update({ pin: newPin });
-            AdminState.currentAdmin.pin = newPin; 
+            const hashedNewPin = await window.hashPin(newPin);
+            await db.collection("admins").doc(AdminState.currentAdmin.id).update({ pin: hashedNewPin });
+            AdminState.currentAdmin.pin = hashedNewPin; 
             await createAuditLog("เปลี่ยนรหัส PIN", "อัปเดตรหัส PIN เพื่อเข้าใช้งานระบบสำเร็จ");
             AppHelper.showLoader(false);
             Swal.fire('สำเร็จ', 'อัปเดตรหัส PIN เรียบร้อยแล้ว', 'success');
@@ -285,7 +301,8 @@ window.manageAdminAccount = async function(targetAdminEmail, targetRole, targetC
         const adminRef = db.collection("admins").doc(targetAdminEmail);
         
         if (action === 'reset_pin') {
-            await adminRef.update({ pin: "000000" });
+            const hashedDefaultPin = await window.hashPin("000000");
+            await adminRef.update({ pin: hashedDefaultPin });
             await createAuditLog("รีเซ็ต PIN แอดมิน", `รีเซ็ต PIN ของ ${targetAdminEmail} เป็น 000000`);
             Swal.fire('สำเร็จ', 'รีเซ็ต PIN เป็น 000000 เรียบร้อยแล้ว', 'success');
             

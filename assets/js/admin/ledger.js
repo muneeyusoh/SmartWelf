@@ -153,37 +153,205 @@ window.confirmAmount = async function(memberId, currentStatus) {
 // =========================================================
 // 🌟 ส่วนที่ 3: ระบบส่งต่อเงิน / สแกนรับเงิน 
 // =========================================================
+// 🌟 1. แอดมินกด "ส่งยอด" (สร้าง QR ให้แอดมินระดับสูงกว่าสแกน)
 window.generateTransferAdminQR = async function() {
-    AppHelper.showLoader(true, "กำลังประมวลผล...");
+    AppHelper.showLoader(true, "กำลังรวบรวมยอด...");
     try {
-        const myEmail = AdminState.currentAdmin?.email || "";
-        const myRole = AdminState.currentAdmin?.role || "";
-        let searchStatus = myRole === 'Admin-ผู้ดูแล' ? "รอส่งศูนย์" : "รอส่งการเงิน";
+        const myEmail = AdminState.currentAdmin.email;
+        // หาบิลทั้งหมดที่ตัวเราถืออยู่
+        const snap = await db.collection("transactions")
+            .where("currentHolder", "==", myEmail)
+            .where("status", "in", ["รอส่งมอบ", "รอตรวจสอบ"])
+            .get();
 
-        const snap = await db.collection("transactions").where("currentHolder", "==", myEmail).where("status", "==", searchStatus).get();
+        if (snap.empty) {
+            AppHelper.showLoader(false);
+            return Swal.fire('ไม่มีเงินค้างส่ง', 'คุณไม่มีเงินสดที่ต้องส่งมอบในขณะนี้', 'info');
+        }
+
+        let totalAmt = 0;
+        let txIds = [];
+        snap.forEach(doc => {
+            totalAmt += parseFloat(doc.data().amount || 0);
+            txIds.push(doc.id);
+        });
+
         AppHelper.showLoader(false);
-
-        let totalHold = 0; let billsCount = snap.size;
-        snap.forEach(doc => { totalHold += parseFloat(doc.data().amount) || 0; });
-
-        if (totalHold <= 0) return Swal.fire({ icon: 'info', title: 'ไม่มียอดเงินค้าง', text: 'คุณไม่มียอดเงินสดที่รอส่งมอบในขณะนี้' });
-
-        const transferRefId = "TRF-" + Date.now().toString().slice(-8);
-        const qrPayload = JSON.stringify({ action: "admin_transfer_handover", sender: myEmail, senderName: AdminState.currentAdmin?.name || "Admin", senderRole: myRole, amount: totalHold, ref: transferRefId });
+        const qrPayload = JSON.stringify({
+            action: "admin_transfer",
+            senderEmail: myEmail,
+            senderName: AdminState.currentAdmin.name,
+            txIds: txIds,
+            totalAmount: totalAmt
+        });
+        
+        // 🌟 แก้ไขปัญหา QR Code อ่านภาษาไทยไม่ได้
+        const utf8Payload = unescape(encodeURIComponent(qrPayload));
 
         Swal.fire({
-            title: 'QR ส่งมอบเงินสด',
-            html: `<div class="text-center" style="font-family:'Prompt';"><p class="small text-muted mb-2">ยอดเงินสดที่ถืออยู่ (${billsCount} รายการ):</p><h2 class="fw-bold text-success mb-3">฿${totalHold.toLocaleString('en-US', { minimumFractionDigits: 2 })}</h2><div id="transferAdminQrBox" class="d-flex justify-content-center p-3 bg-white rounded-4 shadow-sm mx-auto mb-3" style="width: 200px; height: 200px;"></div><p class="small text-muted mb-0">${myRole === 'Admin-ผู้ดูแล' ? 'ให้ <b>Admin-ศูนย์</b> สแกนรับยอด' : 'ให้ <b>Admin-การเงิน</b> สแกนรับยอด'}</p></div>`,
-            didOpen: () => { new QRCode(document.getElementById("transferAdminQrBox"), { text: qrPayload, width: 170, height: 170 }); },
-            showConfirmButton: true, confirmButtonText: 'ปิดหน้าต่าง'
+            title: 'QR นำส่งเงินสด',
+            html: `
+                <div class="text-center" style="font-family:'Prompt';">
+                    <p class="text-muted small mb-1">ยอดรวมที่ต้องส่งมอบ (${txIds.length} รายการ)</p>
+                    <h2 class="text-primary fw-bold mb-3">฿${totalAmt.toLocaleString('en-US', {minimumFractionDigits: 2})}</h2>
+                    <div id="adminTransferQrBox" class="d-flex justify-content-center align-items-center p-3 bg-white rounded-4 shadow-sm mx-auto mb-3 border" style="width: 220px; height: 220px;"></div>
+                    <p class="small text-danger"><i class="fa-solid fa-triangle-exclamation"></i> ให้แอดมินระดับสูงกว่า (ศูนย์ฯ หรือ การเงิน) สแกนเพื่อรับเงินสด</p>
+                </div>
+            `,
+            didOpen: () => {
+                setTimeout(() => {
+                    const qrBox = document.getElementById("adminTransferQrBox");
+                    if(qrBox) {
+                        qrBox.innerHTML = "";
+                        new QRCode(qrBox, { text: utf8Payload, width: 180, height: 180, colorDark : "#0F172A", colorLight : "#ffffff" });
+                    }
+                }, 300);
+            }
         });
-    } catch (e) { AppHelper.showLoader(false); console.error(e); Swal.fire('Error', e.message, 'error'); }
+    } catch(e) {
+        AppHelper.showLoader(false);
+        Swal.fire('Error', 'ไม่สามารถสร้าง QR ได้', 'error');
+    }
 };
 
-window.scanToReceiveAdminFunds = function() {
-    if (typeof liff !== 'undefined' && liff.isLoggedIn()) {
-        liff.scanCodeV2().then(res => { if (res && res.value) { window.handleScannedAdminQR(res.value); } }).catch(err => { window.promptManualCodeInput(); });
-    } else { window.promptManualCodeInput(); }
+// 🌟 2. แอดมินระดับสูงกว่ากด "สแกนรับ"
+window.scanToReceiveAdminFunds = async function() {
+    if (!liff.isLoggedIn()) return Swal.fire('แจ้งเตือน', 'กรุณาใช้งานผ่านแอป LINE บนมือถือ', 'warning');
+    try {
+        const result = await liff.scanCodeV2();
+        if (result.value) {
+            let qrData;
+            try { qrData = JSON.parse(decodeURIComponent(escape(result.value))); } 
+            catch(e) { qrData = JSON.parse(result.value); }
+
+            if (qrData.action === "admin_transfer") {
+                const myRole = AdminState.currentAdmin.role;
+                const myEmail = AdminState.currentAdmin.email;
+                
+                // ป้องกันสแกน QR ของตัวเอง
+                if (qrData.senderEmail === myEmail) {
+                    return Swal.fire('ผิดพลาด', 'คุณไม่สามารถสแกนรับเงินจากตัวเองได้', 'error');
+                }
+
+                Swal.fire({
+                    title: 'ยืนยันรับมอบเงินสด',
+                    html: `<div class="text-start" style="font-family:'Prompt';">
+                        <p class="mb-1 text-muted small">รับเงินจาก:</p>
+                        <h6 class="fw-bold text-dark"><i class="fa-solid fa-user-tie text-warning me-1"></i> ${qrData.senderName}</h6>
+                        <hr>
+                        <p class="mb-1 text-muted small">จำนวนเงินที่ได้รับ:</p>
+                        <h2 class="fw-bold text-success text-center mb-1">฿${qrData.totalAmount.toLocaleString('en-US', {minimumFractionDigits: 2})}</h2>
+                    </div>`,
+                    showCancelButton: true, confirmButtonText: 'ยืนยันได้รับเงินแล้ว', cancelButtonText: 'ยกเลิก', confirmButtonColor: '#10B981'
+                }).then(async (res) => {
+                    if (res.isConfirmed) {
+                        AppHelper.showLoader(true, "กำลังอัปเดตระบบการเงิน...");
+                        try {
+                            const routeData = getNextFinancialStatusAndHolder(myRole, myEmail);
+                            const batch = db.batch();
+                            
+                            // 🌟 ส่งต่อสถานะและผู้ถือเงิน (ไม่หักยอดสมาชิกแล้ว เพราะหักไปแล้วในด่านแรก)
+                            qrData.txIds.forEach(txId => {
+                                batch.update(db.collection("transactions").doc(txId), {
+                                    currentHolder: routeData.holder,
+                                    status: routeData.status,
+                                    lastUpdated: firebase.firestore.FieldValue.serverTimestamp()
+                                });
+                            });
+
+                            // ถ้าคนที่สแกนรับเป็นการเงิน ให้ลงบัญชีรายรับของกองทุนทันที
+                            if (routeData.status === 'เข้าคลังแล้ว') {
+                                 const vaultTxId = "VAULT" + Date.now().toString().slice(-8);
+                                 batch.set(db.collection("transactions").doc(vaultTxId), {
+                                     txId: vaultTxId,
+                                     type: "รับเงินสมทบ (ส่วนกลาง)",
+                                     amount: qrData.totalAmount,
+                                     paymentMethod: "เงินสด",
+                                     transactionDate: new Date().toISOString().split('T')[0],
+                                     fullName: "แอดมิน: " + AdminState.currentAdmin.name,
+                                     status: "อนุมัติแล้ว",
+                                     currentHolder: "CENTRAL_BANK",
+                                     note: `รับมอบเงินสดจาก ${qrData.senderName}`,
+                                     uid: "SYSTEM_TRANSFER",
+                                     timestamp: firebase.firestore.FieldValue.serverTimestamp()
+                                 });
+                            }
+
+                            await batch.commit();
+                            AppHelper.showLoader(false);
+                            Swal.fire('รับเงินสำเร็จ', routeData.status === 'เข้าคลังแล้ว' ? 'เงินสดเข้าคลังกองทุนเรียบร้อยแล้ว' : 'เงินสดถูกส่งมอบมาอยู่กับคุณแล้ว', 'success');
+                            if(typeof loadDashboardOverview === 'function') loadDashboardOverview();
+                        } catch (e) {
+                            AppHelper.showLoader(false);
+                            Swal.fire('Error', 'ไม่สามารถบันทึกข้อมูลได้', 'error');
+                        }
+                    }
+                });
+            } else {
+                Swal.fire('ผิดพลาด', 'QR Code ไม่ใช่รหัสสำหรับส่งมอบเงินแอดมิน', 'error');
+            }
+        }
+    } catch (err) {}
+};
+
+// 🌟 3. ปุ่ม "ยืนยันยอดเข้าคลัง" (กรณีส่งยอดกันแบบไม่เจอตัว และแอดมินการเงินกดยืนยันในหน้าจอตัวเอง)
+window.approveFundsToCentralBank = async function() {
+    Swal.fire({
+        title: 'ยืนยันนำเงินเข้าคลัง',
+        text: 'นำเงินสดที่อยู่กับคุณทั้งหมด เข้าสู่ระบบบัญชีส่วนกลาง',
+        icon: 'question', showCancelButton: true, confirmButtonText: 'ยืนยันเข้าคลัง', confirmButtonColor: '#10B981'
+    }).then(async (res) => {
+        if (res.isConfirmed) {
+            AppHelper.showLoader(true, "กำลังโอนยอด...");
+            try {
+                const snap = await db.collection("transactions")
+                    .where("currentHolder", "==", AdminState.currentAdmin.email)
+                    .where("status", "==", "รอตรวจสอบ")
+                    .get();
+                    
+                if (snap.empty) {
+                    AppHelper.showLoader(false);
+                    return Swal.fire('ไม่มีรายการ', 'ไม่มีเงินสดที่รอเข้าคลังในระบบ', 'info');
+                }
+
+                let totalAmt = 0;
+                const batch = db.batch();
+                snap.forEach(doc => {
+                    totalAmt += parseFloat(doc.data().amount || 0);
+                    // ตัดจบรายการนี้ ส่งเข้า CENTRAL BANK
+                    batch.update(doc.ref, {
+                        status: "อนุมัติแล้ว",
+                        currentHolder: "CENTRAL_BANK",
+                        lastUpdated: firebase.firestore.FieldValue.serverTimestamp()
+                    });
+                });
+
+                // สร้างบิลสรุปรายรับรวมให้ส่วนกลาง
+                const vaultTxId = "VAULT" + Date.now().toString().slice(-8);
+                batch.set(db.collection("transactions").doc(vaultTxId), {
+                     txId: vaultTxId,
+                     type: "รับเงินสมทบ (ส่วนกลาง)",
+                     amount: totalAmt,
+                     paymentMethod: "เงินสด",
+                     transactionDate: new Date().toISOString().split('T')[0],
+                     fullName: "แอดมิน: " + AdminState.currentAdmin.name,
+                     status: "อนุมัติแล้ว",
+                     currentHolder: "CENTRAL_BANK",
+                     note: `ยอดนำส่งเข้าคลัง (รวม ${snap.size} รายการ)`,
+                     uid: "SYSTEM_TRANSFER",
+                     timestamp: firebase.firestore.FieldValue.serverTimestamp()
+                });
+
+                await batch.commit();
+                AppHelper.showLoader(false);
+                Swal.fire('เรียบร้อย', 'โอนเงินสดเข้าคลังกลางสำเร็จ', 'success');
+                if(typeof loadDashboardOverview === 'function') loadDashboardOverview();
+            } catch(e) {
+                AppHelper.showLoader(false);
+                Swal.fire('Error', 'ไม่สามารถโอนเข้าคลังได้', 'error');
+            }
+        }
+    });
 };
 
 window.promptManualCodeInput = function() {
@@ -284,7 +452,7 @@ let selectedLedgerDate = getLocalDateString(new Date());
 
 window.loadTransactions = async function() {
     try {
-        const snap = await db.collection("transactions").orderBy("timestamp", "desc").limit(300).get();
+        const snap = await db.collection("transactions").orderBy("timestamp", "desc").limit(1500).get();
         ledgerTxCache = [];
         snap.forEach(doc => { ledgerTxCache.push({ id: doc.id, ...doc.data() }); });
         
@@ -311,6 +479,10 @@ window.getRealtimeBalances = async function() {
     return { bankBal, cashBal };
 };
 
+// ============================================================================
+// 📊 ส่วนที่ 5: สมุดบัญชีรายวันแบบปฏิทิน (Daily Calendar Ledger)
+// ============================================================================
+
 window.generateCalendarStrip = function() {
     const container = document.getElementById('calendarStrip');
     if(!container) return;
@@ -319,6 +491,24 @@ window.generateCalendarStrip = function() {
     const daysThai = ['อา.', 'จ.', 'อ.', 'พ.', 'พฤ.', 'ศ.', 'ส.'];
     const today = new Date();
     
+    // 🌟 1. คำนวณวันที่ 1 ตุลาคม ของปีงบประมาณปัจจุบัน
+    let startFiscalYear = today.getFullYear();
+    // ถ้าเดือนปัจจุบันน้อยกว่า ต.ค. (เดือน 0-8 คือ ม.ค.-ก.ย.) แปลว่ายังเป็นปีงบของปีที่แล้ว
+    if (today.getMonth() < 9) startFiscalYear -= 1; 
+    const minFiscalDate = `${startFiscalYear}-10-01`;
+    const maxDate = getLocalDateString(today);
+
+    // 🌟 2. สร้างปุ่มปฏิทิน (Date Picker) ไว้ซ้ายสุด
+    html += `
+    <div class="calendar-date-item bg-light border border-primary border-opacity-25 shadow-sm" id="customDateBtn" style="min-width: 65px; position: relative; overflow: hidden; cursor: pointer;">
+        <span class="day-name text-primary"><i class="fa-solid fa-calendar-days"></i></span>
+        <span class="date-num text-primary" style="font-size: 0.75rem; margin-top: 5px;">ระบุวัน</span>
+        <!-- ซ่อน input date ไว้ข้างหลังปุ่ม -->
+        <input type="date" id="customLedgerDate" class="position-absolute top-0 start-0 w-100 h-100 opacity-0 cursor-pointer" 
+               onchange="handleCustomDateSelect(this.value)" min="${minFiscalDate}" max="${maxDate}">
+    </div>`;
+    
+    // 🌟 3. วนลูปสร้างปุ่มวันย้อนหลัง (เอาแค่ 14 วัน เพื่อความสวยงาม ส่วนวันเก่าๆ ให้กดปฏิทินเอา)
     for(let i = -1; i <= 14; i++) {
         const d = new Date(today);
         d.setDate(d.getDate() - i);
@@ -340,8 +530,60 @@ window.generateCalendarStrip = function() {
 window.selectLedgerDate = function(dateStr) {
     selectedLedgerDate = dateStr;
     document.querySelectorAll('.calendar-date-item').forEach(el => el.classList.remove('active-date'));
+    
+    // 🌟 คืนค่าสีของปุ่มปฏิทินให้กลับเป็นสถานะปกติ
+    const pickerBtn = document.getElementById('customDateBtn');
+    if (pickerBtn) {
+        pickerBtn.classList.remove('bg-primary', 'text-white');
+        pickerBtn.classList.add('bg-light');
+        pickerBtn.querySelector('.day-name').classList.replace('text-white', 'text-primary');
+        pickerBtn.querySelector('.date-num').classList.replace('text-white', 'text-primary');
+        pickerBtn.querySelector('.date-num').innerText = 'ระบุวัน';
+    }
+
     const selectedEl = document.getElementById(`cal-date-${dateStr}`);
     if(selectedEl) selectedEl.classList.add('active-date');
+    window.filterTransactionsByDate();
+};
+
+// 🌟 4. ฟังก์ชันใหม่: จัดการเมื่อแอดมินเลือกวันที่จากปุ่มปฏิทิน
+window.handleCustomDateSelect = function(dateValue) {
+    if (!dateValue) return;
+    selectedLedgerDate = dateValue;
+    
+    // ล้างไฮไลต์แถบวันที่ปกติออกทั้งหมด
+    document.querySelectorAll('.calendar-date-item').forEach(el => el.classList.remove('active-date'));
+    
+    const pickerBtn = document.getElementById('customDateBtn');
+    const selectedEl = document.getElementById(`cal-date-${dateValue}`);
+    
+    if(selectedEl) {
+        // ถ้าวันที่เลือก อยู่ในแถบ 14 วัน ให้ไปไฮไลต์ที่ปุ่มนั้น
+        selectedEl.classList.add('active-date');
+        selectedEl.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'center' });
+        
+        // รีเซ็ตปุ่มปฏิทิน
+        if (pickerBtn) {
+            pickerBtn.classList.remove('bg-primary', 'text-white');
+            pickerBtn.classList.add('bg-light');
+            pickerBtn.querySelector('.day-name').classList.replace('text-white', 'text-primary');
+            pickerBtn.querySelector('.date-num').classList.replace('text-white', 'text-primary');
+            pickerBtn.querySelector('.date-num').innerText = 'ระบุวัน';
+        }
+    } else {
+        // ถ้าวันที่เลือก ย้อนหลังไปไกลกว่า 14 วัน ให้ไฮไลต์ที่ปุ่มปฏิทิน
+        if (pickerBtn) {
+            pickerBtn.classList.add('active-date', 'bg-primary');
+            pickerBtn.classList.remove('bg-light');
+            pickerBtn.querySelector('.day-name').classList.replace('text-primary', 'text-white');
+            pickerBtn.querySelector('.date-num').classList.replace('text-primary', 'text-white');
+            
+            // เปลี่ยนข้อความเป็นวันที่เลือกสั้นๆ (เช่น 15/10)
+            const parts = dateValue.split('-'); 
+            pickerBtn.querySelector('.date-num').innerText = `${parts[2]}/${parts[1]}`;
+        }
+    }
+    
     window.filterTransactionsByDate();
 };
 

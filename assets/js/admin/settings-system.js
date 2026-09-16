@@ -236,12 +236,32 @@ window.openAddAdminModal = async function() {
             </div>
         `,
         showCancelButton: true, confirmButtonText: '<i class="fa-solid fa-save me-1"></i> ยืนยัน', cancelButtonText: 'ยกเลิก', confirmButtonColor: '#2563EB',
-        preConfirm: () => {
-            const email = document.getElementById('newAdminEmail').value.trim(); const name = document.getElementById('newAdminName').value.trim();
-            const uid = document.getElementById('newAdminUid').value.trim(); const role = document.getElementById('newAdminRole').value; 
-            const center = document.getElementById('newAdminCenter').value; const pin = document.getElementById('newAdminPin').value.trim();
-            if (!email || pin.length !== 6 || isNaN(pin)) { Swal.showValidationMessage('กรุณาระบุอีเมล และ PIN ต้องเป็นตัวเลข 6 หลัก'); return false; }
-            return { email, name, role, center, pin, uid, status: 'ใช้งาน', createdBy: AdminState.currentAdmin.email };
+        preConfirm: async () => {
+            const email = document.getElementById('newAdminEmail').value.trim(); 
+            const name = document.getElementById('newAdminName').value.trim();
+            const uid = document.getElementById('newAdminUid').value.trim(); 
+            const role = document.getElementById('newAdminRole').value; 
+            const center = document.getElementById('newAdminCenter').value; 
+            const pin = document.getElementById('newAdminPin').value.trim();
+            
+            if (!email || pin.length !== 6 || isNaN(pin)) { 
+                Swal.showValidationMessage('กรุณาระบุอีเมล และ PIN ต้องเป็นตัวเลข 6 หลัก'); 
+                return false; 
+            }
+
+            // 🌟 เข้ารหัส PIN เป็น SHA-256 ก่อนส่งไปบันทึกลง Firestore
+            const hashedPin = await window.hashPin(pin);
+            
+            return { 
+                email, 
+                name, 
+                role, 
+                center, 
+                pin: hashedPin, 
+                uid, 
+                status: 'ใช้งาน', 
+                createdBy: AdminState.currentAdmin.email 
+            };
         }
     }).then(async res => {
         if (res.isConfirmed) {

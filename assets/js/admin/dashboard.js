@@ -142,7 +142,7 @@ function updateDashboardChart(chartData) {
 }
 
 // =========================================================
-// 📈 ฟังก์ชันสร้าง Mixed Chart สมัยใหม่ (Bar + Line)
+// 📈 ฟังก์ชันสร้าง Mixed Chart (Stacked Bar + Line)
 // =========================================================
 async function renderTrendChart() {
     const filterSelect = document.getElementById('trendFilter'); 
@@ -157,7 +157,7 @@ async function renderTrendChart() {
         const now = new Date();
         let startFiscalYear = now.getFullYear();
         if (now.getMonth() < 9) startFiscalYear -= 1; 
-        const fiscalStartDate = new Date(startFiscalYear, 9, 1);
+        const fiscalStartDate = new Date(startFiscalYear, 9, 1); // 1 ต.ค.
 
         snap.forEach(doc => {
             const d = doc.data();
@@ -169,115 +169,121 @@ async function renderTrendChart() {
             if (!isTransfer) rawData.push({ type: d.type, amount: amt, dateObj: txDate, note: d.note || "" });
         });
 
-        let startDate = new Date('2000-01-01');
-        if (filter === '1month') startDate = new Date(now.getFullYear(), now.getMonth(), 1); 
-        else if (filter === '3months') startDate = new Date(now.getFullYear(), now.getMonth() - 2, 1);
+// 📌 คำนวณวันที่ย้อนหลังตามตัวกรอง
+        let startDate = new Date('2000-01-01'); // <--- ค่าเริ่มต้นสำหรับแสดง "ทั้งหมด"
+        if (filter === '1month') startDate = new Date(now.getFullYear(), now.getMonth() - 1, 1); 
+        else if (filter === '3months') startDate = new Date(now.getFullYear(), now.getMonth() - 3, 1);
         else if (filter === '6months') startDate = new Date(now.getFullYear(), now.getMonth() - 5, 1);
         else if (filter === 'thisYear' || filter === 'quarter') startDate = new Date(now.getFullYear(), 0, 1);
         else if (filter === 'fiscal') startDate = fiscalStartDate;
+        else if (filter === 'all') startDate = new Date('2000-01-01'); // 🌟 ระบบจะดึงข้อมูลทั้งหมด
 
         let filteredData = rawData.filter(d => d.dateObj >= startDate);
         let grouped = {};
         const monthNames = ["ม.ค.", "ก.พ.", "มี.ค.", "เม.ย.", "พ.ค.", "มิ.ย.", "ก.ค.", "ส.ค.", "ก.ย.", "ต.ค.", "พ.ย.", "ธ.ค."];
 
+        // 📌 จัดกลุ่มรายเดือน และแยกประเภทรายรับทั้ง 8 หมวด
         filteredData.forEach(d => {
             let dObj = d.dateObj; let thYear = dObj.getFullYear() + 543; let thMonth = dObj.getMonth();
             let sortKey = `${dObj.getFullYear()}-${String(thMonth+1).padStart(2,'0')}`;
             let displayKey = `${monthNames[thMonth]} ${thYear.toString().slice(-2)}`;
-            if (!grouped[sortKey]) grouped[sortKey] = { label: displayKey, member: 0, codi: 0, local: 0, privateStore: 0, donate: 0, interest: 0, profit: 0, other: 0, expense: 0 };
+            
+            if (!grouped[sortKey]) {
+                grouped[sortKey] = { label: displayKey, member: 0, codi: 0, local: 0, privateStore: 0, donate: 0, interest: 0, profit: 0, other: 0, expense: 0 };
+            }
             
             let isIncome = d.type.includes('รับ') || d.type.includes('สมทบ');
             if (isIncome) {
                 let noteStr = d.note.toLowerCase();
                 if(d.type === 'สมทบเงินกองทุน' || noteStr.includes('สมาชิก')) grouped[sortKey].member += d.amount;
                 else if(noteStr.includes('พอช.')) grouped[sortKey].codi += d.amount;
+                else if(noteStr.includes('ท้องถิ่น')) grouped[sortKey].local += d.amount;
+                else if(noteStr.includes('เอกชน') || noteStr.includes('ร้านค้า')) grouped[sortKey].privateStore += d.amount;
+                else if(noteStr.includes('บริจาค')) grouped[sortKey].donate += d.amount;
+                else if(noteStr.includes('ดอกเบี้ย')) grouped[sortKey].interest += d.amount;
+                else if(noteStr.includes('กำไร')) grouped[sortKey].profit += d.amount;
                 else grouped[sortKey].other += d.amount;
-            } else { grouped[sortKey].expense += d.amount; }
+            } else { 
+                grouped[sortKey].expense += d.amount; 
+            }
         });
 
         const sortedKeys = Object.keys(grouped).sort();
         const labels = sortedKeys.map(k => grouped[k].label);
-        const dMember = sortedKeys.map(k => grouped[k].member);
-        const dExpense = sortedKeys.map(k => grouped[k].expense);
-
+        
         if (!window.charts) window.charts = {}; 
         if (charts.trendChartObj) charts.trendChartObj.destroy();
         
-        // 🌟 สร้าง Gradient (แรเงา) ใต้กราฟเส้นให้ดูหรูหรา
         const ctx2d = ctx.getContext('2d');
         let gradientFill = ctx2d.createLinearGradient(0, 0, 0, 250);
-        gradientFill.addColorStop(0, 'rgba(37, 99, 235, 0.2)'); // สีน้ำเงินใสๆ ด้านบน
-        gradientFill.addColorStop(1, 'rgba(37, 99, 235, 0)');   // จางหายไปด้านล่าง
+        gradientFill.addColorStop(0, 'rgba(239, 68, 68, 0.2)'); // สีแดงใสๆ สำหรับรายจ่าย
+        gradientFill.addColorStop(1, 'rgba(239, 68, 68, 0)');
 
-        // 🌟 ตั้งค่ากราฟผสม (Mixed Chart)
+        // 🌟 ตั้งค่ากราฟผสม (Mixed Chart + Stacked Bar)
         charts.trendChartObj = new Chart(ctx2d, {
-            type: 'bar', // Base Type
+            type: 'bar',
             data: {
                 labels: labels,
                 datasets: [
                     { 
-                        type: 'line', // 📈 กราฟเส้น (รายจ่าย)
+                        type: 'line', 
                         label: 'รายจ่ายรวม', 
-                        data: dExpense, 
-                        borderColor: '#2563EB', // สีน้ำเงินสว่าง
+                        data: sortedKeys.map(k => grouped[k].expense), 
+                        borderColor: '#EF4444', 
                         backgroundColor: gradientFill, 
-                        borderWidth: 3, 
-                        tension: 0.4, // ทำให้เส้นโค้งสมูท
-                        fill: true, // เปิดการเติมสีใต้กราฟ
-                        pointBackgroundColor: '#ffffff',
-                        pointBorderColor: '#2563EB',
-                        pointBorderWidth: 2,
-                        pointRadius: 4,
-                        pointHoverRadius: 6,
-                        order: 1 // ลอยอยู่ด้านบนสุด
+                        borderWidth: 3, tension: 0.4, fill: true,
+                        pointBackgroundColor: '#ffffff', pointBorderColor: '#EF4444',
+                        pointBorderWidth: 2, pointRadius: 4, pointHoverRadius: 6,
+                        order: 1
                     },
-                    { 
-                        type: 'bar', // 📊 กราฟแท่ง (รายรับ)
-                        label: 'รับจากสมาชิก', 
-                        data: dMember, 
-                        backgroundColor: '#10B981', // สีเขียวสไตล์ Fintech
-                        hoverBackgroundColor: '#059669',
-                        borderRadius: 8, // 🌟 ทำขอบแท่งให้โค้งมน
-                        barPercentage: 0.45, // ปรับความเพรียวของแท่งให้เหมาะกับมือถือ
-                        categoryPercentage: 0.8,
-                        order: 2 // อยู่ด้านหลังเส้น
-                    }
+                    // กราฟแท่งรายรับซ้อนกัน (Stacked Bar) แบ่งตามโครงสร้างทุน
+                    { type: 'bar', label: 'สมาชิก', data: sortedKeys.map(k => grouped[k].member), backgroundColor: '#2563EB', stack: 'Income', order: 2 },
+                    { type: 'bar', label: 'พอช.', data: sortedKeys.map(k => grouped[k].codi), backgroundColor: '#10B981', stack: 'Income', order: 2 },
+                    { type: 'bar', label: 'ท้องถิ่น', data: sortedKeys.map(k => grouped[k].local), backgroundColor: '#F59E0B', stack: 'Income', order: 2 },
+                    { type: 'bar', label: 'เอกชน', data: sortedKeys.map(k => grouped[k].privateStore), backgroundColor: '#8B5CF6', stack: 'Income', order: 2 },
+                    { type: 'bar', label: 'บริจาค', data: sortedKeys.map(k => grouped[k].donate), backgroundColor: '#EC4899', stack: 'Income', order: 2 },
+                    { type: 'bar', label: 'ดอกเบี้ย', data: sortedKeys.map(k => grouped[k].interest), backgroundColor: '#06B6D4', stack: 'Income', order: 2 },
+                    { type: 'bar', label: 'กำไร/ร้านค้า', data: sortedKeys.map(k => grouped[k].profit), backgroundColor: '#14B8A6', stack: 'Income', order: 2 },
+                    { type: 'bar', label: 'อื่นๆ', data: sortedKeys.map(k => grouped[k].other), backgroundColor: '#94A3B8', stack: 'Income', order: 2 }
                 ]
             },
             options: { 
                 responsive: true, 
                 maintainAspectRatio: false, 
-                interaction: { 
-                    mode: 'index', 
-                    intersect: false 
-                }, 
-                // 🌟 แอนิเมชันวิ่งแบบสมูท (EaseOutQuart)
-                animation: {
-                    duration: 1500, // วิ่ง 1.5 วินาที
-                    easing: 'easeOutQuart'
-                },
+                interaction: { mode: 'index', intersect: false }, 
+                animation: { duration: 1500, easing: 'easeOutQuart' },
                 plugins: { 
                     legend: { 
                         position: 'top', 
-                        labels: { usePointStyle: true, boxWidth: 8, font: { family: "'Prompt'" } } 
+                        labels: { usePointStyle: true, boxWidth: 8, font: { family: "'Prompt'", size: 10 } } 
                     },
-                    tooltip: { // ป๊อปอัปเวลากดที่กราฟ
-                        backgroundColor: 'rgba(15, 23, 42, 0.9)', // สีพื้นหลังเข้ม
+                    tooltip: { 
+                        backgroundColor: 'rgba(15, 23, 42, 0.9)', 
                         titleFont: { family: "'Prompt'", size: 13 },
                         bodyFont: { family: "'Prompt'", size: 12 },
-                        padding: 12,
-                        cornerRadius: 12,
-                        displayColors: true
+                        padding: 12, cornerRadius: 12, displayColors: true,
+                        callbacks: {
+                            // แสดงผลรวมรายรับทั้งหมดบน Tooltip ด้วย
+                            footer: (tooltipItems) => {
+                                let totalIncome = 0;
+                                tooltipItems.forEach(item => {
+                                    if(item.dataset.stack === 'Income') totalIncome += item.parsed.y;
+                                });
+                                return 'รายรับสุทธิ: ฿' + totalIncome.toLocaleString('en-US', {minimumFractionDigits: 2});
+                            }
+                        }
                     }
                 }, 
                 scales: { 
                     y: { 
+                        stacked: true, // 📌 เปิดให้กราฟแท่งซ้อนกัน
                         beginAtZero: true, 
-                        grid: { borderDash: [4, 4], color: '#E2E8F0', drawBorder: false }, // เส้นกริดแนวนอนแบบประ
-                        ticks: { font: { family: "'Prompt'", size: 10 }, color: '#64748B', maxTicksLimit: 6 } // จำกัดจำนวนเลขแกน Y สำหรับจอเล็ก
+                        grid: { borderDash: [4, 4], color: '#E2E8F0', drawBorder: false }, 
+                        ticks: { font: { family: "'Prompt'", size: 10 }, color: '#64748B', maxTicksLimit: 6 } 
                     }, 
                     x: { 
-                        grid: { display: false, drawBorder: false }, // ซ่อนกริดแนวตั้งเพื่อให้ดูสะอาดตา
+                        stacked: true, // 📌 เปิดให้กราฟแท่งซ้อนกัน
+                        grid: { display: false, drawBorder: false }, 
                         ticks: { font: { family: "'Prompt'", size: 11 }, color: '#64748B' } 
                     } 
                 } 
