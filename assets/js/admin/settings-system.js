@@ -203,7 +203,7 @@ window.openAddAdminModal = async function() {
     let roleOpts = ''; let centerOpts = '';
     
     if (myRole === 'Admin-Master') {
-        roleOpts = `<option value="Admin-ผู้ดูแล">Admin-ผู้ดูแล</option><option value="Admin-ศูนย์ประสานงาน">Admin-ศูนย์ประสานงาน</option><option value="Admin-การเงิน">Admin-การเงิน</option><option value="Admin-สวัสดิการ">Admin-สวัสดิการ</option><option value="Admin-Master">Admin-Master</option>`;
+        roleOpts = `<option value="Admin-ผู้ดูแล">Admin-ผู้ดูแล</option><option value="Admin-ศูนย์ประสานงาน">Admin-ศูนย์ประสานงาน</option><option value="Admin-การเงิน">Admin-การเงิน</option><option value="Admin-สวัสดิการ">Admin-สวัสดิการ</option><option value="Admin-ตรวจสอบ">Admin-ตรวจสอบ</option><option value="Viewer-ภาคีเครือข่าย">Viewer-ภาคีเครือข่าย</option><option value="Admin-Master">Admin-Master</option>`;
         centerOpts = '<option value="">ไม่มีศูนย์ / ส่วนกลาง</option>';
         const centersList = AdminState.uiOptions?.centers || AdminState.fundSettings?.centers || [];
         centersList.forEach(c => { const selected = c === targetMember.center ? 'selected' : ''; centerOpts += `<option value="${c}" ${selected}>${c}</option>`; });

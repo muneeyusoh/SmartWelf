@@ -1,7 +1,13 @@
 // =========================================================
-// 📊 dashboard.js: ภาพรวมการเงินและแดชบอร์ด (Modular Updated)
+// 📊 dashboard.js: ภาพรวมการเงินและแดชบอร์ด (Custom Text Matching)
 // =========================================================
 let dashboardListeners = [];
+
+// 🌟 Helper: ตัวคัดกรองหมวดหมู่รายจ่าย (คงไว้เพื่อแยกสวัสดิการออกจากค่าบริหาร)
+function getExpenseCategory(type, note) {
+    if (type === 'จ่ายสวัสดิการ' || note === 'จ่ายสวัสดิการ (เก็บตก)') return 'สวัสดิการชุมชน';
+    return 'ค่าบริหารจัดการ';
+}
 
 async function loadDashboardOverview() {
     if(!AdminState.currentAdmin) return;
@@ -11,15 +17,17 @@ async function loadDashboardOverview() {
         return; 
     }
 
-    AppHelper.showLoader(true, "กำลังเชื่อมต่อระบบกระแสเงินสด...");
+    AppHelper.showLoader(true, "กำลังประมวลผลข้อมูลการเงิน...");
 
     try {
         dashboardListeners.forEach(unsubscribe => unsubscribe());
         dashboardListeners = [];
 
         let mCount = 0, pCount = 0, sumIn = 0, sumOut = 0, bankBal = 0, cashBal = 0, totalDebt = 0;
-        let chartData = { member: 0, codi: 0, local: 0, privateStore: 0, donate: 0, interest: 0, profit: 0, other: 0 };
         let pendingTxCount = 0, pendingClaimCount = 0, holderBalances = {};
+        
+        // โครงสร้างข้อมูล 8 หมวดหมู่ตามที่คุณต้องการ
+        let chartData = { member: 0, codi: 0, local: 0, privateStore: 0, donate: 0, interest: 0, profit: 0, other: 0 };
         
         const mSnap = await db.collection("members").get(); 
         mCount = mSnap.size;
@@ -34,6 +42,15 @@ async function loadDashboardOverview() {
         const cSnap = await db.collection("claims").where("status", "==", "รอตรวจสอบ").get();
         pendingClaimCount = cSnap.size;
         pCount += pendingClaimCount;
+
+        db.collection("settings").doc("master").get().then(sysSnap => {
+            if(sysSnap.exists) {
+                const sys = sysSnap.data();
+                const initPool = sys.pointSettings?.initialPool || 0;
+                const currentPool = sys.globalPointPool || 0;
+                injectPointPoolUI(initPool, currentPool);
+            }
+        });
         
         const txListener = db.collection("transactions").onSnapshot((tSnap) => {
             sumIn = 0; sumOut = 0; bankBal = 0; cashBal = 0; pendingTxCount = 0;
@@ -53,14 +70,22 @@ async function loadDashboardOverview() {
 
                 if(d.status === 'อนุมัติแล้ว') {
                     let amt = parseFloat(d.amount) || 0;
+                    
                     if(d.type.includes('รับ') || d.type === 'สมทบเงินกองทุน') {
                         sumIn += amt;
                         if(d.paymentMethod && d.paymentMethod.includes('ธนาคาร')) bankBal += amt; else cashBal += amt;
-                        let noteStr = (d.note || "").toLowerCase();
+                        
+                        // 🌟 ตรรกะตรวจจับคำ (Text Matching) ของคุณ
+                        let noteStr = d.note || "";
                         if(d.type === 'สมทบเงินกองทุน' || noteStr.includes('สมาชิก')) chartData.member += amt;
                         else if(noteStr.includes('พอช.')) chartData.codi += amt;
                         else if(noteStr.includes('ท้องถิ่น')) chartData.local += amt;
+                        else if(noteStr.includes('เอกชน') || noteStr.includes('ร้านค้า')) chartData.privateStore += amt;
+                        else if(noteStr.includes('บริจาค')) chartData.donate += amt;
+                        else if(noteStr.includes('ดอกเบี้ย')) chartData.interest += amt;
+                        else if(noteStr.includes('กำไร')) chartData.profit += amt;
                         else chartData.other += amt;
+                        
                     } else if(d.type.includes('จ่าย') || d.type === 'จ่ายสวัสดิการ') {
                         sumOut += amt;
                         if(d.paymentMethod && d.paymentMethod.includes('ธนาคาร')) bankBal -= amt; else cashBal -= amt;
@@ -85,6 +110,52 @@ async function loadDashboardOverview() {
         AppHelper.showLoader(false); 
         Swal.fire('ข้อผิดพลาด', 'ไม่สามารถโหลดข้อมูลแดชบอร์ดได้', 'error');
     }
+}
+
+// 🌟 ฟังก์ชันแทรก UI สำหรับสรุปงบประมาณแต้มแบบอัตโนมัติ
+function injectPointPoolUI(initial, current) {
+    let container = document.getElementById('injectedPointPoolSummary');
+    if(!container) {
+        container = document.createElement('div');
+        container.id = 'injectedPointPoolSummary';
+        const target = document.getElementById('holderRadarContainer').closest('.admin-tab-pane');
+        const insertAfterEl = document.getElementById('overviewChartArea');
+        if(insertAfterEl && target) {
+            target.insertBefore(container, insertAfterEl.nextSibling);
+        }
+    }
+    
+    let used = initial - current;
+    if(used < 0) used = 0;
+    
+    let percentUsed = 0;
+    if(initial > 0) percentUsed = ((used / initial) * 100).toFixed(1);
+
+    container.innerHTML = `
+      <div class="admin-card border-0 p-4 mb-4 shadow-sm rounded-4 bg-white">
+          <div class="d-flex align-items-center mb-3">
+              <div class="d-flex justify-content-center align-items-center bg-warning bg-opacity-10 text-warning rounded-circle me-2" style="width: 28px; height: 28px;"><i class="fa-solid fa-star"></i></div>
+              <h6 class="fw-bold text-dark mb-0">งบประมาณแต้มสะสม (Point Pool)</h6>
+          </div>
+          <div class="row g-2 text-center">
+             <div class="col-4">
+                 <small class="text-muted d-block" style="font-size: 0.7rem;">ตั้งงบเริ่มต้น</small>
+                 <strong class="text-dark">${initial.toLocaleString()}</strong>
+             </div>
+             <div class="col-4 border-start border-end">
+                 <small class="text-danger d-block" style="font-size: 0.7rem;">สมาชิกรับไปแล้ว</small>
+                 <strong class="text-danger">${used.toLocaleString()}</strong>
+             </div>
+             <div class="col-4">
+                 <small class="text-success d-block" style="font-size: 0.7rem;">คงเหลือแจกได้</small>
+                 <strong class="text-success">${current.toLocaleString()}</strong>
+             </div>
+          </div>
+          <div class="progress mt-3 bg-light" style="height: 6px;">
+              <div class="progress-bar bg-warning" role="progressbar" style="width: ${percentUsed}%;"></div>
+          </div>
+      </div>
+    `;
 }
 
 function updateDashboardUI(mCount, pCount, pendingTxCount, pendingClaimCount, sumIn, sumOut, totalDebt, bankBal, cashBal, holderBalances) {
@@ -157,7 +228,7 @@ async function renderTrendChart() {
         const now = new Date();
         let startFiscalYear = now.getFullYear();
         if (now.getMonth() < 9) startFiscalYear -= 1; 
-        const fiscalStartDate = new Date(startFiscalYear, 9, 1); // 1 ต.ค.
+        const fiscalStartDate = new Date(startFiscalYear, 9, 1); 
 
         snap.forEach(doc => {
             const d = doc.data();
@@ -166,35 +237,39 @@ async function renderTrendChart() {
             else if (d.timestamp) txDate = d.timestamp.toDate();
             let amt = parseFloat(d.amount) || 0;
             let isTransfer = d.type === 'โอนย้ายสภาพคล่อง';
-            if (!isTransfer) rawData.push({ type: d.type, amount: amt, dateObj: txDate, note: d.note || "" });
+            
+            if (!isTransfer) {
+                rawData.push({ type: d.type, amount: amt, dateObj: txDate, note: d.note || "" });
+            }
         });
 
-// 📌 คำนวณวันที่ย้อนหลังตามตัวกรอง
-        let startDate = new Date('2000-01-01'); // <--- ค่าเริ่มต้นสำหรับแสดง "ทั้งหมด"
+        let startDate = new Date('2000-01-01'); 
         if (filter === '1month') startDate = new Date(now.getFullYear(), now.getMonth() - 1, 1); 
         else if (filter === '3months') startDate = new Date(now.getFullYear(), now.getMonth() - 3, 1);
         else if (filter === '6months') startDate = new Date(now.getFullYear(), now.getMonth() - 5, 1);
         else if (filter === 'thisYear' || filter === 'quarter') startDate = new Date(now.getFullYear(), 0, 1);
         else if (filter === 'fiscal') startDate = fiscalStartDate;
-        else if (filter === 'all') startDate = new Date('2000-01-01'); // 🌟 ระบบจะดึงข้อมูลทั้งหมด
+        else if (filter === 'all') startDate = new Date('2000-01-01'); 
 
         let filteredData = rawData.filter(d => d.dateObj >= startDate);
         let grouped = {};
         const monthNames = ["ม.ค.", "ก.พ.", "มี.ค.", "เม.ย.", "พ.ค.", "มิ.ย.", "ก.ค.", "ส.ค.", "ก.ย.", "ต.ค.", "พ.ย.", "ธ.ค."];
 
-        // 📌 จัดกลุ่มรายเดือน และแยกประเภทรายรับทั้ง 8 หมวด
         filteredData.forEach(d => {
             let dObj = d.dateObj; let thYear = dObj.getFullYear() + 543; let thMonth = dObj.getMonth();
             let sortKey = `${dObj.getFullYear()}-${String(thMonth+1).padStart(2,'0')}`;
             let displayKey = `${monthNames[thMonth]} ${thYear.toString().slice(-2)}`;
             
             if (!grouped[sortKey]) {
-                grouped[sortKey] = { label: displayKey, member: 0, codi: 0, local: 0, privateStore: 0, donate: 0, interest: 0, profit: 0, other: 0, expense: 0 };
+                // 🌟 โครงสร้างเก็บยอดเงินแบบรายเดือน
+                grouped[sortKey] = { label: displayKey, member: 0, codi: 0, local: 0, privateStore: 0, donate: 0, interest: 0, profit: 0, other: 0, expenseWelfare: 0, expenseAdmin: 0 };
             }
             
             let isIncome = d.type.includes('รับ') || d.type.includes('สมทบ');
+            let noteStr = d.note || "";
+
             if (isIncome) {
-                let noteStr = d.note.toLowerCase();
+                // 🌟 ตรรกะตรวจจับคำ (Text Matching) ของคุณ
                 if(d.type === 'สมทบเงินกองทุน' || noteStr.includes('สมาชิก')) grouped[sortKey].member += d.amount;
                 else if(noteStr.includes('พอช.')) grouped[sortKey].codi += d.amount;
                 else if(noteStr.includes('ท้องถิ่น')) grouped[sortKey].local += d.amount;
@@ -204,7 +279,9 @@ async function renderTrendChart() {
                 else if(noteStr.includes('กำไร')) grouped[sortKey].profit += d.amount;
                 else grouped[sortKey].other += d.amount;
             } else { 
-                grouped[sortKey].expense += d.amount; 
+                // 🌟 แยกรายจ่ายสวัสดิการ ออกจากค่าบริหารจัดการอย่างชัดเจน
+                if (getExpenseCategory(d.type, d.note || "") === 'สวัสดิการชุมชน') grouped[sortKey].expenseWelfare += d.amount;
+                else grouped[sortKey].expenseAdmin += d.amount;
             }
         });
 
@@ -215,77 +292,60 @@ async function renderTrendChart() {
         if (charts.trendChartObj) charts.trendChartObj.destroy();
         
         const ctx2d = ctx.getContext('2d');
-        let gradientFill = ctx2d.createLinearGradient(0, 0, 0, 250);
-        gradientFill.addColorStop(0, 'rgba(239, 68, 68, 0.2)'); // สีแดงใสๆ สำหรับรายจ่าย
-        gradientFill.addColorStop(1, 'rgba(239, 68, 68, 0)');
 
-        // 🌟 ตั้งค่ากราฟผสม (Mixed Chart + Stacked Bar)
+        // 🌟 ตั้งค่ากราฟผสม (Mixed Chart) คืนกราฟแท่ง 8 หมวดหมู่
         charts.trendChartObj = new Chart(ctx2d, {
             type: 'bar',
             data: {
                 labels: labels,
                 datasets: [
+                    // เส้น 1: จ่ายสวัสดิการ (เน้นสีแดง)
                     { 
-                        type: 'line', 
-                        label: 'รายจ่ายรวม', 
-                        data: sortedKeys.map(k => grouped[k].expense), 
-                        borderColor: '#EF4444', 
-                        backgroundColor: gradientFill, 
-                        borderWidth: 3, tension: 0.4, fill: true,
-                        pointBackgroundColor: '#ffffff', pointBorderColor: '#EF4444',
-                        pointBorderWidth: 2, pointRadius: 4, pointHoverRadius: 6,
-                        order: 1
+                        type: 'line', label: 'จ่ายสวัสดิการ', data: sortedKeys.map(k => grouped[k].expenseWelfare), 
+                        borderColor: '#EF4444', borderWidth: 3, tension: 0.3, fill: false,
+                        pointBackgroundColor: '#ffffff', pointBorderColor: '#EF4444', pointRadius: 4, order: 1
                     },
-                    // กราฟแท่งรายรับซ้อนกัน (Stacked Bar) แบ่งตามโครงสร้างทุน
-                    { type: 'bar', label: 'สมาชิก', data: sortedKeys.map(k => grouped[k].member), backgroundColor: '#2563EB', stack: 'Income', order: 2 },
-                    { type: 'bar', label: 'พอช.', data: sortedKeys.map(k => grouped[k].codi), backgroundColor: '#10B981', stack: 'Income', order: 2 },
-                    { type: 'bar', label: 'ท้องถิ่น', data: sortedKeys.map(k => grouped[k].local), backgroundColor: '#F59E0B', stack: 'Income', order: 2 },
-                    { type: 'bar', label: 'เอกชน', data: sortedKeys.map(k => grouped[k].privateStore), backgroundColor: '#8B5CF6', stack: 'Income', order: 2 },
-                    { type: 'bar', label: 'บริจาค', data: sortedKeys.map(k => grouped[k].donate), backgroundColor: '#EC4899', stack: 'Income', order: 2 },
-                    { type: 'bar', label: 'ดอกเบี้ย', data: sortedKeys.map(k => grouped[k].interest), backgroundColor: '#06B6D4', stack: 'Income', order: 2 },
-                    { type: 'bar', label: 'กำไร/ร้านค้า', data: sortedKeys.map(k => grouped[k].profit), backgroundColor: '#14B8A6', stack: 'Income', order: 2 },
-                    { type: 'bar', label: 'อื่นๆ', data: sortedKeys.map(k => grouped[k].other), backgroundColor: '#94A3B8', stack: 'Income', order: 2 }
+                    // เส้น 2: ค่าบริหารจัดการ (สีส้ม)
+                    { 
+                        type: 'line', label: 'ค่าบริหารจัดการ', data: sortedKeys.map(k => grouped[k].expenseAdmin), 
+                        borderColor: '#F59E0B', borderWidth: 3, tension: 0.3, fill: false, borderDash: [5, 5],
+                        pointBackgroundColor: '#ffffff', pointBorderColor: '#F59E0B', pointRadius: 4, order: 2
+                    },
+                    // กราฟแท่งซ้อน: รายรับ 8 หมวดหมู่
+                    { type: 'bar', label: 'สมาชิก', data: sortedKeys.map(k => grouped[k].member), backgroundColor: '#2563EB', stack: 'Income', order: 3 },
+                    { type: 'bar', label: 'พอช.', data: sortedKeys.map(k => grouped[k].codi), backgroundColor: '#10B981', stack: 'Income', order: 3 },
+                    { type: 'bar', label: 'ท้องถิ่น', data: sortedKeys.map(k => grouped[k].local), backgroundColor: '#F59E0B', stack: 'Income', order: 3 },
+                    { type: 'bar', label: 'เอกชน/ร้านค้า', data: sortedKeys.map(k => grouped[k].privateStore), backgroundColor: '#8B5CF6', stack: 'Income', order: 3 },
+                    { type: 'bar', label: 'บริจาค', data: sortedKeys.map(k => grouped[k].donate), backgroundColor: '#EC4899', stack: 'Income', order: 3 },
+                    { type: 'bar', label: 'ดอกเบี้ย', data: sortedKeys.map(k => grouped[k].interest), backgroundColor: '#06B6D4', stack: 'Income', order: 3 },
+                    { type: 'bar', label: 'กำไร', data: sortedKeys.map(k => grouped[k].profit), backgroundColor: '#14B8A6', stack: 'Income', order: 3 },
+                    { type: 'bar', label: 'อื่นๆ', data: sortedKeys.map(k => grouped[k].other), backgroundColor: '#94A3B8', stack: 'Income', order: 3 }
                 ]
             },
             options: { 
-                responsive: true, 
-                maintainAspectRatio: false, 
+                responsive: true, maintainAspectRatio: false, 
                 interaction: { mode: 'index', intersect: false }, 
                 animation: { duration: 1500, easing: 'easeOutQuart' },
                 plugins: { 
-                    legend: { 
-                        position: 'top', 
-                        labels: { usePointStyle: true, boxWidth: 8, font: { family: "'Prompt'", size: 10 } } 
-                    },
+                    legend: { position: 'top', labels: { usePointStyle: true, boxWidth: 8, font: { family: "'Prompt'", size: 10 } } },
                     tooltip: { 
-                        backgroundColor: 'rgba(15, 23, 42, 0.9)', 
-                        titleFont: { family: "'Prompt'", size: 13 },
-                        bodyFont: { family: "'Prompt'", size: 12 },
-                        padding: 12, cornerRadius: 12, displayColors: true,
+                        backgroundColor: 'rgba(15, 23, 42, 0.9)', titleFont: { family: "'Prompt'", size: 13 },
+                        bodyFont: { family: "'Prompt'", size: 12 }, padding: 12, cornerRadius: 12,
                         callbacks: {
-                            // แสดงผลรวมรายรับทั้งหมดบน Tooltip ด้วย
                             footer: (tooltipItems) => {
-                                let totalIncome = 0;
+                                let totalExp = 0; let totalInc = 0;
                                 tooltipItems.forEach(item => {
-                                    if(item.dataset.stack === 'Income') totalIncome += item.parsed.y;
+                                    if(item.dataset.stack === 'Income') totalInc += item.parsed.y;
+                                    else totalExp += item.parsed.y;
                                 });
-                                return 'รายรับสุทธิ: ฿' + totalIncome.toLocaleString('en-US', {minimumFractionDigits: 2});
+                                return `รายรับรวม: ฿${totalInc.toLocaleString()}\nรายจ่ายรวม: ฿${totalExp.toLocaleString()}`;
                             }
                         }
                     }
                 }, 
                 scales: { 
-                    y: { 
-                        stacked: true, // 📌 เปิดให้กราฟแท่งซ้อนกัน
-                        beginAtZero: true, 
-                        grid: { borderDash: [4, 4], color: '#E2E8F0', drawBorder: false }, 
-                        ticks: { font: { family: "'Prompt'", size: 10 }, color: '#64748B', maxTicksLimit: 6 } 
-                    }, 
-                    x: { 
-                        stacked: true, // 📌 เปิดให้กราฟแท่งซ้อนกัน
-                        grid: { display: false, drawBorder: false }, 
-                        ticks: { font: { family: "'Prompt'", size: 11 }, color: '#64748B' } 
-                    } 
+                    y: { stacked: true, beginAtZero: true, grid: { borderDash: [4, 4], color: '#E2E8F0', drawBorder: false }, ticks: { font: { family: "'Prompt'", size: 10 }, color: '#64748B' } }, 
+                    x: { stacked: true, grid: { display: false, drawBorder: false }, ticks: { font: { family: "'Prompt'", size: 11 }, color: '#64748B' } } 
                 } 
             }
         });
