@@ -234,6 +234,33 @@
         </div>
       </div>
 
+    <!-- 🌟 เพิ่มกล่องสภาพคล่อง: เงินในบัญชี vs เงินในมือ -->
+      <div class="row g-2 mb-4 mt-1">
+          <div class="col-6">
+              <div class="admin-card border-0 p-3 shadow-sm rounded-4 bg-white h-100">
+                  <div class="d-flex align-items-center mb-2">
+                      <div class="icon-box bg-success bg-opacity-10 text-success rounded-circle me-2 d-flex align-items-center justify-content-center" style="width: 28px; height: 28px; font-size: 0.8rem;">
+                          <i class="fa-solid fa-building-columns"></i>
+                      </div>
+                      <small class="text-muted fw-bold" style="font-size: 0.75rem;">เงินในบัญชี</small>
+                  </div>
+                  <h5 class="fw-bold text-success mb-0 text-truncate" id="liq-bank">฿0.00</h5>
+              </div>
+          </div>
+          <div class="col-6">
+              <div class="admin-card border-0 p-3 shadow-sm rounded-4 bg-white h-100">
+                  <div class="d-flex align-items-center mb-2">
+                      <div class="icon-box bg-warning bg-opacity-10 text-warning rounded-circle me-2 d-flex align-items-center justify-content-center" style="width: 28px; height: 28px; font-size: 0.8rem;">
+                          <i class="fa-solid fa-wallet"></i>
+                      </div>
+                      <small class="text-muted fw-bold" style="font-size: 0.75rem;">เงินสด</small>
+                  </div>
+                  <h5 class="fw-bold text-warning mb-0 text-truncate" id="liq-cash">฿0.00</h5>
+              </div>
+          </div>
+      </div>
+      <!-- สิ้นสุดกล่องสภาพคล่อง -->
+
       <!-- 🌟 กราฟ Mixed Chart (เปรียบเทียบรับ-จ่าย) แทนที่การ์ดตัวเลขเดิม 🌟 -->
 <div class="admin-card border-0 p-4 mb-4 shadow-sm rounded-4 bg-white" id="overviewChartArea">
     <div id="sharedTrendChart">
@@ -1283,13 +1310,13 @@
 <script src="./assets/js/admin/admin-config.js?v=5"></script>
 
 <!-- 2. โหลดระบบ Auth และ UI ของแอดมิน -->
-<script src="./assets/js/admin/admin-auth.js?v=16"></script>
+<script src="./assets/js/admin/admin-auth.js?v=17"></script>
 <script src="./assets/js/admin/admin-ui.js?v=5"></script>
 
 <!-- 3. โหลด Modules การทำงานต่างๆ -->
-<script src="./assets/js/admin/dashboard.js?v=11"></script>
+<script src="./assets/js/admin/dashboard.js?v=12"></script>
 <script src="./assets/js/admin/members.js?v=11"></script>
-<script src="./assets/js/admin/ledger.js?v=32"></script>
+<script src="./assets/js/admin/ledger.js?v=33"></script>
 <script src="./assets/js/admin/claims.js?v=10"></script>
 <script src="./assets/js/admin/shops-news.js?v=11"></script>
 <script src="./assets/js/admin/shops.js?v=10"></script>
