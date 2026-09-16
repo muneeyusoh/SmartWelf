@@ -4,7 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
   <meta name="theme-color" content="#0F172A">
-  <title>SmartWelf 5.0.1 | ศูนย์จัดการกองทุนส่วนกลาง (แอดมิน)</title>
+  <title>SmartWelf 5.0.3 | ศูนย์จัดการกองทุนส่วนกลาง (แอดมิน)</title>
 
   <!-- ========================================== -->
   <!-- 📊 โค้ด Google Analytics (ติดตามสถิติ) -->
@@ -41,6 +41,12 @@
   <script src="https://www.gstatic.com/firebasejs/10.8.1/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.8.1/firebase-auth-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.8.1/firebase-firestore-compat.js"></script>
+  <!-- 🌟 บังคับให้ป๊อปอัป Swal ลอยอยู่บนสุดเสมอ 🌟 -->
+  <style>
+    .swal2-container {
+      z-index: 99999 !important;
+    }
+  </style>
 </head>
 <body>
  
@@ -101,7 +107,7 @@
       <input type="email" id="adminEmail" class="form-control bg-white bg-opacity-10 border-0 text-white rounded-4 py-3 mb-2 text-center" placeholder="อีเมลผู้ดูแลระบบ">
       <input type="password" id="adminPass" class="form-control bg-white bg-opacity-10 border-0 text-white rounded-4 py-3 mb-1 text-center" placeholder="รหัสผ่าน">
       <div class="text-end mb-3 px-2">
-          <a href="#" class="text-primary small text-decoration-none" onclick="requestPasswordReset()">ลืมรหัสผ่าน / PIN ?</a>
+          <a href="#" class="text-primary small text-decoration-none" onclick="requestPasswordReset(); return false;"><i class="fa-solid fa-key me-1"></i>ลืมรหัสผ่าน/PIN?</a>
       </div>
       <button onclick="handleAdminLogin()" class="btn btn-primary w-100 rounded-pill fw-bold py-3 mb-4 shadow">เข้าสู่ระบบ</button>
       <div class="position-relative mb-4"><hr class="border-secondary"><span class="position-absolute top-50 start-50 translate-middle px-3 small text-white-50" style="background: #111a2f;">หรือเข้าใช้งานด้วย</span></div>
@@ -244,7 +250,7 @@
                 </div>
             </div>
             
-<<select id="trendFilter" class="form-select-modern bg-light border-0 py-1 px-3 text-primary fw-bold shadow-sm" style="font-size:0.75rem; width: auto; border-radius: 20px; cursor: pointer;" onchange="if(typeof renderTrendChart === 'function') renderTrendChart()">
+<select id="trendFilter" class="form-select-modern bg-light border-0 py-1 px-3 text-primary fw-bold shadow-sm" style="font-size:0.75rem; width: auto; border-radius: 20px; cursor: pointer;" onchange="if(typeof renderTrendChart === 'function') renderTrendChart()">
     <option value="1month">1 เดือนย้อนหลัง</option>
     <option value="3months">ราย 3 เดือน</option>
     <option value="6months" selected>ราย 6 เดือน</option>
@@ -297,7 +303,7 @@
         </div>
         <div class="chart-container" style="height: 200px;"><canvas id="doughnutChart"></canvas></div>
       </div>
-
+      </div> <!-- 🌟🌟 เติม </div> ตรงนี้! เพื่อปิดแท็บภาพรวม 🌟🌟 -->
       
 
     <!-- 👥 ADMIN TAB: ทะเบียนสมาชิก -->
@@ -578,14 +584,11 @@
                   
                   <div id="list-daily-transactions"></div>
               </div>
-
-      </div>
-          
+              
           <!-- ระบบแบ่งหน้า (Pagination) -->
           <div id="tx-pagination" class="d-flex justify-content-center flex-wrap gap-2 mt-4 mb-3"></div>
       </div>
-    </div>
-    <!-- 🏥 ADMIN TAB: สวัสดิการ -->
+      <!-- 🏥 ADMIN TAB: สวัสดิการ -->
     <div class="admin-tab-pane d-none" id="admin-view-claims">
       <div class="d-flex align-items-center mb-4 px-1"><span class="dot-red me-2"></span><h5 class="fw-bold text-dark mb-0">คำขอเบิกสวัสดิการ</h5></div>
       <div id="list-pending-claims">กำลังโหลด...</div>
@@ -1096,7 +1099,7 @@
     </svg>
 </div>
           <h5 class="fw-bold text-dark mb-1">SmartWelf <span class="text-warning">5.0</span></h5>
-          <p class="text-muted small mb-3">เวอร์ชัน 5.0.1 (Build 20260903)</p>
+          <p class="text-muted small mb-3">เวอร์ชัน 5.0.3 (Build 20260916)</p>
           <hr class="border-light my-3">
           <small class="text-muted" style="font-size: 0.7rem;">&copy; 2026 SmartWelf All rights reserved.</small>
       </div>
@@ -1280,13 +1283,13 @@
 <script src="./assets/js/admin/admin-config.js?v=5"></script>
 
 <!-- 2. โหลดระบบ Auth และ UI ของแอดมิน -->
-<script src="./assets/js/admin/admin-auth.js?v=15"></script>
+<script src="./assets/js/admin/admin-auth.js?v=16"></script>
 <script src="./assets/js/admin/admin-ui.js?v=5"></script>
 
 <!-- 3. โหลด Modules การทำงานต่างๆ -->
 <script src="./assets/js/admin/dashboard.js?v=11"></script>
-<script src="./assets/js/admin/members.js?v=10"></script>
-<script src="./assets/js/admin/ledger.js?v=30"></script>
+<script src="./assets/js/admin/members.js?v=11"></script>
+<script src="./assets/js/admin/ledger.js?v=32"></script>
 <script src="./assets/js/admin/claims.js?v=10"></script>
 <script src="./assets/js/admin/shops-news.js?v=11"></script>
 <script src="./assets/js/admin/shops.js?v=10"></script>
