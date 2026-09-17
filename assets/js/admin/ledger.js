@@ -651,7 +651,8 @@ window.filterTransactionsByDate = function() {
     let totalIn = 0; 
     let totalOut = 0;
 
-    const dailyData = ledgerTxCache.filter(d => d.transactionDate === selectedLedgerDate && d.status === 'อนุมัติแล้ว');
+    // 🌟 ดึงข้อมูลมาทั้งหมดรวมถึงอันที่ถูก voided เพื่อให้ประวัติคงอยู่
+    const dailyData = ledgerTxCache.filter(d => d.transactionDate === selectedLedgerDate && (d.status === 'อนุมัติแล้ว' || d.status === 'voided'));
 
     dailyData.forEach(d => {
         const amt = parseFloat(d.amount || 0); 
@@ -659,50 +660,88 @@ window.filterTransactionsByDate = function() {
         
         const isTransfer = d.type === 'โอนย้ายสภาพคล่อง';
         const isIncome = d.type.includes('รับ') || d.type === 'สมทบเงินกองทุน';
+        
+        // 🌟 ตรวจสอบว่ารายการนี้ถูกยกเลิกหรือไม่
+        const isVoided = d.status === 'voided';
+        
+        // 🌟 ถ้าถูกยกเลิก ไม่ต้องเอาไปรวมในยอดสรุปรายวัน
+        if (!isVoided && !isTransfer) {
+            if(isIncome) totalIn += amt; else totalOut += amt;
+        }
+
+        // 🌟 โค้ดสร้างเมนู 3 จุด (โชว์เฉพาะ Admin-Master และรายการที่ยังไม่ถูกยกเลิก)
+        const actionMenuHtml = (AdminState.currentAdmin.role === 'Admin-Master' && !isVoided) ? `
+            <div class="dropdown ms-2 flex-shrink-0">
+                <button class="btn btn-sm btn-light border-0 text-muted shadow-none rounded-circle" type="button" data-bs-toggle="dropdown" style="width: 30px; height: 30px;">
+                    <i class="fa-solid fa-ellipsis-vertical"></i>
+                </button>
+                <ul class="dropdown-menu dropdown-menu-end border-0 shadow-sm rounded-3" style="font-size: 0.8rem; z-index: 1050;">
+                    <li>
+                        <a class="dropdown-item py-2 cursor-pointer" onclick="editTransactionNote('${d.id}', '${d.note || ''}')">
+                            <i class="fa-solid fa-pen text-warning me-2"></i> แก้ไขรายละเอียด
+                        </a>
+                    </li>
+                    <li><hr class="dropdown-divider"></li>
+                    <li>
+                        <a class="dropdown-item text-danger py-2 cursor-pointer" onclick="voidTransaction('${d.id}')">
+                            <i class="fa-solid fa-ban me-2"></i> ยกเลิกรายการ (Void)
+                        </a>
+                    </li>
+                </ul>
+            </div>
+        ` : '';
+
+        // 🌟 ตั้งค่าดีไซน์ กรณีถูกยกเลิก (Voided) ให้ดูจางๆ และมีเส้นขีดทับ
+        const cardOpacity = isVoided ? 'opacity: 0.5; filter: grayscale(100%);' : '';
+        const textDecoration = isVoided ? 'text-decoration: line-through;' : '';
+        const voidReasonHtml = isVoided ? `<small class="text-danger d-block mt-1 fw-bold" style="font-size: 0.7rem;"><i class="fa-solid fa-circle-exclamation"></i> ยกเลิก: ${d.voidReason}</small>` : '';
 
         if (isTransfer) {
-            // 🌟 แก้ไข: เขียนทิศทางให้ชัดเจน ว่าโอนจากไหนไปไหน
             let dirText = "ภายในระบบ";
             if (d.note && d.note.includes('โอนจาก cash ไป bank')) dirText = "เงินสด ➔ ธนาคาร";
             if (d.note && d.note.includes('โอนจาก bank ไป cash')) dirText = "ธนาคาร ➔ เงินสด";
 
             html += `
-                <div class="p-3 mb-2 bg-warning bg-opacity-10 rounded-4 border border-warning border-opacity-50 shadow-sm">
+                <div class="p-3 mb-2 bg-warning bg-opacity-10 rounded-4 border border-warning border-opacity-50 shadow-sm" style="${cardOpacity}">
                     <div class="d-flex justify-content-between align-items-center">
-                        <div style="min-width: 0;">
-                            <strong class="text-dark d-block text-truncate" style="font-size: 0.9rem;">
+                        <div style="min-width: 0;" class="flex-grow-1">
+                            <strong class="text-dark d-block text-truncate" style="font-size: 0.9rem; ${textDecoration}">
                                 <i class="fa-solid fa-arrow-right-arrow-left text-warning me-1"></i> ${d.type}
                             </strong>
-                            <small class="text-dark d-block text-truncate mt-1" style="font-size: 0.75rem;">${d.note || d.fullName}</small>
+                            <small class="text-dark d-block text-truncate mt-1" style="font-size: 0.75rem; ${textDecoration}">${d.note || d.fullName}</small>
+                            ${voidReasonHtml}
                         </div>
-                        <div class="text-end flex-shrink-0 ms-2">
+                        <div class="text-end flex-shrink-0 ms-2" style="${textDecoration}">
                             <strong class="text-warning text-dark fs-6 d-block">฿${amtStr}</strong>
                             <span class="badge bg-white text-warning border border-warning mt-1" style="font-size: 0.65rem;">${dirText}</span>
                         </div>
+                        ${actionMenuHtml}
                     </div>
                 </div>`;
         } else {
-            if(isIncome) totalIn += amt; else totalOut += amt;
             const colorClass = isIncome ? 'text-success' : 'text-danger'; 
             const sign = isIncome ? '+' : '-';
             const icon = isIncome ? '<i class="fa-solid fa-arrow-turn-down me-1"></i>' : '<i class="fa-solid fa-arrow-turn-up me-1"></i>';
             
             html += `
-                <div class="p-3 mb-2 bg-light rounded-4 border border-secondary border-opacity-10 shadow-sm">
+                <div class="p-3 mb-2 bg-light rounded-4 border border-secondary border-opacity-10 shadow-sm" style="${cardOpacity}">
                     <div class="d-flex justify-content-between align-items-center">
-                        <div style="min-width: 0;">
-                            <strong class="text-dark d-block text-truncate" style="font-size: 0.9rem;">${icon} ${d.type}</strong>
-                            <small class="text-muted d-block text-truncate mt-1" style="font-size: 0.75rem;">${d.note || d.fullName}</small>
+                        <div style="min-width: 0;" class="flex-grow-1">
+                            <strong class="text-dark d-block text-truncate" style="font-size: 0.9rem; ${textDecoration}">${icon} ${d.type}</strong>
+                            <small class="text-muted d-block text-truncate mt-1" style="font-size: 0.75rem; ${textDecoration}">${d.note || d.fullName}</small>
+                            ${voidReasonHtml}
                         </div>
-                        <div class="text-end flex-shrink-0 ms-2">
+                        <div class="text-end flex-shrink-0 ms-2" style="${textDecoration}">
                             <strong class="${colorClass} fs-6 d-block">${sign}฿${amtStr}</strong>
                             <span class="badge bg-white text-muted border mt-1" style="font-size: 0.65rem;">${d.paymentMethod || '-'}</span>
                         </div>
+                        ${actionMenuHtml}
                     </div>
                 </div>`;
         }
     });
 
+    // ส่วนอัปเดตตัวเลขแสดงผลยังคงเหมือนเดิม
     if (displayDate) {
         const dParts = selectedLedgerDate.split('-');
         if(dParts.length === 3) {
@@ -1398,3 +1437,80 @@ window.syncLedgerSummaryCards = function() {
 
 // สั่งให้มันคอยเช็คและอัปเดตตัวเลขทุกๆ 1 วินาที (ทำงานอยู่เบื้องหลังเงียบๆ)
 setInterval(window.syncLedgerSummaryCards, 1000);
+
+// ==========================================
+// 🚨 ระบบจัดการประวัติธุรกรรม (เฉพาะ Master)
+// ==========================================
+
+// 1. ฟังก์ชันแก้ไข "รายละเอียด" (ห้ามแก้ตัวเลข)
+window.editTransactionNote = async function(txId, oldNote) {
+    if (AdminState.currentAdmin.role !== 'Admin-Master') {
+        return Swal.fire('ไม่มีสิทธิ์', 'เฉพาะ Admin-Master เท่านั้นที่สามารถแก้ไขข้อมูลได้', 'error');
+    }
+
+    const { value: newNote } = await Swal.fire({
+        title: 'แก้ไขรายละเอียด',
+        text: 'คุณสามารถแก้ไขได้เฉพาะข้อความรายละเอียดเท่านั้น (เพื่อรักษาความถูกต้องของยอดเงิน)',
+        input: 'text',
+        inputValue: oldNote || '',
+        showCancelButton: true,
+        confirmButtonText: 'บันทึกการแก้ไข',
+        cancelButtonText: 'ยกเลิก',
+        inputValidator: (value) => { if (!value) return 'กรุณาระบุรายละเอียด!' }
+    });
+
+    if (newNote && newNote !== oldNote) {
+        AppHelper.showLoader(true, 'กำลังบันทึก...');
+        try {
+            await db.collection("transactions").doc(txId).update({ note: newNote });
+            await createAuditLog("แก้ไขรายละเอียดธุรกรรม", `แก้ข้อความใน TX: ${txId} เป็น "${newNote}"`);
+            AppHelper.showLoader(false);
+            if(typeof loadLedgerData === 'function') loadLedgerData(); // รีเฟรชหน้า
+        } catch (error) {
+            AppHelper.showLoader(false);
+            Swal.fire('ข้อผิดพลาด', 'ไม่สามารถบันทึกได้', 'error');
+        }
+    }
+};
+
+// 2. ฟังก์ชันยกเลิกรายการ (Void)
+window.voidTransaction = async function(txId) {
+    if (AdminState.currentAdmin.role !== 'Admin-Master') {
+        return Swal.fire('ไม่มีสิทธิ์', 'เฉพาะ Admin-Master เท่านั้นที่สามารถยกเลิกรายการได้', 'error');
+    }
+
+    const { value: reason } = await Swal.fire({
+        title: 'ยืนยันการยกเลิกรายการ?',
+        html: '<span class="text-danger fw-bold">รายการนี้จะถูกขีดฆ่า และระบบจะหักยอดเงินคืนทันที!</span>',
+        input: 'text',
+        inputPlaceholder: 'ระบุเหตุผลที่ยกเลิก (บังคับ)',
+        showCancelButton: true,
+        confirmButtonText: 'ยืนยันยกเลิก (Void)',
+        cancelButtonText: 'ปิด',
+        confirmButtonColor: '#DC2626',
+        inputValidator: (value) => { if (!value) return 'กรุณาระบุเหตุผลในการยกเลิกรายการ!' }
+    });
+
+    if (reason) {
+        AppHelper.showLoader(true, 'กำลังยกเลิกรายการ...');
+        try {
+            // อัปเดตสถานะใน Firestore เป็น voided
+            await db.collection("transactions").doc(txId).update({
+                status: 'voided',
+                voidReason: reason,
+                voidBy: AdminState.currentAdmin.name,
+                voidAt: firebase.firestore.FieldValue.serverTimestamp()
+            });
+            
+            // บันทึกร่องรอยการตรวจสอบ
+            await createAuditLog("ยกเลิกรายการธุรกรรม", `ยกเลิก TX: ${txId} เหตุผล: ${reason}`);
+            
+            AppHelper.showLoader(false);
+            Swal.fire({ icon: 'success', title: 'ยกเลิกรายการสำเร็จ', text: 'ระบบปรับปรุงยอดเงินเรียบร้อยแล้ว', timer: 1500 });
+            if(typeof loadLedgerData === 'function') loadLedgerData(); // รีเฟรชหน้า
+        } catch (error) {
+            AppHelper.showLoader(false);
+            Swal.fire('ข้อผิดพลาด', 'ไม่สามารถยกเลิกรายการได้', 'error');
+        }
+    }
+};

@@ -362,57 +362,28 @@ function grantAccess(adminData, docId) {
 
 function applyRoleRestrictions() {
     const r = AdminState.currentAdmin.role || 'Admin-Master';
-    const navs = ['nav-overview', 'nav-members', 'nav-ledger', 'nav-claims', 'nav-menu'];
+    
+    // 🌟 แก้ไข: เมนูด้านล่างเหลือแค่ 4 แท็บ + 1 FAB
+    const navs = ['nav-overview', 'nav-members', 'nav-news', 'nav-menu'];
     
     // ซ่อนทุกอย่างก่อน
     navs.forEach(n => { if(document.getElementById(n)) document.getElementById(n).style.display = 'none'; });
 
-    // 🌟 จัดการซ่อน/โชว์ ปุ่ม Action Button (FAB)
+    // 🌟 จัดการซ่อน/โชว์ ปุ่ม Action Button (FAB) ตรงกลาง
     const centerFab = document.getElementById('center-action-btn');
-    const masterFab = document.getElementById('master-action-btn');
-    if(centerFab) centerFab.classList.add('d-none');
-    if(masterFab) masterFab.classList.add('d-none');
+    if(centerFab) centerFab.classList.remove('d-none'); // 🌟 บังคับโชว์ปุ่มตรงกลางให้ทุกคนเห็น
 
-    // ฟังก์ชันช่วยเหลือสำหรับเปิดเมนูโดยไม่ทำให้ CSS พัง (ใช้เคลียร์ค่า display ให้กลับไปใช้ class เดิม)
     const showNav = (navId) => { if(document.getElementById(navId)) document.getElementById(navId).style.display = ''; };
 
     // 1. กำหนดการมองเห็น Tab หลักด้านล่าง
+    // (ตอนนี้ทุกคนเห็น 4 แท็บ + ปุ่มตรงกลาง เหมือนกันหมดตามแผนของเรครับ)
+    navs.forEach(showNav);
+    
+    // บังคับหน้าแรกตามบทบาท
     if (r === 'Admin-ผู้ดูแล') {
-        ['nav-members', 'nav-ledger', 'nav-menu'].forEach(showNav);
-        if(centerFab) centerFab.classList.remove('d-none'); 
         switchAdminTab('admin-view-members', document.getElementById('nav-members'));
         if(typeof loadMembersData === 'function') loadMembersData();
-    } 
-    else if (r === 'Admin-ศูนย์ประสานงาน') {
-        ['nav-overview', 'nav-members', 'nav-menu'].forEach(showNav);
-        if(centerFab) centerFab.classList.remove('d-none'); 
-        switchAdminTab('admin-view-overview', document.getElementById('nav-overview'));
-        if(typeof loadDashboardOverview === 'function') loadDashboardOverview();
-    } 
-    else if (r === 'Admin-การเงิน') {
-        ['nav-overview', 'nav-members', 'nav-ledger', 'nav-menu'].forEach(showNav);
-        switchAdminTab('admin-view-ledger', document.getElementById('nav-ledger'));
-        if(typeof loadLedgerData === 'function') loadLedgerData();
-    } 
-    else if (r === 'Admin-สวัสดิการ') {
-        ['nav-claims', 'nav-menu'].forEach(showNav);
-        switchAdminTab('admin-view-claims', document.getElementById('nav-claims'));
-        if(typeof loadClaims === 'function') loadClaims();
-    } 
-    else if (r === 'Admin-ตรวจสอบ') {
-        ['nav-overview', 'nav-ledger', 'nav-menu'].forEach(showNav);
-        switchAdminTab('admin-view-ledger', document.getElementById('nav-ledger'));
-        if(typeof loadLedgerData === 'function') loadLedgerData();
-    }
-    else if (r === 'Viewer-ภาคีเครือข่าย') {
-        ['nav-overview', 'nav-menu'].forEach(showNav);
-        switchAdminTab('admin-view-overview', document.getElementById('nav-overview'));
-        if(typeof loadDashboardOverview === 'function') loadDashboardOverview();
-    }
-    else { 
-        // Admin-Master
-        navs.forEach(showNav);
-        if(masterFab) masterFab.classList.remove('d-none'); 
+    } else {
         switchAdminTab('admin-view-overview', document.getElementById('nav-overview'));
         if(typeof loadDashboardOverview === 'function') loadDashboardOverview();
     }
@@ -433,7 +404,17 @@ function applyRoleRestrictions() {
         else if (r === 'Viewer-ภาคีเครือข่าย' && ['gis', 'support'].includes(m)) btn.style.display = 'flex';
     });
 
-    // 3. บล็อกการแก้ไขสำหรับฝ่ายตรวจสอบและภาคีเครือข่าย
+    // 🌟 3. ปลดล็อกปุ่มลับ "ระบบการเงิน" ให้เฉพาะ Master และ การเงิน
+    const secretLedgerBtn = document.getElementById('btn-menu-ledger-secret');
+    if (secretLedgerBtn) {
+        if (r === 'Admin-Master' || r === 'Admin-การเงิน') {
+            secretLedgerBtn.classList.remove('d-none'); // โชว์
+        } else {
+            secretLedgerBtn.classList.add('d-none'); // ซ่อน
+        }
+    }
+
+    // 4. บล็อกการแก้ไขสำหรับฝ่ายตรวจสอบและภาคีเครือข่าย
     if (['Admin-ตรวจสอบ', 'Viewer-ภาคีเครือข่าย'].includes(r)) {
         const hideIds = ['btn-add-member', 'btnAddAdmin', 'financeApproveBtnBox'];
         hideIds.forEach(id => { const el = document.getElementById(id); if (el) el.style.display = 'none'; });
