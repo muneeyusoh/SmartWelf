@@ -244,6 +244,10 @@ function renderDashboardData(data, pictureUrl) {
   loadMemberTransactionTimeline(document.getElementById('uid').value);
   loadCommunityNews();
   loadMemberRewards();
+  
+  // 🌟 แทรกคำสั่งโหลดร้านค้าตรงนี้เลยครับ 🌟
+  if(typeof loadShopCatalog === 'function') loadShopCatalog();
+
   document.getElementById('dashboardView').style.display = 'block';
   // เพิ่มบรรทัดนี้เข้าไปครับ
   if(document.getElementById('bottomNavMenu')) document.getElementById('bottomNavMenu').style.display = 'flex';
@@ -970,3 +974,283 @@ window.generateMemberEReceipt = function(txId, type, amount, date, note, name) {
         } 
     });
 };
+
+// =========================================================
+// 🛒 SECTION 11: ระบบร้านค้าและตะกร้าสินค้า (E-Commerce)
+// =========================================================
+
+// ตัวแปรเก็บสินค้าในตะกร้า
+window.memberCart = [];
+
+// 1. ฟังก์ชันโหลดแคตตาล็อกสินค้ามาโชว์ในหน้า Dashboard สมาชิก
+window.loadShopCatalog = async function() {
+    const container = document.getElementById('shopCatalogFeed');
+    if(!container) return;
+
+    try {
+        // ดึงร้านค้าที่อนุมัติแล้ว
+        const shopSnap = await db.collection("shops").where("status", "==", "อนุมัติแล้ว").get();
+        if (shopSnap.empty) {
+            container.innerHTML = `<div class="text-center text-muted small py-3 w-100 bg-white rounded-4 border">ยังไม่มีสินค้าร้านค้าสวัสดิการเปิดจำหน่าย</div>`;
+            return;
+        }
+
+        let html = "";
+        
+        // วนลูปเข้าไปดึงสินค้าในแต่ละร้าน (ดึงเฉพาะที่มีสต็อก > 0)
+        for (const shopDoc of shopSnap.docs) {
+            const shopId = shopDoc.id;
+            const shopData = shopDoc.data();
+            
+            const productSnap = await db.collection("shops").doc(shopId).collection("products")
+                                      .where("stock", ">", 0)
+                                      .orderBy("stock", "desc").limit(5).get();
+            
+            productSnap.forEach(pDoc => {
+                const p = pDoc.data();
+                const pId = pDoc.id;
+                const imgUrl = p.imageUrl || 'https://images.unsplash.com/photo-1549465220-1a8b9238cd48?w=200&q=80';
+                
+                // รูปแบบการ์ดสินค้าในแนวนอนเลื่อนได้ (คล้ายๆ รางวัล)
+                html += `
+                    <div class="reward-card" style="min-width: 160px; max-width: 160px;">
+                        <img src="${imgUrl}" class="reward-img" alt="Product">
+                        <div class="p-2 d-flex flex-column flex-grow-1 text-start">
+                            <strong class="text-dark d-block text-truncate mb-1" style="font-size: 0.8rem;">${p.name}</strong>
+                            <small class="text-muted d-block text-truncate mb-2" style="font-size: 0.65rem;"><i class="fa-solid fa-store me-1"></i>${shopData.shopName}</small>
+                            <div class="mt-auto d-flex justify-content-between align-items-center">
+                                <span class="text-success fw-bold" style="font-size: 0.9rem;">฿${parseFloat(p.price).toLocaleString()}</span>
+                                <button class="btn btn-sm btn-primary rounded-circle shadow-sm" style="width: 28px; height: 28px; padding: 0;" onclick="addToCart('${shopId}', '${pId}', '${p.name}', ${p.price}, ${p.stock})">
+                                    <i class="fa-solid fa-cart-plus" style="font-size: 0.75rem;"></i>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                `;
+            });
+        }
+        
+        container.innerHTML = html || `<div class="text-center text-muted small py-3 w-100 bg-white rounded-4 border">ยังไม่มีสินค้าที่มีสต็อกพร้อมขาย</div>`;
+    } catch(e) {
+        container.innerHTML = `<div class="text-danger small p-3">โหลดข้อมูลสินค้าขัดข้อง: ${e.message}</div>`;
+    }
+}
+
+// 2. ฟังก์ชันเพิ่มสินค้าลงตะกร้า
+window.addToCart = function(shopId, productId, name, price, stockLimit) {
+    if (stockLimit <= 0) return Swal.fire('ขออภัย', 'สินค้านี้หมดสต็อกชั่วคราว', 'warning');
+    
+    // เช็คว่ามีสินค้านี้ในตะกร้าหรือยัง
+    const existingItem = window.memberCart.find(item => item.productId === productId);
+    
+    if (existingItem) {
+        if (existingItem.qty >= stockLimit) {
+            return Swal.fire('แจ้งเตือน', `คุณสามารถสั่งซื้อได้สูงสุด ${stockLimit} ชิ้นตามสต็อกที่มี`, 'warning');
+        }
+        existingItem.qty += 1;
+        Swal.fire({ icon: 'success', title: 'เพิ่มจำนวนสินค้าแล้ว', toast: true, position: 'top-end', showConfirmButton: false, timer: 1000 });
+    } else {
+        window.memberCart.push({ shopId, productId, name, price: parseFloat(price), qty: 1, maxStock: parseInt(stockLimit) });
+        Swal.fire({ icon: 'success', title: 'หยิบใส่ตะกร้าสำเร็จ!', toast: true, position: 'top-end', showConfirmButton: false, timer: 1000 });
+    }
+    
+    updateCartBadge();
+};
+
+// 3. อัปเดตตัวเลขไอคอนตะกร้าบนหน้าจอ
+window.updateCartBadge = function() {
+    const badge = document.getElementById('cartItemCountBadge');
+    if(!badge) return;
+    
+    const totalItems = window.memberCart.reduce((sum, item) => sum + item.qty, 0);
+    if(totalItems > 0) {
+        badge.innerText = totalItems;
+        badge.style.display = 'flex';
+    } else {
+        badge.style.display = 'none';
+    }
+}
+
+// 4. ฟังก์ชันเปิดดูตะกร้าและปรับจำนวน
+window.openCart = function() {
+    if (window.memberCart.length === 0) {
+        return Swal.fire('ตะกร้าว่างเปล่า', 'ยังไม่ได้เลือกสินค้าใดๆ เลยครับ', 'info');
+    }
+
+    let totalAmount = 0;
+    let itemsHtml = '';
+    
+    window.memberCart.forEach((item, index) => {
+        const itemTotal = item.price * item.qty;
+        totalAmount += itemTotal;
+        
+        itemsHtml += `
+            <div class="d-flex justify-content-between align-items-center bg-white p-2 mb-2 rounded-3 border shadow-sm text-start">
+                <div class="flex-grow-1" style="min-width: 0;">
+                    <strong class="d-block text-dark text-truncate" style="font-size: 0.85rem;">${item.name}</strong>
+                    <span class="text-success fw-bold small">฿${item.price.toLocaleString()}</span> <span class="text-muted" style="font-size:0.65rem;">(x${item.qty})</span>
+                </div>
+                <div class="d-flex align-items-center gap-1 ms-2">
+                    <button class="btn btn-sm btn-light border rounded-circle text-danger fw-bold d-flex align-items-center justify-content-center" style="width: 25px; height: 25px; padding: 0;" onclick="updateCartQty(${index}, -1)">-</button>
+                    <span class="fw-bold px-1" style="width: 25px; text-align: center; font-size: 0.9rem;">${item.qty}</span>
+                    <button class="btn btn-sm btn-light border rounded-circle text-success fw-bold d-flex align-items-center justify-content-center" style="width: 25px; height: 25px; padding: 0;" onclick="updateCartQty(${index}, 1)">+</button>
+                </div>
+            </div>
+        `;
+    });
+
+    Swal.fire({
+        title: '<div class="text-primary"><i class="fa-solid fa-cart-shopping me-2"></i> ตะกร้าสินค้า</div>',
+        html: `
+            <div style="font-family: 'Prompt'; background-color: #F8FAFC; padding: 10px; border-radius: 12px;">
+                <div style="max-height: 250px; overflow-y: auto;" class="mb-3 px-1">
+                    ${itemsHtml}
+                </div>
+                <div class="d-flex justify-content-between align-items-center border-top border-secondary border-opacity-25 pt-3 px-2">
+                    <strong class="text-dark">ยอดรวมสุทธิ:</strong>
+                    <strong class="text-success fs-4">฿${totalAmount.toLocaleString('en-US', {minimumFractionDigits: 2})}</strong>
+                </div>
+            </div>
+        `,
+        showCancelButton: true,
+        confirmButtonText: '<i class="fa-solid fa-credit-card me-1"></i> สั่งซื้อเลย',
+        cancelButtonText: 'ปิด',
+        confirmButtonColor: '#10B981',
+        cancelButtonColor: '#64748B'
+    }).then((result) => {
+        if (result.isConfirmed) {
+            proceedToCheckout(totalAmount);
+        }
+    });
+};
+
+// 5. ปรับเพิ่มลดจำนวน
+window.updateCartQty = function(index, change) {
+    const item = window.memberCart[index];
+    item.qty += change;
+    
+    if (item.qty > item.maxStock) {
+        item.qty = item.maxStock;
+        Swal.fire('ข้อจำกัด', 'สินค้าในสต็อกมีจำกัด', 'warning');
+    } else if (item.qty <= 0) {
+        window.memberCart.splice(index, 1); 
+    }
+    
+    updateCartBadge();
+    setTimeout(() => { window.openCart(); }, 100); 
+};
+
+// 6. ดำเนินการชำระเงิน (สร้างบิลส่งไปหลังบ้าน และลดสต็อก)
+window.proceedToCheckout = async function(totalAmount) {
+    const memPhone = cachedUserData?.phone || "";
+    const memAddress = cachedUserData?.address || "";
+    
+    const { value: checkoutData } = await Swal.fire({
+        title: 'ยืนยันการสั่งซื้อ',
+        html: `
+            <div class="text-start" style="font-family:'Prompt';">
+                <div class="alert alert-success bg-opacity-10 border-success border-opacity-25 py-2 px-3 mb-3">
+                    <strong class="text-success d-block text-center fs-5">ยอดชำระ: ฿${totalAmount.toLocaleString('en-US', {minimumFractionDigits: 2})}</strong>
+                </div>
+                
+                <label class="small fw-bold text-muted mb-1">เบอร์โทรศัพท์สำหรับจัดส่ง *</label>
+                <input type="tel" id="checkoutPhone" class="form-control-modern w-100 mb-3" value="${memPhone}" placeholder="08X-XXX-XXXX">
+                
+                <label class="small fw-bold text-muted mb-1">ที่อยู่จัดส่ง *</label>
+                <textarea id="checkoutAddress" class="form-control-modern w-100 mb-3" rows="2" placeholder="บ้านเลขที่, ตำบล, อำเภอ...">${memAddress}</textarea>
+                
+                <label class="small fw-bold text-muted mb-1">ช่องทางการชำระเงิน *</label>
+                <select id="checkoutPayment" class="form-select-modern w-100 fw-bold text-primary">
+                    <option value="เก็บเงินปลายทาง">เก็บเงินปลายทาง (COD)</option>
+                    <option value="หักเงินฝาก/แต้ม">หักจากแต้ม/เงินฝากสะสม (ถ้ามี)</option>
+                </select>
+            </div>
+        `,
+        showCancelButton: true,
+        confirmButtonText: '<i class="fa-solid fa-paper-plane me-1"></i> ยืนยันคำสั่งซื้อ',
+        cancelButtonText: 'ยกเลิก',
+        confirmButtonColor: '#2563EB',
+        preConfirm: () => {
+            const phone = document.getElementById('checkoutPhone').value.trim();
+            const address = document.getElementById('checkoutAddress').value.trim();
+            const payment = document.getElementById('checkoutPayment').value;
+            
+            if (!phone || !address) {
+                Swal.showValidationMessage('กรุณากรอกเบอร์โทรและที่อยู่ให้ครบถ้วน');
+                return false;
+            }
+            return { phone, address, payment, totalAmount };
+        }
+    });
+
+    if (checkoutData) {
+        AppHelper.showLoader(true, "กำลังยืนยันคำสั่งซื้อและตัดสต็อก...");
+        try {
+            const customerName = cachedUserData?.fullName || "สมาชิกทั่วไป";
+            const customerUid = document.getElementById('uid').value || "USER_ID";
+            
+            // 🌟 สร้างระบบตัดสต็อกหลายๆ ร้านพร้อมกัน (รองรับตะกร้าที่มีของหลายร้าน)
+            // แยกสินค้าตามร้านก่อน
+            const ordersByShop = {};
+            window.memberCart.forEach(item => {
+                if(!ordersByShop[item.shopId]) ordersByShop[item.shopId] = { total: 0, items: [] };
+                ordersByShop[item.shopId].items.push(item);
+                ordersByShop[item.shopId].total += (item.price * item.qty);
+            });
+            
+            // ใช้ Firestore Batch ในการเขียนข้อมูลหลายจุดพร้อมกันให้ปลอดภัย
+            const batch = db.batch();
+            
+            for (const shopId in ordersByShop) {
+                const shopOrder = ordersByShop[shopId];
+                const orderId = "ORD" + Date.now().toString().slice(-6) + Math.floor(Math.random() * 100).toString().padStart(2,'0');
+                
+                // 6.1 บันทึกบิลเข้าร้านค้านั้นๆ
+                const orderRef = db.collection("shops").doc(shopId).collection("orders").doc(orderId);
+                batch.set(orderRef, {
+                    orderId: orderId,
+                    customerUid: customerUid,
+                    customerName: customerName,
+                    customerPhone: checkoutData.phone,
+                    shippingAddress: checkoutData.address,
+                    paymentMethod: checkoutData.payment,
+                    totalAmount: shopOrder.total,
+                    items: shopOrder.items,
+                    status: "รอตรวจสอบ", 
+                    timestamp: firebase.firestore.FieldValue.serverTimestamp()
+                });
+                
+                // 6.2 ตัดสต็อกสินค้าในร้าน (อัปเดตลบด้วย FieldValue.increment ค่าติดลบ)
+                shopOrder.items.forEach(item => {
+                    const productRef = db.collection("shops").doc(shopId).collection("products").doc(item.productId);
+                    batch.update(productRef, {
+                        stock: firebase.firestore.FieldValue.increment(-item.qty)
+                    });
+                });
+            }
+            
+            // สั่งทำรายการทั้งหมดพร้อมกัน
+            await batch.commit();
+            
+            // 6.3 เคลียร์ตะกร้า และโหลดหน้าใหม่
+            window.memberCart = [];
+            updateCartBadge();
+            loadShopCatalog(); // โหลดรูปสินค้าใหม่เพื่ออัปเดตจำนวนสต็อกบนหน้าจอ
+            
+            AppHelper.showLoader(false);
+            Swal.fire({
+                icon: 'success',
+                title: 'สั่งซื้อสำเร็จ!',
+                text: 'ออเดอร์ของคุณถูกส่งไปยังร้านค้าแล้ว สินค้าจะถูกจัดส่งไปตามที่อยู่ครับ',
+                confirmButtonColor: '#10B981'
+            });
+
+        } catch (error) {
+            AppHelper.showLoader(false);
+            Swal.fire('ข้อผิดพลาด', 'ไม่สามารถส่งคำสั่งซื้อได้: ' + error.message, 'error');
+        }
+    }
+};
+
+// 7. เพิ่มคำสั่งให้โหลดสินค้า ตอนเปิดหน้าแดชบอร์ด
+// 💡 เราจะแทรกคำสั่ง loadShopCatalog(); เข้าไปในฟังก์ชัน renderDashboardData()
