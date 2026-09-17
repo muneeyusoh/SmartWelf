@@ -353,6 +353,14 @@
             </div>
         </div>
         <!-- 🌟 สิ้นสุดส่วนที่เพิ่มไอคอนตา -->
+         <!-- 🛒 ปุ่มตะกร้าสินค้า (เพิ่มตรงนี้) -->
+      <div class="position-absolute top-0 end-0 mt-3 me-3" style="z-index: 10;">
+          <button class="btn btn-light rounded-circle shadow-sm border-0 position-relative d-flex align-items-center justify-content-center" style="width: 40px; height: 40px; color: #10B981;" onclick="openCart()">
+              <i class="fa-solid fa-cart-shopping fs-5"></i>
+              <!-- ตัวเลขจำนวนสินค้าในตะกร้า -->
+              <span id="cartItemCountBadge" class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger shadow-sm" style="font-size: 0.6rem; display: none;">0</span>
+          </button>
+      </div>
         
         <div class="d-flex align-items-center gap-2">
             <span id="dashStatusBadge" class="badge-status shadow-sm mb-0 px-2 py-1" style="font-size: 0.7rem;">รอตรวจสอบ</span>
@@ -439,6 +447,22 @@
           <h6 class="fw-bold text-dark mb-0 m-0">แลกของรางวัลชุมชน</h6>
         </div>
       </div>
+
+      <!-- 🛒 ตลาดสินค้าชุมชน (Shop Catalog) -->
+    <div class="text-start mt-4 mx-1">
+      <div class="d-flex align-items-center justify-content-between mb-3 px-1">
+        <div class="d-flex align-items-center">
+          <i class="fa-solid fa-store text-success fs-4 me-2"></i>
+          <h6 class="fw-bold text-dark mb-0 m-0">ร้านค้าสวัสดิการชุมชน</h6>
+        </div>
+      </div>
+      <!-- คอนเทนเนอร์สำหรับเลื่อนสินค้าซ้ายขวา -->
+      <div id="shopCatalogFeed" class="horizontal-scroll-row pb-2">
+         <div class="text-center text-muted small p-3 w-100 bg-white rounded-4 border">
+            <div class="spinner-border spinner-border-sm mb-2 text-success"></div><br>กำลังโหลดสินค้า...
+         </div>
+      </div>
+    </div>
       <!-- คอนเทนเนอร์สำหรับเลื่อนซ้ายขวา -->
       <div id="memberRewardsFeed" class="horizontal-scroll-row pb-2">
          <div class="text-center text-muted small p-3 w-100 bg-white rounded-4 border">
@@ -553,6 +577,6 @@
 <script src="./assets/js/member/member-config.js?v=12"></script>
 
 <!-- 3. โหลดสคริปต์หน้าหลักสมาชิก -->
-<script src="./assets/js/member/member-main.js?v=15"></script>
+<script src="./assets/js/member/member-main.js?v=16"></script>
 </body>
 </html>

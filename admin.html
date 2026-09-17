@@ -158,25 +158,26 @@
     <button onclick="logoutApp()" class="btn btn-sm btn-danger rounded-pill px-3 py-1 text-white" style="font-size: 0.7rem;"><i class="fa-solid fa-power-off me-1"></i> ออก</button>
   </div>
 
- <!-- 🌟 ปรับโฉม Bottom Nav ให้ยึดติดขอบล่างเสมอ -->
+ <!-- 🌟 แถบเมนูด้านล่าง (5 ปุ่มหลักตามสิทธิ์) -->
   <nav class="bottom-nav d-flex justify-content-around align-items-center" id="bottomNav" style="position: fixed; bottom: 0; left: 0; width: 100%; background-color: #ffffff; z-index: 1040; border-top-left-radius: 20px; border-top-right-radius: 20px; box-shadow: 0 -4px 20px rgba(0,0,0,0.08); padding-bottom: env(safe-area-inset-bottom, 15px);">
     
     <button class="nav-item" id="nav-overview" onclick="switchAdminTab('admin-view-overview', this); loadDashboardOverview();"><i class="fa-solid fa-chart-pie mb-1"></i> ภาพรวม</button>
+    
     <button class="nav-item" id="nav-members" onclick="switchAdminTab('admin-view-members', this); loadMembersData();"><i class="fa-solid fa-users mb-1"></i> สมาชิก</button>
     
-    <!-- 🌟 ปุ่มตรงกลาง (Center FAB) สำหรับ Admin-ผู้ดูแล & ศูนย์ประสานงาน -->
-    <div class="fab-container d-none" id="center-action-btn" style="position: relative; top: -20px; margin: 0 5px;">
+    <!-- 🌟 ปุ่มตรงกลาง (Center FAB) ธุรกรรมด่วน (ทุกคนเห็น) -->
+    <div class="fab-container" id="center-action-btn" style="position: relative; top: -20px; margin: 0 5px;">
         <button class="btn btn-primary d-flex align-items-center justify-content-center shadow-lg" style="width: 55px; height: 55px; border-radius: 50%; border: 4px solid #ffffff; background: linear-gradient(135deg, #2563EB 0%, #1D4ED8 100%); transition: transform 0.2s;" onclick="new bootstrap.Offcanvas(document.getElementById('actionMenuOffcanvas')).show();" onmousedown="this.style.transform='scale(0.9)'" onmouseup="this.style.transform='scale(1)'">
-            <i class="fa-solid fa-qrcode fs-4 text-white"></i>
+            <i class="fa-solid fa-bolt fs-4 text-white"></i>
         </button>
     </div>
 
-    <button class="nav-item" id="nav-ledger" onclick="switchAdminTab('admin-view-ledger', this); loadLedgerData();">
-      <i class="fa-solid fa-wallet mb-1"></i><span class="nav-badge" id="nav-badge-ledger"></span> การเงิน
+    <!-- ข่าวสารชุมชน -->
+    <button class="nav-item" id="nav-news" onclick="switchAdminTab('admin-view-news', this); window.loadAdminNews();">
+        <i class="fa-solid fa-bullhorn mb-1"></i> ข่าวสาร
     </button>
-    <button class="nav-item" id="nav-claims" onclick="switchAdminTab('admin-view-claims', this); loadClaims();">
-      <i class="fa-solid fa-hand-holding-medical mb-1"></i><span class="nav-badge" id="nav-badge-claims"></span> สวัสดิการ
-    </button>
+    
+    <!-- แท็บเมนูการตั้งค่า -->
     <button class="nav-item" id="nav-menu" data-bs-toggle="offcanvas" data-bs-target="#menuOffcanvas"><i class="fa-solid fa-bars mb-1"></i> เมนู</button>
   </nav>
 
@@ -195,6 +196,15 @@
     </div>
     <div class="offcanvas-body px-3 pt-3">
       <div class="d-flex flex-column gap-2">
+        <!-- 🔒 ปุ่มลับ: ระบบการเงิน (จะโชว์เฉพาะ Master / Finance) -->
+        <button id="btn-menu-ledger-secret" class="admin-card admin-card-hover border-0 text-start w-100 d-flex align-items-center mb-3 p-3 d-none" style="background: linear-gradient(135deg, #FEF2F2 0%, #FEE2E2 100%); border-left: 4px solid #DC2626 !important;" onclick="window.closeMenuAndSwitchTab('admin-view-ledger'); window.loadLedgerData();">
+          <div class="icon-box bg-danger text-white me-3 shadow-sm"><i class="fa-solid fa-lock"></i></div> 
+          <div class="flex-grow-1">
+             <span class="fw-bold text-danger d-block">ระบบการเงินส่วนกลาง</span>
+             <small class="text-danger opacity-75" style="font-size:0.7rem;">เฉพาะผู้บริหารกองทุน</small>
+          </div>
+        </button>
+
         <button id="btn-menu-settings" class="admin-card admin-card-hover border-0 text-start w-100 d-flex align-items-center mb-0 p-3" onclick="window.closeMenuAndSwitchTab('admin-view-settings'); window.loadGlobalSettings();">
           <div class="icon-box bg-secondary bg-opacity-10 text-secondary me-3"><i class="fa-solid fa-gear"></i></div> <span class="fw-bold text-dark">ตั้งค่าระบบ (Global)</span>
         </button>
@@ -358,6 +368,25 @@
             <button id="btn-add-member" class="btn btn-sm btn-primary rounded-pill px-3 py-2 fw-bold shadow-sm" onclick="openAdminRegisterModal()"><i class="fa-solid fa-plus"></i> เพิ่มสมาชิก</button>
         </div>
       </div>
+
+      <!-- 🌟 แบนเนอร์ทางเข้าหน้าสวัสดิการ (แทรกตรงนี้เลยครับ!) -->
+      <div class="admin-card border-0 p-3 mb-3 cursor-pointer" style="background: linear-gradient(135deg, #FFF1F2 0%, #FFE4E6 100%); border: 1px solid rgba(226, 29, 72, 0.15) !important;" onclick="switchAdminTab('admin-view-claims'); loadClaims();">
+          <div class="d-flex justify-content-between align-items-center">
+              <div class="d-flex align-items-center gap-3">
+                  <div class="icon-box bg-danger text-white shadow-sm"><i class="fa-solid fa-hand-holding-medical"></i></div>
+                  <div>
+                      <h6 class="fw-bold text-danger mb-0">คำขอเบิกสวัสดิการ</h6>
+                      <small class="text-danger opacity-75" style="font-size: 0.75rem;">ตรวจสอบและอนุมัติการจ่ายเงิน</small>
+                  </div>
+              </div>
+              <div>
+                  <span class="badge bg-danger rounded-pill shadow-sm me-2 d-none" id="badge-pending-claims-inside">0</span>
+                  <i class="fa-solid fa-chevron-right text-danger"></i>
+              </div>
+          </div>
+      </div>
+      
+      <!-- (โค้ดเดิมส่วนคำขอผูกบัญชี LINE และช่องค้นหา จะอยู่ต่อจากตรงนี้ไปครับ) -->
       
       <div id="pendingLinkAlert" class="admin-card border-0 bg-primary bg-opacity-10 mb-3" style="display:none;">
           <div class="d-flex justify-content-between align-items-center">
@@ -1372,16 +1401,16 @@
 <script src="./assets/js/admin/admin-config.js?v=5"></script>
 
 <!-- 2. โหลดระบบ Auth และ UI ของแอดมิน -->
-<script src="./assets/js/admin/admin-auth.js?v=18"></script>
+<script src="./assets/js/admin/admin-auth.js?v=19"></script>
 <script src="./assets/js/admin/admin-ui.js?v=5"></script>
 
 <!-- 3. โหลด Modules การทำงานต่างๆ -->
 <script src="./assets/js/admin/dashboard.js?v=12"></script>
 <script src="./assets/js/admin/members.js?v=11"></script>
-<script src="./assets/js/admin/ledger.js?v=36"></script>
+<script src="./assets/js/admin/ledger.js?v=37"></script>
 <script src="./assets/js/admin/claims.js?v=10"></script>
 <script src="./assets/js/admin/shops-news.js?v=11"></script>
-<script src="./assets/js/admin/shops.js?v=10"></script>
+<script src="./assets/js/admin/shops.js?v=12"></script>
 
 <!-- 🌟 โหลด Modules ที่แยกเป็น 3 ไฟล์ -->
 <script src="./assets/js/admin/settings-global.js?v=11"></script>
