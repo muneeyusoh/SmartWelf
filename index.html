@@ -353,13 +353,6 @@
             <div class="bg-white bg-opacity-25 rounded-circle d-flex align-items-center justify-content-center shadow-sm" style="width: 26px; height: 26px; backdrop-filter: blur(5px); cursor: pointer;" onclick="showProfilePopup()">
                 <i class="fa-solid fa-eye text-white" style="font-size: 0.8rem;"></i>
             </div>
-
-            <!-- 🛒 ปุ่มตะกร้าสินค้า (ย้ายมาวางตรงนี้!) -->
-            <div class="bg-white rounded-circle d-flex align-items-center justify-content-center shadow-sm position-relative ms-1" style="width: 28px; height: 28px; cursor: pointer;" onclick="openCart()">
-                <i class="fa-solid fa-cart-shopping text-success" style="font-size: 0.8rem;"></i>
-                <span id="cartItemCountBadge" class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger shadow-sm" style="font-size: 0.6rem; display: none;">0</span>
-            </div>
-        </div>
         <!-- 🌟 สิ้นสุดส่วนที่เพิ่มไอคอนตา และ ตะกร้าสินค้า 🌟 -->
         
         <div class="d-flex align-items-center gap-2">
@@ -455,6 +448,12 @@
           <i class="fa-solid fa-store text-success fs-4 me-2"></i>
           <h6 class="fw-bold text-dark mb-0 m-0">ร้านค้าสวัสดิการชุมชน</h6>
         </div>
+        <!-- 🛒 ฝั่งขวา: ปุ่มตะกร้าสินค้า (ย้ายมาตรงนี้) -->
+        <div class="bg-white rounded-circle d-flex align-items-center justify-content-center shadow-sm position-relative border" style="width: 32px; height: 32px; cursor: pointer;" onclick="openCart()">
+            <i class="fa-solid fa-cart-shopping text-success" style="font-size: 0.85rem;"></i>
+            <span id="cartItemCountBadge" class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger shadow-sm" style="font-size: 0.65rem; display: none;">0</span>
+        </div>
+
       </div>
       <!-- คอนเทนเนอร์สำหรับเลื่อนสินค้าซ้ายขวา -->
       <div id="shopCatalogFeed" class="horizontal-scroll-row pb-2">
