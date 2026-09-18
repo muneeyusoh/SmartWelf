@@ -414,7 +414,16 @@ function applyRoleRestrictions() {
         }
     }
 
-    // 4. บล็อกการแก้ไขสำหรับฝ่ายตรวจสอบและภาคีเครือข่าย
+    // 🌟 4. ปลดล็อกปุ่มสแกนตรงกลาง (FAB) ให้ Admin-การเงิน และ ศูนย์ประสานงาน
+    // (เพราะพวกเขาต้องใช้สแกนรับเงินจากแอดมินระดับหมู่บ้าน)
+    const scanBtnCenter = document.querySelector('.nav-item-scan-wrapper'); 
+    if (scanBtnCenter) {
+        if (['Admin-Master', 'Admin-การเงิน', 'Admin-ศูนย์ประสานงาน'].includes(r)) {
+            scanBtnCenter.style.display = 'flex'; // หรือบล็อก/นำคลาสซ่อนออก
+        }
+    }
+
+    // 5. บล็อกการแก้ไขสำหรับฝ่ายตรวจสอบและภาคีเครือข่าย
     if (['Admin-ตรวจสอบ', 'Viewer-ภาคีเครือข่าย'].includes(r)) {
         const hideIds = ['btn-add-member', 'btnAddAdmin', 'financeApproveBtnBox'];
         hideIds.forEach(id => { const el = document.getElementById(id); if (el) el.style.display = 'none'; });
@@ -422,15 +431,19 @@ function applyRoleRestrictions() {
         const quickActions = document.querySelector('.quick-actions-scroll-container');
         if (quickActions) quickActions.style.display = 'none';
 
+        // ปิดปุ่มสแกนตรงกลางด้วยสำหรับฝ่ายตรวจสอบ
+        if (scanBtnCenter) scanBtnCenter.style.display = 'none';
+
         const style = document.createElement('style');
         style.innerHTML = `
             .amount-badge-wrapper, .input-overlay, .member-checkbox-wrapper { display: none !important; }
             button[onclick^="changeMemberStatus"], button[onclick^="editMemberProfile"], button[onclick^="generateLinkQR"] { display: none !important; }
-            button[onclick^="openDailyLedgerForm"], button[onclick^="openTransferForm"] { display: none !important; }
+            button[onclick^="openDailyLedgerForm"], button[onclick^="openTransferForm"], button[onclick^="scanToReceiveAdminFunds"] { display: none !important; }
         `;
         document.head.appendChild(style);
     }
 }
+
 window.createAuditLog = async function(actionTitle, detailDesc) {
     if (!AdminState.currentAdmin) return;
     try {
@@ -444,7 +457,6 @@ window.createAuditLog = async function(actionTitle, detailDesc) {
         });
     } catch (e) { console.error("Audit Log Error:", e); }
 };
-
 // ==========================================
 // 🚀 ระบบล็อกอินด้วย LINE (LIFF UID Verification)
 // ==========================================

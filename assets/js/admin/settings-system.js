@@ -134,22 +134,29 @@ window.loadAdminsData = async function() {
             ` : '';
 
             html += `
-            <div class="admin-card p-3 mb-3 d-flex justify-content-between align-items-center bg-white rounded-4 border shadow-sm ${!isActive ? 'opacity-50' : ''}">
-                <div class="d-flex align-items-center gap-3 w-100">
-                    <div class="icon-box ${isActive ? 'bg-primary text-primary' : 'bg-secondary text-secondary'} bg-opacity-10 rounded-circle flex-shrink-0" style="width: 50px; height: 50px;">
-                        <i class="fa-solid fa-user-shield fs-5"></i>
-                    </div>
-                    <div class="flex-grow-1" style="min-width: 0;">
-                        <strong class="text-dark d-block text-truncate" style="font-size: 0.95rem;">${adm.name || email} ${isMe ? '<span class="badge bg-success ms-1">คุณ</span>' : ''}</strong>
-                        <small class="text-muted d-block text-truncate mb-1">${email} | ศูนย์: ${adm.center || '-'}</small>
-                        <div class="d-flex gap-2 align-items-center flex-wrap">
-                            ${roleBadge}
-                            <span class="badge ${isActive ? 'bg-success' : 'bg-danger'} bg-opacity-10 ${isActive ? 'text-success' : 'text-danger'} border" style="font-size: 0.65rem;">${isActive ? 'ใช้งาน' : 'ระงับ'}</span>
+            <div class="admin-card p-3 mb-3 bg-white rounded-4 border shadow-sm ${!isActive ? 'opacity-50' : ''}">
+                <!-- 🌟 เปลี่ยนมาใช้ flex-column (เรียงลงล่างในมือถือ) และ flex-md-row (เรียงซ้ายขวาในคอม) -->
+                <div class="d-flex flex-column flex-md-row justify-content-between align-items-md-center gap-2">
+                    
+                    <div class="d-flex align-items-center gap-3 flex-grow-1" style="min-width: 0;">
+                        <div class="icon-box ${isActive ? 'bg-primary text-primary' : 'bg-secondary text-secondary'} bg-opacity-10 rounded-circle flex-shrink-0 d-flex justify-content-center align-items-center" style="width: 48px; height: 48px;">
+                            <i class="fa-solid fa-user-shield fs-5"></i>
+                        </div>
+                        <div class="flex-grow-1" style="min-width: 0;">
+                            <strong class="text-dark d-block text-truncate" style="font-size: 0.95rem;">${adm.name || email} ${isMe ? '<span class="badge bg-success ms-1">คุณ</span>' : ''}</strong>
+                            <small class="text-muted d-block text-truncate mb-1">${email} | ศูนย์: ${adm.center || '-'}</small>
+                            <div class="d-flex gap-2 align-items-center flex-wrap">
+                                ${roleBadge}
+                                <span class="badge ${isActive ? 'bg-success' : 'bg-danger'} bg-opacity-10 ${isActive ? 'text-success' : 'text-danger'} border" style="font-size: 0.65rem;">${isActive ? 'ใช้งาน' : 'ระงับ'}</span>
+                            </div>
                         </div>
                     </div>
-                </div>
-                <div class="text-end flex-shrink-0 ms-2">
-                    ${actionBtns}
+                    
+                    <!-- 🌟 ส่วนปุ่มจะตกลงมาอยู่ด้านล่าง และมีเส้นคั่นบางๆ ในมือถือ -->
+                    <div class="text-end border-top border-md-0 pt-2 pt-md-0 mt-1 mt-md-0 flex-shrink-0">
+                        ${actionBtns}
+                    </div>
+                    
                 </div>
             </div>`;
         });

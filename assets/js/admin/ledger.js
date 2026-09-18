@@ -538,6 +538,13 @@ window.getRealtimeBalances = async function() {
 // 📊 ส่วนที่ 5: สมุดบัญชีรายวันแบบปฏิทิน (Daily Calendar Ledger)
 // ============================================================================
 
+// ============================================================================
+// 📊 ส่วนที่ 5: สมุดบัญชีรายวันแบบปฏิทิน (Daily Calendar Ledger)
+// ============================================================================
+
+// 🌟 ตัวแปรเก็บช่วงเวลา
+let selectedLedgerRange = null; 
+
 window.generateCalendarStrip = function() {
     const container = document.getElementById('calendarStrip');
     if(!container) return;
@@ -545,25 +552,24 @@ window.generateCalendarStrip = function() {
     let html = "";
     const daysThai = ['อา.', 'จ.', 'อ.', 'พ.', 'พฤ.', 'ศ.', 'ส.'];
     const today = new Date();
-    
-    // 🌟 1. คำนวณวันที่ 1 ตุลาคม ของปีงบประมาณปัจจุบัน
-    let startFiscalYear = today.getFullYear();
-    // ถ้าเดือนปัจจุบันน้อยกว่า ต.ค. (เดือน 0-8 คือ ม.ค.-ก.ย.) แปลว่ายังเป็นปีงบของปีที่แล้ว
-    if (today.getMonth() < 9) startFiscalYear -= 1; 
-    const minFiscalDate = `${startFiscalYear}-10-01`;
-    const maxDate = getLocalDateString(today);
 
-    // 🌟 2. สร้างปุ่มปฏิทิน (Date Picker) ไว้ซ้ายสุด
+    // 🌟 1. ปุ่ม "ทั้งหมด"
+    const isAllActive = selectedLedgerDate === 'all';
     html += `
-    <div class="calendar-date-item bg-light border border-primary border-opacity-25 shadow-sm" id="customDateBtn" style="min-width: 65px; position: relative; overflow: hidden; cursor: pointer;">
-        <span class="day-name text-primary"><i class="fa-solid fa-calendar-days"></i></span>
-        <span class="date-num text-primary" style="font-size: 0.75rem; margin-top: 5px;">ระบุวัน</span>
-        <!-- ซ่อน input date ไว้ข้างหลังปุ่ม -->
-        <input type="date" id="customLedgerDate" class="position-absolute top-0 start-0 w-100 h-100 opacity-0 cursor-pointer" 
-               onchange="handleCustomDateSelect(this.value)" min="${minFiscalDate}" max="${maxDate}">
+    <div class="calendar-date-item border shadow-sm ${isAllActive ? 'active-date bg-primary text-white' : 'bg-light text-primary'}" id="btnShowAllTx" onclick="selectLedgerDate('all')" style="min-width: 65px; cursor: pointer; border-color: rgba(37, 99, 235, 0.25) !important;">
+        <span class="day-name ${isAllActive ? 'text-white' : 'text-primary'}"><i class="fa-solid fa-layer-group"></i></span>
+        <span class="date-num ${isAllActive ? 'text-white' : 'text-primary'}" style="font-size: 0.75rem; margin-top: 5px;">ทั้งหมด</span>
+    </div>`;
+
+    // 🌟 2. ปุ่ม "ระบุช่วงเวลา" (กดแล้วจะเปิดป๊อปอัปให้เลือก เริ่ม-จบ)
+    const isRangeActive = selectedLedgerDate === 'range';
+    html += `
+    <div class="calendar-date-item border shadow-sm ${isRangeActive ? 'active-date bg-primary text-white' : 'bg-light text-primary'}" id="customDateBtn" onclick="openDateRangeSelector()" style="min-width: 65px; cursor: pointer; border-color: rgba(37, 99, 235, 0.25) !important;">
+        <span class="day-name ${isRangeActive ? 'text-white' : 'text-primary'}"><i class="fa-solid fa-calendar-week"></i></span>
+        <span class="date-num ${isRangeActive ? 'text-white' : 'text-primary'}" style="font-size: 0.75rem; margin-top: 5px;" id="rangeBtnText">ระบุช่วง</span>
     </div>`;
     
-    // 🌟 3. วนลูปสร้างปุ่มวันย้อนหลัง (เอาแค่ 14 วัน เพื่อความสวยงาม ส่วนวันเก่าๆ ให้กดปฏิทินเอา)
+    // 🌟 3. วนลูปสร้างปุ่มวันย้อนหลัง (14 วัน)
     for(let i = -1; i <= 14; i++) {
         const d = new Date(today);
         d.setDate(d.getDate() - i);
@@ -578,68 +584,60 @@ window.generateCalendarStrip = function() {
     }
     
     container.innerHTML = html;
-    setTimeout(() => { const activeEl = document.getElementById(`cal-date-${selectedLedgerDate}`); if(activeEl) activeEl.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'center' }); }, 100);
+    
+    // จัดการการเลื่อนหน้าจออัตโนมัติ
+    setTimeout(() => { 
+        if(selectedLedgerDate === 'all') {
+            document.getElementById('btnShowAllTx').scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'start' });
+        } else if (selectedLedgerDate === 'range') {
+            document.getElementById('customDateBtn').scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'start' });
+        } else {
+            const activeEl = document.getElementById(`cal-date-${selectedLedgerDate}`); 
+            if(activeEl) activeEl.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'center' }); 
+        }
+    }, 100);
     window.filterTransactionsByDate();
 };
 
 window.selectLedgerDate = function(dateStr) {
     selectedLedgerDate = dateStr;
-    document.querySelectorAll('.calendar-date-item').forEach(el => el.classList.remove('active-date'));
-    
-    // 🌟 คืนค่าสีของปุ่มปฏิทินให้กลับเป็นสถานะปกติ
-    const pickerBtn = document.getElementById('customDateBtn');
-    if (pickerBtn) {
-        pickerBtn.classList.remove('bg-primary', 'text-white');
-        pickerBtn.classList.add('bg-light');
-        pickerBtn.querySelector('.day-name').classList.replace('text-white', 'text-primary');
-        pickerBtn.querySelector('.date-num').classList.replace('text-white', 'text-primary');
-        pickerBtn.querySelector('.date-num').innerText = 'ระบุวัน';
-    }
-
-    const selectedEl = document.getElementById(`cal-date-${dateStr}`);
-    if(selectedEl) selectedEl.classList.add('active-date');
-    window.filterTransactionsByDate();
+    selectedLedgerRange = null; 
+    window.generateCalendarStrip(); 
 };
 
-// 🌟 4. ฟังก์ชันใหม่: จัดการเมื่อแอดมินเลือกวันที่จากปุ่มปฏิทิน
-window.handleCustomDateSelect = function(dateValue) {
-    if (!dateValue) return;
-    selectedLedgerDate = dateValue;
+// 🌟 4. ฟังก์ชันเปิดหน้าต่างให้เลือก วันเริ่มต้น - วันสิ้นสุด
+window.openDateRangeSelector = async function() {
+    const today = getLocalDateString(new Date());
     
-    // ล้างไฮไลต์แถบวันที่ปกติออกทั้งหมด
-    document.querySelectorAll('.calendar-date-item').forEach(el => el.classList.remove('active-date'));
-    
-    const pickerBtn = document.getElementById('customDateBtn');
-    const selectedEl = document.getElementById(`cal-date-${dateValue}`);
-    
-    if(selectedEl) {
-        // ถ้าวันที่เลือก อยู่ในแถบ 14 วัน ให้ไปไฮไลต์ที่ปุ่มนั้น
-        selectedEl.classList.add('active-date');
-        selectedEl.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'center' });
-        
-        // รีเซ็ตปุ่มปฏิทิน
-        if (pickerBtn) {
-            pickerBtn.classList.remove('bg-primary', 'text-white');
-            pickerBtn.classList.add('bg-light');
-            pickerBtn.querySelector('.day-name').classList.replace('text-white', 'text-primary');
-            pickerBtn.querySelector('.date-num').classList.replace('text-white', 'text-primary');
-            pickerBtn.querySelector('.date-num').innerText = 'ระบุวัน';
+    const { value: formValues } = await Swal.fire({
+        title: '<div class="text-primary"><i class="fa-solid fa-calendar-days me-2"></i> เลือกช่วงวันที่</div>',
+        html: `
+            <div class="text-start" style="font-family:'Prompt';">
+                <label class="small fw-bold text-muted mb-1">ตั้งแต่วันที่</label>
+                <input type="date" id="rangeStart" class="form-control-modern w-100 mb-3" max="${today}" value="${selectedLedgerRange?.start || today}">
+                
+                <label class="small fw-bold text-muted mb-1">ถึงวันที่</label>
+                <input type="date" id="rangeEnd" class="form-control-modern w-100 mb-2" max="${today}" value="${selectedLedgerRange?.end || today}">
+            </div>
+        `,
+        showCancelButton: true,
+        confirmButtonText: 'ค้นหาประวัติ',
+        cancelButtonText: 'ยกเลิก',
+        confirmButtonColor: '#2563EB',
+        preConfirm: () => {
+            const start = document.getElementById('rangeStart').value;
+            const end = document.getElementById('rangeEnd').value;
+            if(!start || !end) { Swal.showValidationMessage('กรุณาระบุวันที่ให้ครบถ้วน'); return false; }
+            if(start > end) { Swal.showValidationMessage('วันที่เริ่มต้น ต้องไม่มากกว่าวันที่สิ้นสุด'); return false; }
+            return { start, end };
         }
-    } else {
-        // ถ้าวันที่เลือก ย้อนหลังไปไกลกว่า 14 วัน ให้ไฮไลต์ที่ปุ่มปฏิทิน
-        if (pickerBtn) {
-            pickerBtn.classList.add('active-date', 'bg-primary');
-            pickerBtn.classList.remove('bg-light');
-            pickerBtn.querySelector('.day-name').classList.replace('text-primary', 'text-white');
-            pickerBtn.querySelector('.date-num').classList.replace('text-primary', 'text-white');
-            
-            // เปลี่ยนข้อความเป็นวันที่เลือกสั้นๆ (เช่น 15/10)
-            const parts = dateValue.split('-'); 
-            pickerBtn.querySelector('.date-num').innerText = `${parts[2]}/${parts[1]}`;
-        }
+    });
+
+    if (formValues) {
+        selectedLedgerDate = 'range';
+        selectedLedgerRange = formValues;
+        window.generateCalendarStrip(); 
     }
-    
-    window.filterTransactionsByDate();
 };
 
 window.filterTransactionsByDate = function() {
@@ -651,50 +649,51 @@ window.filterTransactionsByDate = function() {
     let totalIn = 0; 
     let totalOut = 0;
 
-    // 🌟 ดึงข้อมูลมาทั้งหมดรวมถึงอันที่ถูก voided เพื่อให้ประวัติคงอยู่
-    const dailyData = ledgerTxCache.filter(d => d.transactionDate === selectedLedgerDate && (d.status === 'อนุมัติแล้ว' || d.status === 'voided'));
+    // 🌟 กรองข้อมูลตามเงื่อนไข (วันเดียว, ทั้งหมด, หรือเป็นช่วงเวลา)
+    const dailyData = ledgerTxCache.filter(d => {
+        const isApprovedOrVoided = (d.status === 'อนุมัติแล้ว' || d.status === 'voided');
+        if (!isApprovedOrVoided) return false;
+
+        if (selectedLedgerDate === 'all') {
+            return true;
+        } else if (selectedLedgerDate === 'range' && selectedLedgerRange) {
+            return d.transactionDate >= selectedLedgerRange.start && d.transactionDate <= selectedLedgerRange.end;
+        } else {
+            return d.transactionDate === selectedLedgerDate;
+        }
+    });
 
     dailyData.forEach(d => {
         const amt = parseFloat(d.amount || 0); 
         const amtStr = amt.toLocaleString('en-US', { minimumFractionDigits: 2 });
-        
         const isTransfer = d.type === 'โอนย้ายสภาพคล่อง';
         const isIncome = d.type.includes('รับ') || d.type === 'สมทบเงินกองทุน';
-        
-        // 🌟 ตรวจสอบว่ารายการนี้ถูกยกเลิกหรือไม่
         const isVoided = d.status === 'voided';
         
-        // 🌟 ถ้าถูกยกเลิก ไม่ต้องเอาไปรวมในยอดสรุปรายวัน
         if (!isVoided && !isTransfer) {
             if(isIncome) totalIn += amt; else totalOut += amt;
         }
 
-        // 🌟 โค้ดสร้างเมนู 3 จุด (โชว์เฉพาะ Admin-Master และรายการที่ยังไม่ถูกยกเลิก)
         const actionMenuHtml = (AdminState.currentAdmin.role === 'Admin-Master' && !isVoided) ? `
             <div class="dropdown ms-2 flex-shrink-0">
                 <button class="btn btn-sm btn-light border-0 text-muted shadow-none rounded-circle" type="button" data-bs-toggle="dropdown" style="width: 30px; height: 30px;">
                     <i class="fa-solid fa-ellipsis-vertical"></i>
                 </button>
                 <ul class="dropdown-menu dropdown-menu-end border-0 shadow-sm rounded-3" style="font-size: 0.8rem; z-index: 1050;">
-                    <li>
-                        <a class="dropdown-item py-2 cursor-pointer" onclick="editTransactionNote('${d.id}', '${d.note || ''}')">
-                            <i class="fa-solid fa-pen text-warning me-2"></i> แก้ไขรายละเอียด
-                        </a>
-                    </li>
+                    <li><a class="dropdown-item py-2 cursor-pointer" onclick="editTransactionNote('${d.id}', '${d.note || ''}')"><i class="fa-solid fa-pen text-warning me-2"></i> แก้ไขรายละเอียด</a></li>
                     <li><hr class="dropdown-divider"></li>
-                    <li>
-                        <a class="dropdown-item text-danger py-2 cursor-pointer" onclick="voidTransaction('${d.id}')">
-                            <i class="fa-solid fa-ban me-2"></i> ยกเลิกรายการ (Void)
-                        </a>
-                    </li>
+                    <li><a class="dropdown-item text-danger py-2 cursor-pointer" onclick="voidTransaction('${d.id}')"><i class="fa-solid fa-ban me-2"></i> ยกเลิกรายการ (Void)</a></li>
                 </ul>
             </div>
         ` : '';
 
-        // 🌟 ตั้งค่าดีไซน์ กรณีถูกยกเลิก (Voided) ให้ดูจางๆ และมีเส้นขีดทับ
         const cardOpacity = isVoided ? 'opacity: 0.5; filter: grayscale(100%);' : '';
         const textDecoration = isVoided ? 'text-decoration: line-through;' : '';
         const voidReasonHtml = isVoided ? `<small class="text-danger d-block mt-1 fw-bold" style="font-size: 0.7rem;"><i class="fa-solid fa-circle-exclamation"></i> ยกเลิก: ${d.voidReason}</small>` : '';
+        
+        // 🌟 แทรกป้ายกำกับวันที่ ถ้ายอดไม่ได้ดูแค่วันเดียว
+        const dateBadge = (selectedLedgerDate === 'all' || selectedLedgerDate === 'range') 
+            ? `<span class="badge bg-secondary bg-opacity-10 text-secondary border me-1" style="font-size: 0.65rem;">${d.transactionDate}</span>` : '';
 
         if (isTransfer) {
             let dirText = "ภายในระบบ";
@@ -708,7 +707,7 @@ window.filterTransactionsByDate = function() {
                             <strong class="text-dark d-block text-truncate" style="font-size: 0.9rem; ${textDecoration}">
                                 <i class="fa-solid fa-arrow-right-arrow-left text-warning me-1"></i> ${d.type}
                             </strong>
-                            <small class="text-dark d-block text-truncate mt-1" style="font-size: 0.75rem; ${textDecoration}">${d.note || d.fullName}</small>
+                            <small class="text-dark d-block text-truncate mt-1" style="font-size: 0.75rem; ${textDecoration}">${dateBadge}${d.note || d.fullName}</small>
                             ${voidReasonHtml}
                         </div>
                         <div class="text-end flex-shrink-0 ms-2" style="${textDecoration}">
@@ -728,7 +727,7 @@ window.filterTransactionsByDate = function() {
                     <div class="d-flex justify-content-between align-items-center">
                         <div style="min-width: 0;" class="flex-grow-1">
                             <strong class="text-dark d-block text-truncate" style="font-size: 0.9rem; ${textDecoration}">${icon} ${d.type}</strong>
-                            <small class="text-muted d-block text-truncate mt-1" style="font-size: 0.75rem; ${textDecoration}">${d.note || d.fullName}</small>
+                            <small class="text-muted d-block text-truncate mt-1" style="font-size: 0.75rem; ${textDecoration}">${dateBadge}${d.note || d.fullName}</small>
                             ${voidReasonHtml}
                         </div>
                         <div class="text-end flex-shrink-0 ms-2" style="${textDecoration}">
@@ -741,16 +740,25 @@ window.filterTransactionsByDate = function() {
         }
     });
 
-    // ส่วนอัปเดตตัวเลขแสดงผลยังคงเหมือนเดิม
+    // 🌟 อัปเดตข้อความบนหัวตาราง
     if (displayDate) {
-        const dParts = selectedLedgerDate.split('-');
-        if(dParts.length === 3) {
-            const thaiMonths = ["ม.ค.", "ก.พ.", "มี.ค.", "เม.ย.", "พ.ค.", "มิ.ย.", "ก.ค.", "ส.ค.", "ก.ย.", "ต.ค.", "พ.ย.", "ธ.ค."];
-            const isToday = selectedLedgerDate === getLocalDateString(new Date());
-            displayDate.innerHTML = isToday ? `ประวัติ <span class="text-dark">วันนี้</span>` : `ประวัติ <span class="text-dark">${parseInt(dParts[2])} ${thaiMonths[parseInt(dParts[1])-1]} ${parseInt(dParts[0].substring(2))+43}</span>`;
+        if (selectedLedgerDate === 'all') {
+            displayDate.innerHTML = `ประวัติ <span class="text-dark">ทั้งหมด</span>`;
+        } else if (selectedLedgerDate === 'range' && selectedLedgerRange) {
+            displayDate.innerHTML = `<span class="text-dark" style="font-size: 0.85rem;">${selectedLedgerRange.start} ถึง ${selectedLedgerRange.end}</span>`;
+            const rangeBtnText = document.getElementById('rangeBtnText');
+            if(rangeBtnText) rangeBtnText.innerText = 'แก้ไขช่วง';
+        } else {
+            const dParts = selectedLedgerDate.split('-');
+            if(dParts.length === 3) {
+                const thaiMonths = ["ม.ค.", "ก.พ.", "มี.ค.", "เม.ย.", "พ.ค.", "มิ.ย.", "ก.ค.", "ส.ค.", "ก.ย.", "ต.ค.", "พ.ย.", "ธ.ค."];
+                const isToday = selectedLedgerDate === getLocalDateString(new Date());
+                displayDate.innerHTML = isToday ? `ประวัติ <span class="text-dark">วันนี้</span>` : `ประวัติ <span class="text-dark">${parseInt(dParts[2])} ${thaiMonths[parseInt(dParts[1])-1]} ${parseInt(dParts[0].substring(2))+43}</span>`;
+            }
         }
     }
 
+    // 🌟 สรุปยอดรวม
     const netTotal = totalIn - totalOut;
     const netTotalEl = document.getElementById('dailyNetTotal');
     if (netTotalEl) {
@@ -763,7 +771,7 @@ window.filterTransactionsByDate = function() {
     document.getElementById('dailyTotalIn').innerText = `฿${totalIn.toLocaleString('en-US', { minimumFractionDigits: 2 })}`;
     document.getElementById('dailyTotalOut').innerText = `฿${totalOut.toLocaleString('en-US', { minimumFractionDigits: 2 })}`;
     
-    container.innerHTML = html || '<div class="text-center text-muted small py-4 bg-light rounded-4 border border-dashed"><i class="fa-solid fa-file-invoice mb-2 fs-3 text-secondary opacity-50 d-block"></i>ไม่มีรายการธุรกรรมในวันที่เลือก</div>';
+    container.innerHTML = html || '<div class="text-center text-muted small py-4 bg-light rounded-4 border border-dashed"><i class="fa-solid fa-file-invoice mb-2 fs-3 text-secondary opacity-50 d-block"></i>ไม่มีรายการธุรกรรมในช่วงเวลาที่เลือก</div>';
 };
 
 window.updatePendingTransactionsList = function() {
@@ -1513,4 +1521,187 @@ window.voidTransaction = async function(txId) {
             Swal.fire('ข้อผิดพลาด', 'ไม่สามารถยกเลิกรายการได้', 'error');
         }
     }
+};
+
+// ============================================================================
+// 📊 ส่วนที่ 7: ระบบรายงานและสถิติ (Historical Reports & Excel Export)
+// ============================================================================
+
+window.openReportModal = async function() {
+    const { value: selectedRange } = await Swal.fire({
+        title: '<div class="text-primary"><i class="fa-solid fa-chart-pie me-2"></i> ออกรายงานและสถิติ</div>',
+        html: `
+            <div class="text-start" style="font-family:'Prompt';">
+                <label class="small fw-bold text-muted mb-2">เลือกช่วงเวลาที่ต้องการดึงข้อมูล</label>
+                <select id="reportRange" class="form-select-modern w-100 mb-3 text-primary fw-bold p-3 border shadow-sm" style="font-size: 1.1rem;">
+                    <option value="1month">1 เดือนย้อนหลัง</option>
+                    <option value="3months">ราย 3 เดือนย้อนหลัง</option>
+                    <option value="6months" selected>ราย 6 เดือนย้อนหลัง</option>
+                    <option value="thisYear">ปีปัจจุบัน (ม.ค. - ปัจจุบัน)</option>
+                    <option value="fiscal">ปีงบประมาณ (ต.ค. - ก.ย.)</option>
+                    <option value="all">ทั้งหมดตั้งแต่เริ่มกองทุน</option>
+                </select>
+                <div class="alert alert-info bg-opacity-10 py-2 small border-0 text-primary">
+                    <i class="fa-solid fa-circle-info me-1"></i> ระบบจะดึงข้อมูลใหม่ทั้งหมด เพื่อความถูกต้องของยอด
+                </div>
+            </div>
+        `,
+        showCancelButton: true,
+        confirmButtonText: '<i class="fa-solid fa-magnifying-glass me-1"></i> ประมวลผลข้อมูล',
+        cancelButtonText: 'ยกเลิก',
+        confirmButtonColor: '#2563EB',
+        preConfirm: () => {
+            return document.getElementById('reportRange').value;
+        }
+    });
+
+    if (selectedRange) {
+        processHistoricalReport(selectedRange);
+    }
+};
+
+window.processHistoricalReport = async function(rangeType) {
+    AppHelper.showLoader(true, "กำลังประมวลผลข้อมูล...");
+
+    try {
+        // 1. คำนวณวันที่ เริ่มต้น - สิ้นสุด
+        const today = new Date();
+        let startDateStr = "";
+        let endDateStr = getLocalDateString(today); // ฟังก์ชันเดิมใน ledger.js
+
+        if (rangeType === '1month') {
+            let d = new Date(); d.setMonth(d.getMonth() - 1); startDateStr = getLocalDateString(d);
+        } else if (rangeType === '3months') {
+            let d = new Date(); d.setMonth(d.getMonth() - 3); startDateStr = getLocalDateString(d);
+        } else if (rangeType === '6months') {
+            let d = new Date(); d.setMonth(d.getMonth() - 6); startDateStr = getLocalDateString(d);
+        } else if (rangeType === 'thisYear') {
+            let d = new Date(today.getFullYear(), 0, 1); startDateStr = getLocalDateString(d);
+        } else if (rangeType === 'fiscal') {
+            let startYear = today.getFullYear();
+            if (today.getMonth() < 9) startYear -= 1; // ถ้า ม.ค.-ก.ย. ให้นับปีงบก่อนหน้า
+            startDateStr = `${startYear}-10-01`;
+        } else if (rangeType === 'all') {
+            startDateStr = "2000-01-01"; 
+        }
+
+        // 2. ดึงข้อมูลจาก Firestore โดยกรองแค่วันที่ (เพื่อเลี่ยงปัญหา Firebase Index)
+        const snap = await db.collection("transactions")
+                             .where("transactionDate", ">=", startDateStr)
+                             .where("transactionDate", "<=", endDateStr)
+                             .get();
+
+        let totalIncome = 0;
+        let totalExpense = 0;
+        let reportData = [];
+
+        snap.forEach(doc => {
+            const d = doc.data();
+            // กรองเอาเฉพาะที่อนุมัติแล้วเท่านั้น (ไม่เอารายการรอตรวจสอบ หรือ voided)
+            if (d.status !== "อนุมัติแล้ว") return;
+
+            const amt = parseFloat(d.amount) || 0;
+            
+            // แยกประเภทการคำนวณ (ไม่นับโอนย้ายภายในระบบ)
+            if (d.type !== 'โอนย้ายสภาพคล่อง') {
+                if (d.type.includes('รับ') || d.type === 'สมทบเงินกองทุน') {
+                    totalIncome += amt;
+                } else if (d.type.includes('จ่าย') || d.type === 'จ่ายสวัสดิการ') {
+                    totalExpense += amt;
+                }
+            }
+            reportData.push({ id: doc.id, ...d });
+        });
+
+        // เรียงลำดับข้อมูลจากเก่าไปใหม่สำหรับลง Excel
+        reportData.sort((a, b) => new Date(a.transactionDate) - new Date(b.transactionDate));
+
+        AppHelper.showLoader(false);
+
+        // 3. แสดงหน้าต่างสรุป พร้อมปุ่มดาวน์โหลด
+        const netAmount = totalIncome - totalExpense;
+        const netColor = netAmount >= 0 ? 'text-success' : 'text-danger';
+
+        Swal.fire({
+            title: 'สรุปรายงานการเงิน',
+            html: `
+                <div class="text-start" style="font-family:'Prompt';">
+                    <div class="d-flex justify-content-between mb-2">
+                        <span class="text-muted small">ตั้งแต่:</span>
+                        <span class="fw-bold">${rangeType === 'all' ? 'เริ่มต้น (ทั้งหมด)' : startDateStr}</span>
+                    </div>
+                    <div class="d-flex justify-content-between mb-3 pb-2 border-bottom">
+                        <span class="text-muted small">ถึงวันที่:</span>
+                        <span class="fw-bold">${endDateStr}</span>
+                    </div>
+
+                    <div class="row g-2 mb-3 text-center">
+                        <div class="col-6">
+                            <div class="p-2 bg-success bg-opacity-10 rounded-3 border border-success border-opacity-25">
+                                <small class="text-success d-block mb-1">รายรับรวม</small>
+                                <strong class="text-success">฿${totalIncome.toLocaleString('en-US', {minimumFractionDigits: 2})}</strong>
+                            </div>
+                        </div>
+                        <div class="col-6">
+                            <div class="p-2 bg-danger bg-opacity-10 rounded-3 border border-danger border-opacity-25">
+                                <small class="text-danger d-block mb-1">รายจ่ายรวม</small>
+                                <strong class="text-danger">฿${totalExpense.toLocaleString('en-US', {minimumFractionDigits: 2})}</strong>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="d-flex justify-content-between align-items-center p-3 bg-light rounded-3 border">
+                        <span class="fw-bold text-dark">ยอดสุทธิ (Net):</span>
+                        <h4 class="${netColor} fw-bold mb-0">฿${netAmount.toLocaleString('en-US', {minimumFractionDigits: 2})}</h4>
+                    </div>
+                    <p class="text-muted small text-center mt-3 mb-0"><i class="fa-solid fa-file-lines me-1"></i> มีการทำธุรกรรมทั้งหมด ${reportData.length} รายการ</p>
+                </div>
+            `,
+            showCancelButton: true,
+            confirmButtonText: '<i class="fa-solid fa-file-excel me-1"></i> ดาวน์โหลด Excel',
+            cancelButtonText: 'ปิดหน้าต่าง',
+            confirmButtonColor: '#10B981',
+        }).then((res) => {
+            if (res.isConfirmed) {
+                exportHistoricalReportToExcel(reportData, startDateStr, endDateStr, rangeType);
+            }
+        });
+
+    } catch (error) {
+        AppHelper.showLoader(false);
+        Swal.fire('ข้อผิดพลาด', 'ไม่สามารถดึงข้อมูลรายงานได้: ' + error.message, 'error');
+    }
+};
+
+window.exportHistoricalReportToExcel = function(data, start, end, rangeType) {
+    AppHelper.showLoader(true, "กำลังสร้างไฟล์ Excel...");
+    
+    if (data.length === 0) {
+        AppHelper.showLoader(false);
+        return Swal.fire('ไม่พบข้อมูล', 'ไม่มีรายการธุรกรรมในช่วงเวลาดังกล่าวให้ส่งออก', 'warning');
+    }
+
+    // สร้าง Header สำหรับไฟล์ CSV
+    let csvContent = "\uFEFFรหัสอ้างอิง (TX),วันที่ทำรายการ,ประเภทธุรกรรม,หมวดหมู่/รายละเอียด,จำนวนเงิน (บาท),ช่องทาง,ชื่อผู้ทำรายการ\n";
+    
+    data.forEach(d => {
+        // จัดการกับข้อความที่มีลูกน้ำ (,) หรือขึ้นบรรทัดใหม่ เพื่อไม่ให้คอลัมน์ใน Excel พัง
+        const safeNote = (d.note || '-').replace(/"/g, '""').replace(/,/g, " ");
+        const safeName = (d.fullName || '-').replace(/"/g, '""').replace(/,/g, " ");
+        
+        csvContent += `"${d.txId||'-'}","${d.transactionDate||'-'}","${d.type||'-'}","${safeNote}","${d.amount||0}","${d.paymentMethod||'-'}","${safeName}"\n`;
+    });
+    
+    // แปลงข้อมูลและสั่งดาวน์โหลด
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' }); 
+    const link = document.createElement("a"); 
+    const url = URL.createObjectURL(blob);
+    
+    link.setAttribute("href", url); 
+    link.setAttribute("download", `CWF_Report_${rangeType}.csv`); 
+    document.body.appendChild(link); 
+    link.click(); 
+    document.body.removeChild(link);
+    
+    AppHelper.showLoader(false);
 };
