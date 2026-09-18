@@ -611,13 +611,16 @@
               </div>
           </div>
 
-          <!-- 📅 2. แถบปฏิทินรายวัน (Calendar Strip) แถวบนสุด -->
+         <!-- 📅 2. แถบปฏิทินรายวัน (Calendar Strip) แถวบนสุด -->
           <div class="mb-3 px-1">
               <div class="d-flex justify-content-between align-items-center mb-2">
                   <h6 class="fw-bold text-dark mb-0"><i class="fa-solid fa-calendar-day text-primary me-2"></i>เลือกวันที่ทำธุรกรรม</h6>
-                  <button class="btn btn-sm btn-outline-success rounded-pill px-3 py-1 shadow-sm d-flex align-items-center" onclick="exportTransactionsToCSV()" title="ส่งออกเป็น Excel">
-                      <i class="fa-solid fa-file-excel me-1"></i> <span class="d-none d-sm-inline">ส่งออก</span>
+                  
+                  <!-- 🌟 เปลี่ยนคำสั่งที่ปุ่มนี้ เป็น openReportModal() -->
+                  <button class="btn btn-sm btn-outline-success rounded-pill px-3 py-1 shadow-sm d-flex align-items-center" onclick="openReportModal()" title="ออกรายงาน Excel">
+                      <i class="fa-solid fa-file-excel me-1"></i> <span class="d-none d-sm-inline">ออกรายงาน</span>
                   </button>
+
               </div>
               <div id="calendarStrip" class="d-flex flex-nowrap overflow-auto gap-2 pb-2 mt-2" style="-webkit-overflow-scrolling: touch; scrollbar-width: none;">
                   <!-- JS จะสร้างปุ่มวันที่ตรงนี้อัตโนมัติ -->
